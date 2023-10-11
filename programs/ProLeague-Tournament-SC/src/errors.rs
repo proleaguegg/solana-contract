@@ -16,11 +16,12 @@ pub enum TournamentError {
     WinnerAlreadyExists,
     #[msg("The round has reached its limit for winners.")]
     RoundWinnerLimitReached,
-    #[error("Match has not been concluded.")]
+    #[msg("Match has not been concluded.")]
     MatchNotConcluded,
-    #[error("Winner not found in this round.")]
+    #[msg("Winner not found in this round.")]
     WinnerNotFound,
-    #[error("Prize has already been claimed by the winner.")]
+    #[msg("Prize has already been claimed by the winner.")]
     AlreadyClaimed,
-    #[error("Winner has won the next round and cannot claim this prize.")]
+    #[msg("Winner has won the next round and cannot claim this prize.")]
     WonNextRound,
+}

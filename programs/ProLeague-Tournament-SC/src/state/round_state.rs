@@ -1,18 +1,4 @@
-use anchor_lang::prelude::*;
-// use std::collections::HashMap;
-
-// Represents a tournament with multiple rounds and associated data.
-#[account]
-pub struct Tournament {
-    pub creator: Pubkey,
-    pub escrow_balance: u64,
-    pub tournament_id: u64,
-    pub joining_fees: u64,
-    pub total_players: u32,
-    pub total_rounds: u32,
-    pub match_concluded: bool,
-    pub rounds: Vec<Round>,
-}
+use {crate::state::Tournament, anchor_lang::prelude::*, std::collections::HashMap};
 
 // Represents a single round in the tournament.
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
