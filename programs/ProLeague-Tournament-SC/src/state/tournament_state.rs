@@ -5,6 +5,7 @@ use super::Round;
 // Represents a tournament with multiple rounds and associated data.
 #[account]
 pub struct Tournament {
+    pub bump: u8,
     pub creator: Pubkey,
     pub escrow_balance: u64,
     pub tournament_id: u64,
@@ -21,6 +22,7 @@ impl Tournament {
     /// Sets default values for a GuildKit.
     pub fn set_defaults(&mut self) {
         self.creator = Pubkey::default();
+        self.bump = 0;
         self.escrow_balance = 0;
         self.tournament_id = 0;
         self.joining_fees = 0;
