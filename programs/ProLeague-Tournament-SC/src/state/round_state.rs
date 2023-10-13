@@ -1,4 +1,4 @@
-use {crate::state::Tournament, anchor_lang::prelude::*, std::collections::HashMap};
+use {anchor_lang::prelude::*, std::collections::HashMap};
 
 // Represents a single round in the tournament.
 #[derive(AnchorSerialize, AnchorDeserialize, Default, Clone)]
@@ -17,28 +17,6 @@ impl Round {
     // Checks if a given winner already exists in the winners_and_collected_status.
     pub fn winner_exists(&self, winner: &Pubkey) -> bool {
         self.winners_and_collected_status.contains_key(winner)
-    }
-
-    // Checks if a given winner can claim their prize.
-    pub fn can_claim_prize(&self, tournament: &Tournament, winner: &Pubkey) -> bool {
-        // Check if the match has concluded
-        if tournament.match_concluded {
-            // Retrieve the status of the provided winner
-            if let Some(winner_status) = self.winners_and_collected_status.get(winner) {
-                // Determine if they can claim the prize based on their status
-                return !winner_status.won_next_round && !winner_status.claimed;
-            }
-        }
-        false
-    }
-
-    // Marks the prize as claimed for a given winner if they exist.
-    pub fn mark_prize_as_claimed(&mut self, winner: &Pubkey) {
-        if self.winners_and_collected_status.contains_key(winner) {
-            if let Some(winner_status) = self.winners_and_collected_status.get_mut(winner) {
-                winner_status.claimed = true;
-            }
-        }
     }
 }
 

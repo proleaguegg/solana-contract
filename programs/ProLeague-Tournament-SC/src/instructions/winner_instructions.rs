@@ -48,3 +48,43 @@ pub fn add_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) ->
 
     Ok(())
 }
+
+#[derive(Accounts)]
+pub struct MarkWinnerWonNextRound<'info> {
+    #[account(mut)]
+    pub tournament: Account<'info, Tournament>,
+    pub authority: Signer<'info>,
+}
+#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
+pub struct MarkWinnerWonNextRoundArgs {
+    winner: Pubkey,
+    round_index: u8,
+}
+
+pub fn mark_winner_won_next_round(
+    ctx: Context<MarkWinnerWonNextRound>,
+    args: MarkWinnerWonNextRoundArgs,
+) -> Result<()> {
+    let tournament = &mut ctx.accounts.tournament;
+    let winner = args.winner;
+    let round_index = args.round_index;
+
+    // Ensure the round exists.
+    if round_index as usize >= tournament.rounds.len() {
+        return Err(TournamentError::InvalidRound.into());
+    }
+
+    let round = &mut tournament.rounds[round_index as usize];
+
+    // Ensure the winner exists for this round.
+    if !round.winner_exists(&winner) {
+        return Err(TournamentError::WinnerNotFound.into());
+    }
+
+    // Update the winner's status to indicate they've won the next round.
+    if let Some(winner_status) = round.winners_and_collected_status.get_mut(&winner) {
+        winner_status.won_next_round = true;
+    }
+
+    Ok(())
+}

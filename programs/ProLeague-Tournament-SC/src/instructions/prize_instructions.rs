@@ -23,6 +23,7 @@ pub fn claim_prize(ctx: Context<ClaimPrize>, args: ClaimPrizeArgs) -> Result<()>
     let tournament = &mut ctx.accounts.tournament;
     let winner = ctx.accounts.winner.key();
     let round_index = args.round_index;
+    
     // Validate if the match has been concluded
     if !tournament.match_concluded {
         return Err(TournamentError::MatchNotConcluded.into());

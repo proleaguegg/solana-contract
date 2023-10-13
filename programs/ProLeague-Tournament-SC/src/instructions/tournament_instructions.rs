@@ -2,6 +2,8 @@ use std::collections::HashMap;
 
 use anchor_lang::system_program::Transfer;
 
+use crate::errors::TournamentError;
+
 use {
     crate::{constant::*, state::*},
     anchor_lang::prelude::*,
@@ -34,9 +36,9 @@ pub struct ArgumentInitialize {
     pub total_players: u32,
     pub total_rounds: u32,
     pub match_concluded: bool,
+    pub round_prizes: Vec<u64>, // Array of integers representing prizes for each round
 }
 pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<()> {
-
     let tournament = &mut ctx.accounts.tournament;
     tournament.set_defaults();
 
@@ -51,13 +53,32 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
 
     tournament.total_rounds = data.total_rounds;
 
+    // Check the escrow_balance and  round_prizes sum
+    let mut total_prize_sum: u64 = 0;
+    
+    // This will give: 1, 1, 2, 4, 8, ... for each round
+    let mut winners_in_current_round = 1; 
+
+    for i in 0..data.round_prizes.len() {
+        total_prize_sum += data.round_prizes[i] * winners_in_current_round;
+        
+        // Double the winners for every round after the first two rounds
+        if i >= 1 {
+            winners_in_current_round *= 2;
+        }
+    }
+
+    if total_prize_sum > data.escrow_balance {
+        return Err(TournamentError::ExceedingEscrowBalance.into());
+    }
+
     // Initialize rounds based on total players
-    let num_rounds = (data.total_players as f64).log2() as u32;
+    let num_rounds = (data.total_players as f64).log2().ceil() as usize;
     tournament.rounds = Vec::with_capacity(num_rounds as usize);
     for i in 0..num_rounds {
         tournament.rounds.push(Round {
             reverse_index: i as u8,
-            winning_price: 0, // Or any default value you want
+            winning_price: data.round_prizes[i as usize], // Or any default value you want
             winners_and_collected_status: HashMap::new(),
         });
     }
@@ -74,11 +95,9 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     anchor_lang::system_program::transfer(cpi_ctx, data.escrow_balance)?;
 
     msg!("Changed data to: {:?}!", data);
+
     Ok(())
 }
-
-
-
 
 #[derive(Accounts)]
 pub struct ConcludeMatch<'info> {
