@@ -1,12 +1,14 @@
 use crate::errors::TournamentError;
 
-use {crate::state::*, anchor_lang::prelude::*};
+use {crate::constant::*, crate::state::*, anchor_lang::prelude::*};
 
 #[derive(Accounts)]
 pub struct AddWinnerToRound<'info> {
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
-    pub authority: Signer<'info>,
+
+    #[account(constraint = driver.key().eq(&DRIVER))]
+    pub driver: Signer<'info>,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
@@ -53,7 +55,9 @@ pub fn add_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) ->
 pub struct MarkWinnerWonNextRound<'info> {
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
-    pub authority: Signer<'info>,
+
+    #[account(constraint = driver.key().eq(&DRIVER))]
+    pub driver: Signer<'info>,
 }
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct MarkWinnerWonNextRoundArgs {

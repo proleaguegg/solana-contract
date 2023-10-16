@@ -1,6 +1,5 @@
 {
     "rust-analyzer.linkedProjects": [
-        ".\\programs\\ProLeague-Tournament-SC\\Cargo.toml",
-        ".\\programs\\ProLeague-Tournament-SC\\Cargo.toml"
+        "./programs/ProLeague-Tournament-SC/Cargo.toml"
     ]
 }
