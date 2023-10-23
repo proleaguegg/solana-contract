@@ -1,134 +1,41 @@
 use anchor_lang::prelude::*;
+// use std::collections::HashMap;
 
+// pub mod accountsInfo;
+// pub mod arguments;
 pub mod constant;
-pub mod states;
 pub mod errors;
+pub mod instructions;
+pub mod state;
 
-use crate::{constant::*, states::*, errors::*};
+// use crate::{accountsInfo::*, arguments::*, errors::*, state::*};
+use instructions::*;
 
 // This is your program's public key and it will update
 // automatically when you build the project.
-declare_id!("4gyGnQe3EH4QsAgubFJJ6sE4hGb1Ck45CYrbbXrQ7zsj");
+declare_id!("FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T");
 
 #[program]
 mod tournament {
 
     use super::*;
-    pub fn initialize(ctx: Context<Initialize>, data: ArguementsInitialize) -> Result<()> {
-        let tournament = &mut ctx.accounts.tournament;
-        tournament.creator = data.creator;
-        tournament.tournament_id = data.tournament_id;
-        tournament.entry_fees = data.entry_fees;
-        tournament.is_closed = false;
-
-        msg!("Changed data to: {:?}!", data); // Message will show up in the tx logs
-        Ok(())
+    pub fn initialize(ctx: Context<Initialize>, args: ArgumentInitialize) -> Result<()> {
+        instructions::initialize(ctx, args)
     }
 
-    pub fn joining(ctx: Context<JoinTournament>, data: ArguementsJoining) -> Result<()> {
-        let tournament = &mut ctx.accounts.tournament;
-        // let mut participation: Vec<Participations> = tournament.participations.clone();
-
-        let fee = tournament.entry_fees;
-
-        let _transfer_authority: AccountInfo = ctx.accounts.authority.to_account_info().clone();
-
-        // Check if the team has already joined
-        for p in &tournament.participations {
-            if p.team_id == data.team_id {
-                return Err(TournamentError::TeamAlreadyJoined.into());
-            }
-        }
-
-        anchor_lang::solana_program::program::invoke(
-            &anchor_lang::solana_program::system_instruction::transfer(ctx.accounts.authority.key, ctx.accounts.vault.key, fee),
-            &[ctx.accounts.authority.to_account_info(), ctx.accounts.vault.to_account_info(), ctx.accounts.system_program.to_account_info()],
-        )?;
-
-         // Add the new team
-        tournament.participations.push(Participations {
-            team_id: data.team_id,
-        });
-
-        // participation.push(Participations { team_id: (data.team_id) });
-
-        Ok(())
+    pub fn add_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) -> Result<()> {
+        instructions::add_winner(ctx, args)
     }
 
-    pub fn funds(ctx: Context<FundTournament>, data: ArguementsFund) -> Result<()> {
-        let fee = data.amount;
-
-        let _transfer_authority: AccountInfo = ctx.accounts.authority.to_account_info().clone();
-
-
-        anchor_lang::solana_program::program::invoke(
-            &anchor_lang::solana_program::system_instruction::transfer(ctx.accounts.authority.key, ctx.accounts.vault.key, fee),
-            &[ctx.accounts.authority.to_account_info(), ctx.accounts.vault.to_account_info(), ctx.accounts.system_program.to_account_info()],
-        )?;
-
-        Ok(())
+    pub fn mark_winner_won_next_round(ctx: Context<MarkWinnerWonNextRound>, args: MarkWinnerWonNextRoundArgs) -> Result<()> {
+        instructions::mark_winner_won_next_round(ctx, args)
     }
 
+    pub fn conclude_match(ctx: Context<ConcludeMatch>) -> Result<()> {
+        instructions::conclude_match(ctx)
     }
 
-#[derive(Accounts)]
-#[instruction(data: ArguementsInitialize)]
-pub struct Initialize<'info> {
-    #[account(mut)]
-    pub authority: Signer<'info>,
-
-    #[account(init, seeds = [TOURNAMENT_TAG.as_ref(), &data.tournament_id.to_le_bytes()[..]], bump, payer = authority, space = 8 + std::mem::size_of::<Tournament>())]
-    pub tournament: Account<'info, Tournament>,
-
-    pub system_program: Program<'info, System>,
+    pub fn claim_prize(ctx: Context<ClaimPrize>, args: ClaimPrizeArgs) -> Result<()> {
+        instructions::claim_prize(ctx, args)
+    }
 }
-
-#[derive(Accounts)]
-pub struct JoinTournament<'info>{
-    #[account(mut)]
-    pub authority: Signer<'info>,
-
-    #[account(mut, seeds = [TOURNAMENT_TAG.as_ref(), &tournament.tournament_id.to_le_bytes()[..]], bump)]
-    pub tournament: Account<'info, Tournament>,
-
-     /// CHECK: This is not dangerous because we don't read or write from this account   
-    #[account(mut, seeds = [VAULT_TAG.as_ref(), tournament.key().as_ref()], bump)]
-    pub vault: AccountInfo<'info>,
-
-    pub system_program: Program<'info, System>,
-}
-
-#[derive(Accounts)]
-pub struct FundTournament<'info>{
-    #[account(mut)]
-    pub authority: Signer<'info>,
-
-    #[account(mut, seeds = [TOURNAMENT_TAG.as_ref(), &tournament.tournament_id.to_le_bytes()[..]], bump)]
-    pub tournament: Account<'info, Tournament>,
-
-     /// CHECK: This is not dangerous because we don't read or write from this account   
-    #[account(mut, seeds = [VAULT_TAG.as_ref(), tournament.key().as_ref()], bump)]
-    pub vault: AccountInfo<'info>,
-
-    pub system_program: Program<'info, System>,
-}
-
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
-pub struct ArguementsInitialize {
-    pub entry_fees: u64,
-    pub tournament_id: u64,
-    pub creator: Pubkey,
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
-pub struct ArguementsJoining {
-   pub team_id: u64
-}
-
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
-pub struct ArguementsFund {
-   pub amount: u64
-}
-
-

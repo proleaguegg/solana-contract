@@ -1,7 +1,10 @@
-
+.env
 .anchor
 .DS_Store
 target
 **/*.rs.bk
 node_modules
 test-ledger
+keyPairDriver.json
+key.json
+account.json
