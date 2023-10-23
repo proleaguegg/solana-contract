@@ -6,3 +6,5 @@ target
 node_modules
 test-ledger
 keyPairDriver.json
+key.json
+account.json

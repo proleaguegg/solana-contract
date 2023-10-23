@@ -60,7 +60,7 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     tournament.set_defaults();
 
     // Update tournament details
-    tournament.bump = ctx.bumps["tournament"];
+    tournament.bump = ctx.bumps.tournament;
     tournament.creator = data.creator;
     tournament.tournament_id = data.tournament_id;
     tournament.joining_fees = 0;
