@@ -1,0 +1,25 @@
+name: Yarn Install and Build
+
+runs:
+  using: composite
+  steps:
+    - name: node
+      uses: actions/setup-node@v3
+      with:
+        node-version: 16
+        registry-url: https://registry.npmjs.org/
+
+    - name: Install modules
+      run: yarn install --immutable
+      working-directory: ${{ inputs.working_dir }}
+      shell: bash
+
+    - name: Compile TypeScript
+      run: yarn compile
+      working-directory: ${{ inputs.working_dir }}
+      shell: bash
+
+    - name: Publish all packages
+      run: yarn run publish
+      working-directory: ${{ inputs.working_dir }}
+      shell: bash

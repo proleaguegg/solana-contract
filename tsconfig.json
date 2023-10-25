@@ -1,10 +1,30 @@
 {
   "compilerOptions": {
-    "types": ["mocha", "chai", "node"],
-    "typeRoots": ["./node_modules/@types"],
-    "lib": ["es2015"],
+    "outDir": "./dist",
+    "target": "ES2018",
     "module": "commonjs",
-    "target": "es6",
-    "esModuleInterop": true
-  }
+    "sourceMap": true,
+    "declaration": true,
+    "declarationMap": false,
+    "removeComments": false,
+    "moduleResolution": "node",
+    "noEmit": false,
+    "preserveWatchOutput": true,
+    "emitDeclarationOnly": false,
+    "importHelpers": false,
+    "strict": false,
+    "noUnusedLocals": false,
+    "noFallthroughCasesInSwitch": true,
+    "downlevelIteration": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "incremental": false,
+    "resolveJsonModule": true,
+    "skipLibCheck": true,
+    "useUnknownInCatchVariables": false,
+    "noUnusedParameters": false,
+    "rootDir": "js"
+  },
+  "include": ["js", "js/**/*.json"],
+  "exclude": ["node_modules", "dist", "build", "lib"]
 }
