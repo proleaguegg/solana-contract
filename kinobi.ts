@@ -23,7 +23,7 @@ const idlModifier = (idl) => {
 };
 
 // Paths.
-const clientDir = path.join(__dirname, "clients");
+const clientDir = path.join(__dirname);
 const idlDir = path.join(__dirname, "./target/idl");
 const idlPath = path.join(idlDir, "tournament.json");
 
@@ -73,16 +73,16 @@ kinobi.update(
 //   },
 // }
 // Render JavaScript.
-const jsDir = path.join(clientDir, "js", "src", "generated");
-const prettier = require(path.join(clientDir, "js", ".prettierrc.json"));
+const jsDir = path.join(clientDir, "js", "generated");
+// const prettier = require(path.join(clientDir, "js", ".prettierrc.json"));
 
 kinobi.accept(
   new k.RenderJavaScriptVisitor(jsDir, {
-    prettierOptions: prettier,
-    formatCode: true,
-    dependencyMap: {
-      mplTokenMetadata: "@metaplex-foundation/mpl-token-metadata",
-    },
+    // prettierOptions: prettier,
+    // formatCode: true,
+    // dependencyMap: {
+    //   mplTokenMetadata: "@metaplex-foundation/mpl-token-metadata",
+    // },
   })
 );
 

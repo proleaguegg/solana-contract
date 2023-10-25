@@ -1,0 +1,16 @@
+name: Publish SDKs
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  install-and-build-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - uses: ./.github/actions/publish-sdk
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_AUTH_TOKEN }}

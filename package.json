@@ -5,11 +5,14 @@
     "generateSplToken": "ts-node tests/create-spl-token.ts",
     "test": "ts-mocha tests/ProLeague-Tournament-SC.ts",
     "compile": "tsc",
-    "generate:clients": "ts-node ./kinobi.ts"
+    "generate:clients": "ts-node ./kinobi.ts",
+    "build":"yarn generate:clients && yarn compile",
+    "publish": "node ./scripts/publish.js"
   },
   "dependencies": {
     "@metaplex-foundation/kinobi": "^0.16.1",
     "@metaplex-foundation/mpl-token-metadata": "^3.1.0",
+    "@metaplex-foundation/umi": "^0.8.9",
     "@project-serum/anchor": "^0.25.0",
     "@solana/spl-token": "^0.3.8",
     "@solana/web3.js": "^1.87.1",
