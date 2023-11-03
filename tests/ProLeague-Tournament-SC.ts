@@ -1,235 +1,159 @@
-import * as anchor from "@project-serum/anchor";
-// import driverKeyPair from "../keyPairDriver.json";
-import { Tournament, IDL } from "../target/types/tournament";
-import {
-  ASSOCIATED_TOKEN_PROGRAM_ID,
-  getOrCreateAssociatedTokenAccount,
-} from "@solana/spl-token";
-import { PublicKey, Keypair, SystemProgram, Connection } from "@solana/web3.js";
 import base58 from "bs58";
-import { describe, it } from "mocha";
+import dotenv from "dotenv";
+import {
+  publicKey,
+  sol,
+  createNoopSigner,
+  createBigInt,
+  keypairIdentity,
+  createSignerFromKeypair,
+} from "@metaplex-foundation/umi";
+import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
+import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
+import { tournamentProgram } from "./plugin";
+import {
+  addWinner,
+  claimPrize,
+  concludeMatch,
+  findTournamentPda,
+  initialize,
+  markWinnerWonNextRound,
+} from "../js";
 
-describe("ProLeague-Tournament-SC", () => {
-  const connection = new Connection(
-    "https://devnet.helius-rpc.com/?api-key=7050a011-776f-432b-8b0e-a4e490ec6c9f"
+dotenv.config();
+
+// Tournament Test
+describe("ProLeague-Tournament-SC", async () => {
+  const deventRpc =
+    "https://devnet.helius-rpc.com/?api-key=7050a011-776f-432b-8b0e-a4e490ec6c9f";
+  // Connection with the network
+  const umi = BaseCreateUmi(deventRpc)
+    .use(tournamentProgram())
+    .use(web3JsRpc(deventRpc));
+  const tournamentId = Math.ceil(Math.random() * 100) + 1;
+  const tournament = findTournamentPda(umi, {
+    tournamentId: tournamentId,
+  })
+  // Environment variables
+  const mintToken = publicKey(process.env.MINT_TOKEN || "");
+  const programId = publicKey(process.env.PROGRAM_ID || "");
+
+  // Accounts
+  const creator = umi.eddsa.createKeypairFromSecretKey(
+    new Uint8Array(base58.decode(process.env.CREATOR_ACCOUNT || ""))
   );
-  const programId = "FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T";
+  const creatorSigner = createSignerFromKeypair(umi, creator);
 
-  const base58FromSecret =
-    "4Htb9vQjavu5PkRAKVfAqesADuVFAUBLYiLpfhWgBiorrDxjtFo1ytskPdxNDmXbB4wzf6ueumkJLxMtsMXgy286Q2xqPtodqye9SZEw5XS9gd5qnaNSRPMkETLKBHJtx6dtaSoPSPfBaWB34ZCjRyyd7tbjKHovd9dFRKgPNb1zPRK3Gj89GqHpkzYBWXnNkJSdmH3AKDwTpP3oxMgaeErcqUuh37GjBLWTB7k5NmUuzsdR7vEjrDNquQuMhi6ujCkAXHhW9ibc2udt6JFwhAEVpqKEMWtM3R8njfWxM7J2Ttp84gK4jAQ8GPj7mbrJYSm5EudSu5TejVj476V21nkxqLev7d8NQN6oEEoS66sQ46YnHCNMmViAmDJQjzd7RWRnKxEfbfPaJRr9u4cjX4zZACqRitjTRvVNULPwbt6M2Uda";
-  const mintToken = new PublicKey(
-    "EyNmZzNfYDB4GGhopqaUHLWCTtZkXKNYfcXN2oBxzkwi"
+  const driver = umi.eddsa.createKeypairFromSecretKey(
+    new Uint8Array(base58.decode(process.env.DRIVER_ACCOUNT || ""))
   );
+  const driverSigner = createSignerFromKeypair(umi, driver);
+  // console.log("umi=>",umi,"mintToken=>",mintToken,"programId=>",programId,"driver=>",driver,"creator=>",creator);
 
-  const driver = Keypair.fromSecretKey(
-    new Uint8Array([
-      78, 78, 141, 11, 167, 244, 85, 212, 213, 103, 139, 78, 171, 108, 197, 239,
-      218, 106, 127, 30, 56, 34, 62, 21, 155, 160, 114, 9, 133, 14, 200, 252,
-      37, 43, 1, 88, 216, 235, 8, 96, 79, 229, 37, 2, 25, 7, 252, 145, 175, 155,
-      136, 157, 135, 213, 188, 211, 81, 251, 74, 161, 27, 2, 82, 90,
-    ])
-  );
+  // Get the Balance of the existing and new created accounts
+  it.skip("GetBalance", async (done) => {
+    const creatorBalance = await umi.rpc.getBalance(creator.publicKey);
+    const driverBalance = await umi.rpc.getBalance(driver.publicKey);
 
-  // const mintToken = Keypair.fromSecretKey(base58.decode(base58MintToken));
-  const creator = Keypair.generate();
-  //   const user = Keypair.generate();
-  const driverWallet = new anchor.Wallet(
-    Keypair.fromSecretKey(
-      new Uint8Array([
-        78, 78, 141, 11, 167, 244, 85, 212, 213, 103, 139, 78, 171, 108, 197,
-        239, 218, 106, 127, 30, 56, 34, 62, 21, 155, 160, 114, 9, 133, 14, 200,
-        252, 37, 43, 1, 88, 216, 235, 8, 96, 79, 229, 37, 2, 25, 7, 252, 145,
-        175, 155, 136, 157, 135, 213, 188, 211, 81, 251, 74, 161, 27, 2, 82, 90,
-      ])
-    )
-  );
-
-  const provider = new anchor.AnchorProvider(connection, driverWallet, {
-    commitment: "processed",
+    console.log({ driverBalance }, { creatorBalance });
+    console.log("Get Balance success");
+    done();
   });
 
-  const program = new anchor.Program<any>(
-    IDL,
-    new PublicKey(programId),
-    provider
-  );
+  // Airdrop for sol
+  it.skip("Airdrop", async (done) => {
+    const amount = sol(1.5);
+    const creatorTx = await umi.rpc.airdrop(creator.publicKey, amount);
+    const driverTx = await umi.rpc.airdrop(driver.publicKey, amount);
 
-  const tournamentNumber = 5;
-
-  it("Airdrop", async () => {
-    const tx = await program.provider.connection.requestAirdrop(
-      creator.publicKey,
-      100000000
-    );
-    const driverTx = await program.provider.connection.requestAirdrop(
-      creator.publicKey,
-      100000000
-    );
-    // const usertx = await program.provider.connection.requestAirdrop(
-    //   user.publicKey,
-    //   100000000
-    // );
- 
-    await program.provider.connection.confirmTransaction(tx);
-    await program.provider.connection.confirmTransaction(driverTx);
-    // await program.provider.connection.confirmTransaction(usertx);
+    console.log({ creatorTx }, { driverTx });
     console.log("airdrop success");
+    done();
   });
 
-  it("Is initialized!", async () => {
-    if (!program.provider.publicKey) return;
+  // Initialize Tournament
+  it("Is initialized!", async (done) => {
+    try {
+    
+      umi.use(keypairIdentity(creatorSigner));
 
-    const tournamentId = new anchor.BN(tournamentNumber);
-    const tournamentIdBuffer = Buffer.alloc(8);
-    tournamentIdBuffer.writeBigUint64LE(BigInt(tournamentNumber));
 
-    const [tournament] = PublicKey.findProgramAddressSync(
-      [Buffer.from("TOURNAMENT_STATE"), tournamentIdBuffer],
-      program.programId
-    );
-
-    const tournamentTokenAccount = await getOrCreateAssociatedTokenAccount(
-      connection,
-      creator,
-      mintToken,
-      tournament
-    );
-    const creatorTokenAccount = await getOrCreateAssociatedTokenAccount(
-      connection,
-      creator,
-      mintToken,
-      creator.publicKey
-    );
-
-    const tx = await program.methods
-      .initialize({
-        creator: creator.publicKey,
-        tournamentId,
-        joiningFees: new anchor.BN(2000000),
-        totalPlayers: 4,
-        totalRounds: 2,
-        matchConcluded: false,
-        roundPrizes: [new anchor.BN(50000), new anchor.BN(100000)],
-      })
-      .accounts({
-        creator: creator.publicKey,
-        tournament,
-        tournamentTokenAccount: tournamentTokenAccount.address,
-        creatorTokenAccount: creatorTokenAccount.address,
-        mint: mintToken,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        tokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([creator])
-      .rpc();
-
-    console.log("Transaction Signature for Initialization", tx);
+      const tx = await initialize(
+        umi,
+        {
+          creator: creatorSigner,
+          tournament
+        },
+        {
+          creator: creator.publicKey,
+          tournamentId,
+          joiningFees: createBigInt(0),
+          totalPlayers: 4,
+          totalRounds: 2,
+          matchConcluded: false,
+          roundPrizes: [createBigInt(50000), createBigInt(100000)],
+        }
+      ).sendAndConfirm(umi, {
+        send: {
+          preflightCommitment: "processed",
+        },
+        confirm: {
+          commitment: "processed",
+        },
+      });
+      console.log(
+        "Transaction Signature for Initialization",
+        JSON.stringify(tx)
+      );
+      done();
+    } catch (error) {
+      console.log("Initialize Error", error);
+    }
   });
 
-  // ... [Other provided test cases] ...
-
-  it.skip("addWinner", async () => {
-    const tournamentIdBuffer = Buffer.alloc(8);
-    tournamentIdBuffer.writeBigUint64LE(BigInt(tournamentNumber));
-
-    const [tournament] = PublicKey.findProgramAddressSync(
-      [Buffer.from("TOURNAMENT_STATE"), tournamentIdBuffer],
-      program.programId
-    );
-
-    const tx = await program.methods
-      .addWinner({
-        winner: driver.publicKey,
-        roundIndex: 1,
-      })
-      .accounts({
-        tournament,
-        driver: driver.publicKey,
-      })
-      .signers([driver])
-      .rpc();
-
+  it.skip("addWinner", async (done) => {
+    const tx = addWinner(umi, {
+      tournament,
+      driver: createNoopSigner(driver.publicKey),
+      winner: driver.publicKey,
+      roundIndex: 1,
+    });
     console.log("Transaction Signature for adding Winner", tx);
+    done();
   });
 
-  it.skip("markWinnerWonNextRound", async () => {
-    const tournamentIdBuffer = Buffer.alloc(8);
-    tournamentIdBuffer.writeBigUint64LE(BigInt(tournamentNumber));
-
-    const [tournament] = PublicKey.findProgramAddressSync(
-      [Buffer.from("TOURNAMENT_STATE"), tournamentIdBuffer],
-      program.programId
-    );
-
-    const tx = await program.methods
-      .markWinnerWonNextRound({
-        winner: driver.publicKey,
-        roundIndex: 1,
-      })
-      .accounts({
-        tournament,
-        driver: driver.publicKey,
-      })
-      .signers([driver])
-      .rpc();
-
+  it.skip("markWinnerWonNextRound", async (done) => {
+    const tx = markWinnerWonNextRound(umi, {
+      tournament,
+      driver: createNoopSigner(driver.publicKey),
+      winner: driver.publicKey,
+      roundIndex: 1,
+    });
     console.log("Transaction Signature for marking winner for next round", tx);
+    done();
   });
 
-  it.skip("concludeMatch", async () => {
-    const tournamentIdBuffer = Buffer.alloc(8);
-    tournamentIdBuffer.writeBigUint64LE(BigInt(tournamentNumber));
-
-    const [tournament] = PublicKey.findProgramAddressSync(
-      [Buffer.from("TOURNAMENT_STATE"), tournamentIdBuffer],
-      program.programId
-    );
-
-    const tx = await program.methods
-      .concludeMatch()
-      .accounts({
-        tournament,
-        creator: creator.publicKey,
-      })
-      .signers([creator])
-      .rpc();
+  it.skip("concludeMatch", async (done) => {
+    const tx = concludeMatch(umi, {
+      tournament,
+      creator: createNoopSigner(creator.publicKey),
+    });
 
     console.log("Transaction Signature for concluding match", tx);
+    done();
   });
 
-  it.skip("claimPrize", async () => {
-    const tournamentIdBuffer = Buffer.alloc(8);
-    tournamentIdBuffer.writeBigUint64LE(BigInt(tournamentNumber));
+  it.skip("claimPrize", async (done) => {
 
-    const [tournament] = PublicKey.findProgramAddressSync(
-      [Buffer.from("TOURNAMENT_STATE"), tournamentIdBuffer],
-      program.programId
-    );
 
-    const tournamentTokenAccount = await getOrCreateAssociatedTokenAccount(
-      connection,
-      creator,
-      mintToken,
-      tournament
-    );
 
-    const tx = await program.methods
-      .claimPrize({
-        roundIndex: 1,
-      })
-      .accounts({
-        tournament,
-        winner: driver.publicKey,
-        tournamentTokenAccount: tournamentTokenAccount.address,
-        mint: mintToken,
-        associatedTokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        tokenProgram: ASSOCIATED_TOKEN_PROGRAM_ID,
-        systemProgram: SystemProgram.programId,
-      })
-      .signers([driver])
-      .rpc();
+    const tx = claimPrize(umi, {
+      roundIndex: 1,
+      tournament,
+      winner: createNoopSigner(driver.publicKey),
+    });
 
     console.log("Transaction Signature for claiming prize", tx);
+    done();
   });
 });

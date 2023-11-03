@@ -6,12 +6,14 @@
  * @see https://github.com/metaplex-foundation/kinobi
  */
 
+import { findAssociatedTokenPda } from '@metaplex-foundation/mpl-toolbox';
 import {
   Context,
   Pda,
   PublicKey,
   Signer,
   TransactionBuilder,
+  publicKey,
   transactionBuilder,
 } from '@metaplex-foundation/umi';
 import {
@@ -29,6 +31,7 @@ import { findTournamentPda } from '../accounts';
 import {
   ResolvedAccount,
   ResolvedAccountsWithIndices,
+  expectPublicKey,
   expectSome,
   getAccountMetasAndSigners,
 } from '../shared';
@@ -37,10 +40,10 @@ import {
 export type InitializeInstructionAccounts = {
   creator: Signer;
   tournament?: PublicKey | Pda;
-  tournamentTokenAccount: PublicKey | Pda;
-  creatorTokenAccount: PublicKey | Pda;
-  mint: PublicKey | Pda;
-  associatedTokenProgram: PublicKey | Pda;
+  tournamentTokenAccount?: PublicKey | Pda;
+  creatorTokenAccount?: PublicKey | Pda;
+  mint?: PublicKey | Pda;
+  associatedTokenProgram?: PublicKey | Pda;
   tokenProgram?: PublicKey | Pda;
   systemProgram?: PublicKey | Pda;
 };
@@ -155,6 +158,37 @@ export function initialize(
     resolvedAccounts.tournament.value = findTournamentPda(context, {
       tournamentId: expectSome(resolvedArgs.tournamentId),
     });
+  }
+  if (!resolvedAccounts.mint.value) {
+    resolvedAccounts.mint.value = publicKey(
+      'EyNmZzNfYDB4GGhopqaUHLWCTtZkXKNYfcXN2oBxzkwi'
+    );
+  }
+  if (!resolvedAccounts.tournamentTokenAccount.value) {
+    resolvedAccounts.tournamentTokenAccount.value = findAssociatedTokenPda(
+      context,
+      {
+        mint: expectPublicKey(resolvedAccounts.mint.value),
+        owner: expectPublicKey(resolvedAccounts.tournament.value),
+      }
+    );
+  }
+  if (!resolvedAccounts.creatorTokenAccount.value) {
+    resolvedAccounts.creatorTokenAccount.value = findAssociatedTokenPda(
+      context,
+      {
+        mint: expectPublicKey(resolvedAccounts.mint.value),
+        owner: expectPublicKey(resolvedAccounts.creator.value),
+      }
+    );
+  }
+  if (!resolvedAccounts.associatedTokenProgram.value) {
+    resolvedAccounts.associatedTokenProgram.value =
+      context.programs.getPublicKey(
+        'associatedTokenProgram',
+        'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'
+      );
+    resolvedAccounts.associatedTokenProgram.isWritable = false;
   }
   if (!resolvedAccounts.tokenProgram.value) {
     resolvedAccounts.tokenProgram.value = context.programs.getPublicKey(

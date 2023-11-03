@@ -1,6 +1,7 @@
 import path from "path";
 import fs from "fs";
 import * as k from "@metaplex-foundation/kinobi";
+import { ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 const idlModifier = (idl) => {
   idl.types = idl.types.map((account) => {
@@ -59,17 +60,60 @@ kinobi.update(
       ignoreIfOptional: true,
       ...k.pdaDefault("tournament"),
     },
+    {
+      account: "tournamentTokenAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("associatedToken", {
+        importFrom: "mplToolbox",
+        seeds: {
+          mint: k.accountDefault("mint"),
+          owner: k.accountDefault("tournament"),
+        },
+      }),
+    },
+    {
+      account: "creatorTokenAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("associatedToken", {
+        importFrom: "mplToolbox",
+        seeds: {
+          mint: k.accountDefault("mint"),
+          owner: k.accountDefault("creator"),
+        },
+      }),
+    },
+    {
+      account: "winnerTokenAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("associatedToken", {
+        importFrom: "mplToolbox",
+        seeds: {
+          mint: k.accountDefault("mint"),
+          owner: k.accountDefault("winner"),
+        },
+      }),
+    },
+    {
+      account: "associatedTokenProgram",
+      ignoreIfOptional: true,
+      ...k.programDefault("associatedTokenProgram", ASSOCIATED_TOKEN_PROGRAM_ID.toString()),
+    },
+    {
+      account: "mint",
+      ignoreIfOptional: true,
+      ...k.publicKeyDefault("EyNmZzNfYDB4GGhopqaUHLWCTtZkXKNYfcXN2oBxzkwi"),
+    },
   ])
 );
-//   {
-//   initialize: {
-//     accounts: {
-//       tournament: {
-//         defaultsTo: k.resolverDefault("tournament", [
-//           k.dependsOnArg("tournament_id"),
-//         ]),
-//       },
+// {
+// initialize: {
+//   accounts: {
+//     tournament: {
+//       defaultsTo: k.resolverDefault("tournament", [
+//         k.dependsOnArg("tournament_id"),
+//       ]),
 //     },
+//   },
 //   },
 // }
 // Render JavaScript.

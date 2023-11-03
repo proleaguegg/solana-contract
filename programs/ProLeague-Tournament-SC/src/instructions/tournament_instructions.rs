@@ -17,7 +17,7 @@ pub struct Initialize<'info> {
     pub creator: Signer<'info>,
     #[account(
         init,
-        seeds = [TOURNAMENT_TAG.as_ref(), &data.tournament_id.to_le_bytes()[..]],
+        seeds = [TOURNAMENT_TAG.as_ref(), data.tournament_id.to_le_bytes().as_ref()],
         bump,
         payer = creator,
         space = Tournament::LEN,
@@ -47,8 +47,7 @@ pub struct ArgumentInitialize {
     pub creator: Pubkey,
     pub tournament_id: u64,
     pub joining_fees: u64,
-    pub total_players: u32,
-    pub total_rounds: u32,
+    pub total_players: u16,
     pub match_concluded: bool,
     pub round_prizes: Vec<u64>, // Array of integers representing prizes for each round
 }
@@ -63,14 +62,15 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     tournament.bump = ctx.bumps.tournament;
     tournament.creator = data.creator;
     tournament.tournament_id = data.tournament_id;
-    tournament.joining_fees = 0;
+    tournament.joining_fees = data.joining_fees;
     tournament.total_players = data.total_players;
     tournament.match_concluded = false;
 
-    tournament.total_rounds = data.total_rounds;
+    tournament.total_rounds = (tournament.total_players as f32).log2() as u16;
 
     // Check the escrow_balance and  round_prizes sum
     let mut total_prize_sum: u64 = 0;
+    let total_fee: u64 = tournament.joining_fees * (tournament.total_players as u64);
 
     // This will give: 1, 1, 2, 4, 8, ... for each round
     let mut winners_in_current_round = 1;
@@ -96,17 +96,18 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     }
 
     msg!("Tournament Initialized with data: {:?}!", data);
-
-    // Transfer the escrow balance from the creator to the new account (vault)
-    let cpi_ctx = CpiContext::new(
-        ctx.accounts.token_program.to_account_info().clone(),
-        Transfer {
-            from: creator_token_account.to_account_info().clone(),
-            to: tournament_token_account.to_account_info().clone(),
-            authority: creator.to_account_info().clone(),
-        },
-    );
-    anchor_spl::token::transfer(cpi_ctx, total_prize_sum)?;
+    if total_fee < total_prize_sum {
+        // Transfer the escrow balance from the creator to the new account (vault)
+        let cpi_ctx = CpiContext::new(
+            ctx.accounts.token_program.to_account_info().clone(),
+            Transfer {
+                from: creator_token_account.to_account_info().clone(),
+                to: tournament_token_account.to_account_info().clone(),
+                authority: creator.to_account_info().clone(),
+            },
+        );
+        anchor_spl::token::transfer(cpi_ctx,  total_prize_sum - total_fee)?;
+    }
 
     msg!("Changed data to: {:?}!", data);
 

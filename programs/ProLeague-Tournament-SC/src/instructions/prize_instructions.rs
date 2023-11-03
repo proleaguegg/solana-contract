@@ -23,7 +23,7 @@ pub struct ClaimPrize<'info> {
         init_if_needed,
         payer = winner,
         associated_token::mint = mint,
-        associated_token::authority = tournament,
+        associated_token::authority = winner,
         constraint = winner_token_account.mint == mint.key() && winner_token_account.owner == winner.key(),
     )]
     pub winner_token_account: Account<'info, TokenAccount>,

@@ -9,8 +9,8 @@ pub struct Tournament {
     pub creator: Pubkey,
     pub tournament_id: u64,
     pub joining_fees: u64,
-    pub total_players: u32,
-    pub total_rounds: u32,
+    pub total_players: u16,
+    pub total_rounds: u16,
     pub match_concluded: bool,
     pub rounds: Vec<Round>,
 }
