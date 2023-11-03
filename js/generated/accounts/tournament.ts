@@ -27,7 +27,7 @@ import {
   publicKey as publicKeySerializer,
   string,
   struct,
-  u32,
+  u16,
   u64,
   u8,
 } from '@metaplex-foundation/umi/serializers';
@@ -70,8 +70,8 @@ export function getTournamentAccountDataSerializer(): Serializer<
         ['creator', publicKeySerializer()],
         ['tournamentId', u64()],
         ['joiningFees', u64()],
-        ['totalPlayers', u32()],
-        ['totalRounds', u32()],
+        ['totalPlayers', u16()],
+        ['totalRounds', u16()],
         ['matchConcluded', bool()],
         ['rounds', array(getRoundSerializer())],
       ],
@@ -166,10 +166,10 @@ export function getTournamentGpaBuilder(
       creator: [9, publicKeySerializer()],
       tournamentId: [41, u64()],
       joiningFees: [49, u64()],
-      totalPlayers: [57, u32()],
-      totalRounds: [61, u32()],
-      matchConcluded: [65, bool()],
-      rounds: [66, array(getRoundSerializer())],
+      totalPlayers: [57, u16()],
+      totalRounds: [59, u16()],
+      matchConcluded: [61, bool()],
+      rounds: [62, array(getRoundSerializer())],
     })
     .deserializeUsing<Tournament>((account) => deserializeTournament(account))
     .whereField('discriminator', [175, 139, 119, 242, 115, 194, 57, 92]);

@@ -23,7 +23,7 @@ import {
   mapSerializer,
   publicKey as publicKeySerializer,
   struct,
-  u32,
+  u16,
   u64,
   u8,
 } from '@metaplex-foundation/umi/serializers';
@@ -55,7 +55,6 @@ export type InitializeInstructionData = {
   tournamentId: bigint;
   joiningFees: bigint;
   totalPlayers: number;
-  totalRounds: number;
   matchConcluded: boolean;
   roundPrizes: Array<bigint>;
 };
@@ -65,7 +64,6 @@ export type InitializeInstructionDataArgs = {
   tournamentId: number | bigint;
   joiningFees: number | bigint;
   totalPlayers: number;
-  totalRounds: number;
   matchConcluded: boolean;
   roundPrizes: Array<number | bigint>;
 };
@@ -85,8 +83,7 @@ export function getInitializeInstructionDataSerializer(): Serializer<
         ['creator', publicKeySerializer()],
         ['tournamentId', u64()],
         ['joiningFees', u64()],
-        ['totalPlayers', u32()],
-        ['totalRounds', u32()],
+        ['totalPlayers', u16()],
         ['matchConcluded', bool()],
         ['roundPrizes', array(u64())],
       ],
