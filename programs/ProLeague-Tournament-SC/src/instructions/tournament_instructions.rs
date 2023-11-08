@@ -6,7 +6,7 @@ use anchor_spl::{
 };
 
 use {
-    crate::{constant::*, state::*},
+    crate::{constant::*, errors::TournamentError, state::*},
     anchor_lang::prelude::*,
 };
 
@@ -20,7 +20,7 @@ pub struct Initialize<'info> {
         seeds = [TOURNAMENT_TAG.as_ref(), data.tournament_id.to_le_bytes().as_ref()],
         bump,
         payer = creator,
-        space = Tournament::LEN,
+        space = Tournament::calculate_size(data.total_players, data.round_prizes.len()),
     )]
     pub tournament: Account<'info, Tournament>,
 
@@ -48,7 +48,7 @@ pub struct ArgumentInitialize {
     pub tournament_id: u64,
     pub joining_fees: u64,
     pub total_players: u16,
-    pub match_concluded: bool,
+    pub tournament_concluded: bool,
     pub round_prizes: Vec<u64>, // Array of integers representing prizes for each round
 }
 pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<()> {
@@ -64,7 +64,7 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     tournament.tournament_id = data.tournament_id;
     tournament.joining_fees = data.joining_fees;
     tournament.total_players = data.total_players;
-    tournament.match_concluded = false;
+    tournament.tournament_concluded = false;
 
     tournament.total_rounds = (tournament.total_players as f32).log2() as u16;
 
@@ -106,7 +106,7 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
                 authority: creator.to_account_info().clone(),
             },
         );
-        anchor_spl::token::transfer(cpi_ctx,  total_prize_sum - total_fee)?;
+        anchor_spl::token::transfer(cpi_ctx, total_prize_sum - total_fee)?;
     }
 
     msg!("Changed data to: {:?}!", data);
@@ -125,9 +125,71 @@ pub fn conclude_match(ctx: Context<ConcludeMatch>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
 
     // Mark the match as concluded.
-    tournament.match_concluded = true;
+    tournament.tournament_concluded = true;
 
     msg!("Match has been marked as concluded.");
+
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct JoinTournament<'info> {
+    #[account(mut)]
+    pub player: Signer<'info>,
+
+    #[account(
+        init_if_needed,
+        payer = player,
+        associated_token::mint = mint,
+        associated_token::authority = player,
+    )]
+    pub player_token_account: Account<'info, TokenAccount>,
+
+    #[account(mut)]
+    pub tournament: Account<'info, Tournament>,
+
+    #[account(mut)]
+    pub tournament_token_account: Account<'info, TokenAccount>,
+    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    pub mint: Account<'info, Mint>,
+
+    pub associated_token_program: Program<'info, AssociatedToken>,
+    pub token_program: Program<'info, Token>,
+    pub system_program: Program<'info, System>,
+}
+
+pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
+    let tournament = &mut ctx.accounts.tournament;
+    let player = &ctx.accounts.player;
+    let player_token_account = &ctx.accounts.player_token_account;
+    let tournament_token_account = &ctx.accounts.tournament_token_account;
+
+    // Check if the tournament is already concluded
+    if tournament.tournament_concluded {
+        return Err(TournamentError::TournamentNotConcluded.into());
+    }
+
+    // Check if the player has already joined
+    if tournament.players.contains(&player.key()) {
+        return Err(TournamentError::PlayerAlreadyJoined.into());
+    }
+
+    // Only transfer the joining fee if it is greater than zero
+    if tournament.joining_fees > 0 {
+        let cpi_ctx = CpiContext::new(
+            ctx.accounts.token_program.to_account_info().clone(),
+            Transfer {
+                from: player_token_account.to_account_info().clone(),
+                to: tournament_token_account.to_account_info().clone(),
+                authority: player.to_account_info().clone(),
+            },
+        );
+        anchor_spl::token::transfer(cpi_ctx, tournament.joining_fees)?;
+    }
+    // Add the player to the tournament's list of players
+    tournament.players.push(player.key());
+
+    msg!("Player {:?} has joined the tournament!", player.key());
 
     Ok(())
 }

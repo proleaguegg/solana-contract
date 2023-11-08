@@ -43,18 +43,24 @@ pub struct ClaimPrizeArgs {
 pub fn claim_prize(ctx: Context<ClaimPrize>, args: ClaimPrizeArgs) -> Result<()> {
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
     let winner_token_account = &mut ctx.accounts.winner_token_account;
+    let tournament_copy = ctx.accounts.tournament.clone();
     let tournament = &mut ctx.accounts.tournament;
     let winner = ctx.accounts.winner.key();
     let round_index = args.round_index;
+    let winner_index = tournament
+        .players
+        .iter()
+        .position(|address| address.eq(&winner))
+        .unwrap();
 
     // Validate if the match has been concluded
-    if !tournament.match_concluded {
-        return Err(TournamentError::MatchNotConcluded.into());
+    if !tournament.tournament_concluded {
+        return Err(TournamentError::TournamentNotConcluded.into());
     }
 
     // Check if winner exists in this round
-    let round = &mut tournament.clone().rounds[round_index as usize];
-    if let Some(winner_status) = round.winners_and_collected_status.get_mut(&winner) {
+    let round = &mut tournament.rounds[round_index as usize];
+    if let Some(winner_status) = round.winners_and_collected_status.get_mut(&winner_index) {
         // Validate if the winner hasn't claimed already
         if winner_status.claimed {
             return Err(TournamentError::AlreadyClaimed.into());
@@ -75,8 +81,8 @@ pub fn claim_prize(ctx: Context<ClaimPrize>, args: ClaimPrizeArgs) -> Result<()>
 
     let staker_seeds = &[
         TOURNAMENT_TAG.as_ref(),
-        &tournament.tournament_id.to_le_bytes()[..],
-        &[tournament.bump],
+        &tournament_copy.tournament_id.clone().to_le_bytes()[..],
+        &[tournament_copy.bump],
     ];
     let cpi_signer = &[&staker_seeds[..]];
     // Transfer the escrow balance from the creator to the new account (vault)
@@ -85,7 +91,7 @@ pub fn claim_prize(ctx: Context<ClaimPrize>, args: ClaimPrizeArgs) -> Result<()>
         Transfer {
             from: tournament_token_account.to_account_info(),
             to: winner_token_account.to_account_info(),
-            authority: tournament.to_account_info(),
+            authority: tournament_copy.to_account_info(),
         },
         cpi_signer,
     );

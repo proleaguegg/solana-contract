@@ -5,7 +5,7 @@ use {anchor_lang::prelude::*, std::collections::HashMap};
 pub struct Round {
     pub reverse_index: u8, // Made this public for potential external access.
     pub winning_price: u64,
-    pub winners_and_collected_status: HashMap<Pubkey, RoundWinners>,
+    pub winners_and_collected_status: HashMap<usize, RoundWinners>,
 }
 
 impl Round {
@@ -15,8 +15,8 @@ impl Round {
     }
 
     // Checks if a given winner already exists in the winners_and_collected_status.
-    pub fn winner_exists(&self, winner: &Pubkey) -> bool {
-        self.winners_and_collected_status.contains_key(winner)
+    pub fn winner_exists(&self, winner_index: &usize) -> bool {
+        self.winners_and_collected_status.contains_key(winner_index)
     }
 }
 

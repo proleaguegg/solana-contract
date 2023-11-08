@@ -23,11 +23,18 @@ mod tournament {
         instructions::initialize(ctx, args)
     }
 
+    pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
+        instructions::join_tournament(ctx)
+    }
+
     pub fn add_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) -> Result<()> {
         instructions::add_winner(ctx, args)
     }
 
-    pub fn mark_winner_won_next_round(ctx: Context<MarkWinnerWonNextRound>, args: MarkWinnerWonNextRoundArgs) -> Result<()> {
+    pub fn mark_winner_won_next_round(
+        ctx: Context<MarkWinnerWonNextRound>,
+        args: MarkWinnerWonNextRoundArgs,
+    ) -> Result<()> {
         instructions::mark_winner_won_next_round(ctx, args)
     }
 
