@@ -15,141 +15,89 @@ type ProgramErrorConstructor = new (
 const codeToErrorMap: Map<number, ProgramErrorConstructor> = new Map();
 const nameToErrorMap: Map<string, ProgramErrorConstructor> = new Map();
 
-/** TeamAlreadyJoined: Team Already Joined */
-export class TeamAlreadyJoinedError extends ProgramError {
-  override readonly name: string = 'TeamAlreadyJoined';
-
-  readonly code: number = 0x1770; // 6000
-
-  constructor(program: Program, cause?: Error) {
-    super('Team Already Joined', program, cause);
-  }
-}
-codeToErrorMap.set(0x1770, TeamAlreadyJoinedError);
-nameToErrorMap.set('TeamAlreadyJoined', TeamAlreadyJoinedError);
-
-/** NotAllowed: Not allowed */
-export class NotAllowedError extends ProgramError {
-  override readonly name: string = 'NotAllowed';
-
-  readonly code: number = 0x1771; // 6001
-
-  constructor(program: Program, cause?: Error) {
-    super('Not allowed', program, cause);
-  }
-}
-codeToErrorMap.set(0x1771, NotAllowedError);
-nameToErrorMap.set('NotAllowed', NotAllowedError);
-
-/** MathOverflow: Math operation overflow */
-export class MathOverflowError extends ProgramError {
-  override readonly name: string = 'MathOverflow';
-
-  readonly code: number = 0x1772; // 6002
-
-  constructor(program: Program, cause?: Error) {
-    super('Math operation overflow', program, cause);
-  }
-}
-codeToErrorMap.set(0x1772, MathOverflowError);
-nameToErrorMap.set('MathOverflow', MathOverflowError);
-
-/** AlreadyMarked: Already marked */
-export class AlreadyMarkedError extends ProgramError {
-  override readonly name: string = 'AlreadyMarked';
-
-  readonly code: number = 0x1773; // 6003
-
-  constructor(program: Program, cause?: Error) {
-    super('Already marked', program, cause);
-  }
-}
-codeToErrorMap.set(0x1773, AlreadyMarkedError);
-nameToErrorMap.set('AlreadyMarked', AlreadyMarkedError);
-
 /** InvalidRound: The specified round does not exist */
 export class InvalidRoundError extends ProgramError {
   override readonly name: string = 'InvalidRound';
 
-  readonly code: number = 0x1774; // 6004
+  readonly code: number = 0x1770; // 6000
 
   constructor(program: Program, cause?: Error) {
     super('The specified round does not exist', program, cause);
   }
 }
-codeToErrorMap.set(0x1774, InvalidRoundError);
+codeToErrorMap.set(0x1770, InvalidRoundError);
 nameToErrorMap.set('InvalidRound', InvalidRoundError);
 
 /** WinnerAlreadyExists: The winner already exists for this round */
 export class WinnerAlreadyExistsError extends ProgramError {
   override readonly name: string = 'WinnerAlreadyExists';
 
-  readonly code: number = 0x1775; // 6005
+  readonly code: number = 0x1771; // 6001
 
   constructor(program: Program, cause?: Error) {
     super('The winner already exists for this round', program, cause);
   }
 }
-codeToErrorMap.set(0x1775, WinnerAlreadyExistsError);
+codeToErrorMap.set(0x1771, WinnerAlreadyExistsError);
 nameToErrorMap.set('WinnerAlreadyExists', WinnerAlreadyExistsError);
 
 /** RoundWinnerLimitReached: The round has reached its limit for winners */
 export class RoundWinnerLimitReachedError extends ProgramError {
   override readonly name: string = 'RoundWinnerLimitReached';
 
-  readonly code: number = 0x1776; // 6006
+  readonly code: number = 0x1772; // 6002
 
   constructor(program: Program, cause?: Error) {
     super('The round has reached its limit for winners', program, cause);
   }
 }
-codeToErrorMap.set(0x1776, RoundWinnerLimitReachedError);
+codeToErrorMap.set(0x1772, RoundWinnerLimitReachedError);
 nameToErrorMap.set('RoundWinnerLimitReached', RoundWinnerLimitReachedError);
 
-/** MatchNotConcluded: Match has not been concluded */
-export class MatchNotConcludedError extends ProgramError {
-  override readonly name: string = 'MatchNotConcluded';
+/** TournamentNotConcluded: Tournament has not been concluded */
+export class TournamentNotConcludedError extends ProgramError {
+  override readonly name: string = 'TournamentNotConcluded';
 
-  readonly code: number = 0x1777; // 6007
+  readonly code: number = 0x1773; // 6003
 
   constructor(program: Program, cause?: Error) {
-    super('Match has not been concluded', program, cause);
+    super('Tournament has not been concluded', program, cause);
   }
 }
-codeToErrorMap.set(0x1777, MatchNotConcludedError);
-nameToErrorMap.set('MatchNotConcluded', MatchNotConcludedError);
+codeToErrorMap.set(0x1773, TournamentNotConcludedError);
+nameToErrorMap.set('TournamentNotConcluded', TournamentNotConcludedError);
 
 /** WinnerNotFound: Winner not found in this round */
 export class WinnerNotFoundError extends ProgramError {
   override readonly name: string = 'WinnerNotFound';
 
-  readonly code: number = 0x1778; // 6008
+  readonly code: number = 0x1774; // 6004
 
   constructor(program: Program, cause?: Error) {
     super('Winner not found in this round', program, cause);
   }
 }
-codeToErrorMap.set(0x1778, WinnerNotFoundError);
+codeToErrorMap.set(0x1774, WinnerNotFoundError);
 nameToErrorMap.set('WinnerNotFound', WinnerNotFoundError);
 
 /** AlreadyClaimed: Prize has already been claimed by the winner */
 export class AlreadyClaimedError extends ProgramError {
   override readonly name: string = 'AlreadyClaimed';
 
-  readonly code: number = 0x1779; // 6009
+  readonly code: number = 0x1775; // 6005
 
   constructor(program: Program, cause?: Error) {
     super('Prize has already been claimed by the winner', program, cause);
   }
 }
-codeToErrorMap.set(0x1779, AlreadyClaimedError);
+codeToErrorMap.set(0x1775, AlreadyClaimedError);
 nameToErrorMap.set('AlreadyClaimed', AlreadyClaimedError);
 
 /** WonNextRound: Winner has won the next round and cannot claim this prize */
 export class WonNextRoundError extends ProgramError {
   override readonly name: string = 'WonNextRound';
 
-  readonly code: number = 0x177a; // 6010
+  readonly code: number = 0x1776; // 6006
 
   constructor(program: Program, cause?: Error) {
     super(
@@ -159,20 +107,46 @@ export class WonNextRoundError extends ProgramError {
     );
   }
 }
-codeToErrorMap.set(0x177a, WonNextRoundError);
+codeToErrorMap.set(0x1776, WonNextRoundError);
 nameToErrorMap.set('WonNextRound', WonNextRoundError);
+
+/** PlayerAlreadyJoined: Player Already joined */
+export class PlayerAlreadyJoinedError extends ProgramError {
+  override readonly name: string = 'PlayerAlreadyJoined';
+
+  readonly code: number = 0x1777; // 6007
+
+  constructor(program: Program, cause?: Error) {
+    super('Player Already joined', program, cause);
+  }
+}
+codeToErrorMap.set(0x1777, PlayerAlreadyJoinedError);
+nameToErrorMap.set('PlayerAlreadyJoined', PlayerAlreadyJoinedError);
+
+/** PlayerNotFound: Winner not found in players list */
+export class PlayerNotFoundError extends ProgramError {
+  override readonly name: string = 'PlayerNotFound';
+
+  readonly code: number = 0x1778; // 6008
+
+  constructor(program: Program, cause?: Error) {
+    super('Winner not found in players list', program, cause);
+  }
+}
+codeToErrorMap.set(0x1778, PlayerNotFoundError);
+nameToErrorMap.set('PlayerNotFound', PlayerNotFoundError);
 
 /** ExceedingEscrowBalance: Exceeding Escrow Balance */
 export class ExceedingEscrowBalanceError extends ProgramError {
   override readonly name: string = 'ExceedingEscrowBalance';
 
-  readonly code: number = 0x177b; // 6011
+  readonly code: number = 0x1779; // 6009
 
   constructor(program: Program, cause?: Error) {
     super('Exceeding Escrow Balance', program, cause);
   }
 }
-codeToErrorMap.set(0x177b, ExceedingEscrowBalanceError);
+codeToErrorMap.set(0x1779, ExceedingEscrowBalanceError);
 nameToErrorMap.set('ExceedingEscrowBalance', ExceedingEscrowBalanceError);
 
 /**

@@ -12,8 +12,8 @@ pub struct Tournament {
     pub total_players: u16,
     pub total_rounds: u16,
     pub tournament_concluded: bool,
-    pub rounds: Vec<Round>,
     pub players: Vec<Pubkey>,
+    pub rounds: Vec<Round>,
 }
 
 impl Tournament {
@@ -28,8 +28,8 @@ impl Tournament {
         self.total_players = 0;
         self.total_rounds = 0;
         self.tournament_concluded = false;
-        self.rounds = Vec::new();
         self.players = Vec::new();
+        self.rounds = Vec::new();
     }
     pub fn calculate_size(total_players: u16, winning_rounds: usize) -> usize {
         let mut len = Self::LEN;

@@ -55,7 +55,7 @@ export type InitializeInstructionData = {
   tournamentId: bigint;
   joiningFees: bigint;
   totalPlayers: number;
-  matchConcluded: boolean;
+  tournamentConcluded: boolean;
   roundPrizes: Array<bigint>;
 };
 
@@ -64,7 +64,7 @@ export type InitializeInstructionDataArgs = {
   tournamentId: number | bigint;
   joiningFees: number | bigint;
   totalPlayers: number;
-  matchConcluded: boolean;
+  tournamentConcluded: boolean;
   roundPrizes: Array<number | bigint>;
 };
 
@@ -84,7 +84,7 @@ export function getInitializeInstructionDataSerializer(): Serializer<
         ['tournamentId', u64()],
         ['joiningFees', u64()],
         ['totalPlayers', u16()],
-        ['matchConcluded', bool()],
+        ['tournamentConcluded', bool()],
         ['roundPrizes', array(u64())],
       ],
       { description: 'InitializeInstructionData' }
@@ -108,7 +108,7 @@ export function initialize(
   // Program ID.
   const programId = context.programs.getPublicKey(
     'tournament',
-    'FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T'
+    'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'
   );
 
   // Accounts.

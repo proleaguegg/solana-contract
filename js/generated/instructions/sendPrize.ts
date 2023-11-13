@@ -31,9 +31,10 @@ import {
 } from '../shared';
 
 // Accounts.
-export type ClaimPrizeInstructionAccounts = {
+export type SendPrizeInstructionAccounts = {
   tournament: PublicKey | Pda;
-  winner: Signer;
+  winner: PublicKey | Pda;
+  driver: Signer;
   tournamentTokenAccount?: PublicKey | Pda;
   winnerTokenAccount?: PublicKey | Pda;
   mint?: PublicKey | Pda;
@@ -43,84 +44,85 @@ export type ClaimPrizeInstructionAccounts = {
 };
 
 // Data.
-export type ClaimPrizeInstructionData = {
+export type SendPrizeInstructionData = {
   discriminator: Array<number>;
   roundIndex: number;
 };
 
-export type ClaimPrizeInstructionDataArgs = { roundIndex: number };
+export type SendPrizeInstructionDataArgs = { roundIndex: number };
 
-export function getClaimPrizeInstructionDataSerializer(): Serializer<
-  ClaimPrizeInstructionDataArgs,
-  ClaimPrizeInstructionData
+export function getSendPrizeInstructionDataSerializer(): Serializer<
+  SendPrizeInstructionDataArgs,
+  SendPrizeInstructionData
 > {
   return mapSerializer<
-    ClaimPrizeInstructionDataArgs,
+    SendPrizeInstructionDataArgs,
     any,
-    ClaimPrizeInstructionData
+    SendPrizeInstructionData
   >(
-    struct<ClaimPrizeInstructionData>(
+    struct<SendPrizeInstructionData>(
       [
         ['discriminator', array(u8(), { size: 8 })],
         ['roundIndex', u8()],
       ],
-      { description: 'ClaimPrizeInstructionData' }
+      { description: 'SendPrizeInstructionData' }
     ),
     (value) => ({
       ...value,
-      discriminator: [157, 233, 139, 121, 246, 62, 234, 235],
+      discriminator: [7, 224, 83, 98, 203, 181, 199, 90],
     })
-  ) as Serializer<ClaimPrizeInstructionDataArgs, ClaimPrizeInstructionData>;
+  ) as Serializer<SendPrizeInstructionDataArgs, SendPrizeInstructionData>;
 }
 
 // Args.
-export type ClaimPrizeInstructionArgs = ClaimPrizeInstructionDataArgs;
+export type SendPrizeInstructionArgs = SendPrizeInstructionDataArgs;
 
 // Instruction.
-export function claimPrize(
+export function sendPrize(
   context: Pick<Context, 'eddsa' | 'programs'>,
-  input: ClaimPrizeInstructionAccounts & ClaimPrizeInstructionArgs
+  input: SendPrizeInstructionAccounts & SendPrizeInstructionArgs
 ): TransactionBuilder {
   // Program ID.
   const programId = context.programs.getPublicKey(
     'tournament',
-    'FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T'
+    'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'
   );
 
   // Accounts.
   const resolvedAccounts = {
     tournament: { index: 0, isWritable: true, value: input.tournament ?? null },
     winner: { index: 1, isWritable: true, value: input.winner ?? null },
+    driver: { index: 2, isWritable: true, value: input.driver ?? null },
     tournamentTokenAccount: {
-      index: 2,
+      index: 3,
       isWritable: true,
       value: input.tournamentTokenAccount ?? null,
     },
     winnerTokenAccount: {
-      index: 3,
+      index: 4,
       isWritable: true,
       value: input.winnerTokenAccount ?? null,
     },
-    mint: { index: 4, isWritable: true, value: input.mint ?? null },
+    mint: { index: 5, isWritable: true, value: input.mint ?? null },
     associatedTokenProgram: {
-      index: 5,
+      index: 6,
       isWritable: false,
       value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
-      index: 6,
+      index: 7,
       isWritable: false,
       value: input.tokenProgram ?? null,
     },
     systemProgram: {
-      index: 7,
+      index: 8,
       isWritable: false,
       value: input.systemProgram ?? null,
     },
   } satisfies ResolvedAccountsWithIndices;
 
   // Arguments.
-  const resolvedArgs: ClaimPrizeInstructionArgs = { ...input };
+  const resolvedArgs: SendPrizeInstructionArgs = { ...input };
 
   // Default values.
   if (!resolvedAccounts.mint.value) {
@@ -182,8 +184,8 @@ export function claimPrize(
   );
 
   // Data.
-  const data = getClaimPrizeInstructionDataSerializer().serialize(
-    resolvedArgs as ClaimPrizeInstructionDataArgs
+  const data = getSendPrizeInstructionDataSerializer().serialize(
+    resolvedArgs as SendPrizeInstructionDataArgs
   );
 
   // Bytes Created On Chain.

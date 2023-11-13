@@ -7,11 +7,11 @@ const idlModifier = (idl) => {
   idl.types = idl.types.map((account) => {
     account.type.fields = account.type.fields.map((field) => {
       if (field.type.defined?.includes("HashMap")) {
+        let [key, val] = field.type.defined.split(",");
+        val = val.slice(0, -1);
+        key = key.slice(key.indexOf("<") + 1);
         field.type = {
-          hashMap: [
-            "publicKey",
-            { defined: field.type.defined.split(",")[1].slice(0, -1) },
-          ],
+          hashMap: [key, { defined: val }],
         };
       }
 
@@ -31,7 +31,7 @@ const idlPath = path.join(idlDir, "tournament.json");
 const idl = idlModifier(require(idlPath));
 idl.metadata = {
   origin: "anchor",
-  address: "FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T",
+  address: "DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR",
 };
 // Instanciate Kinobi.
 const kinobi = k.createFromIdls(idl);
@@ -72,6 +72,17 @@ kinobi.update(
       }),
     },
     {
+      account: "playerTokenAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("associatedToken", {
+        importFrom: "mplToolbox",
+        seeds: {
+          mint: k.accountDefault("mint"),
+          owner: k.accountDefault("player"),
+        },
+      }),
+    },
+    {
       account: "creatorTokenAccount",
       ignoreIfOptional: true,
       ...k.pdaDefault("associatedToken", {
@@ -96,7 +107,10 @@ kinobi.update(
     {
       account: "associatedTokenProgram",
       ignoreIfOptional: true,
-      ...k.programDefault("associatedTokenProgram", ASSOCIATED_TOKEN_PROGRAM_ID.toString()),
+      ...k.programDefault(
+        "associatedTokenProgram",
+        ASSOCIATED_TOKEN_PROGRAM_ID.toString()
+      ),
     },
     {
       account: "mint",

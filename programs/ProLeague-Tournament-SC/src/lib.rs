@@ -13,7 +13,7 @@ use instructions::*;
 
 // This is your program's public key and it will update
 // automatically when you build the project.
-declare_id!("FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T");
+declare_id!("DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR");
 
 #[program]
 mod tournament {
@@ -42,7 +42,7 @@ mod tournament {
         instructions::conclude_match(ctx)
     }
 
-    pub fn claim_prize(ctx: Context<ClaimPrize>, args: ClaimPrizeArgs) -> Result<()> {
-        instructions::claim_prize(ctx, args)
+    pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {
+        instructions::send_prize(ctx, args)
     }
 }

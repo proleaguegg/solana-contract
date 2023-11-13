@@ -8,11 +8,14 @@ use crate::{constant::TOURNAMENT_TAG, errors::TournamentError};
 use {crate::constant::*, crate::state::*, anchor_lang::prelude::*};
 
 #[derive(Accounts)]
-pub struct ClaimPrize<'info> {
+pub struct SendPrize<'info> {
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
+    /// CHECK: This is not unsafe
     #[account(mut)]
-    pub winner: Signer<'info>,
+    pub winner: AccountInfo<'info>,
+    #[account(mut)]
+    pub driver: Signer<'info>,
 
     #[account(mut,
         constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
@@ -21,7 +24,7 @@ pub struct ClaimPrize<'info> {
 
     #[account(
         init_if_needed,
-        payer = winner,
+        payer = driver,
         associated_token::mint = mint,
         associated_token::authority = winner,
         constraint = winner_token_account.mint == mint.key() && winner_token_account.owner == winner.key(),
@@ -36,11 +39,11 @@ pub struct ClaimPrize<'info> {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
-pub struct ClaimPrizeArgs {
+pub struct SendPrizeArgs {
     pub round_index: u8,
 }
 
-pub fn claim_prize(ctx: Context<ClaimPrize>, args: ClaimPrizeArgs) -> Result<()> {
+pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
     let winner_token_account = &mut ctx.accounts.winner_token_account;
     let tournament_copy = ctx.accounts.tournament.clone();
@@ -51,7 +54,7 @@ pub fn claim_prize(ctx: Context<ClaimPrize>, args: ClaimPrizeArgs) -> Result<()>
         .players
         .iter()
         .position(|address| address.eq(&winner))
-        .unwrap();
+        .unwrap() as u32;
 
     // Validate if the match has been concluded
     if !tournament.tournament_concluded {
@@ -61,7 +64,7 @@ pub fn claim_prize(ctx: Context<ClaimPrize>, args: ClaimPrizeArgs) -> Result<()>
     // Check if winner exists in this round
     let round = &mut tournament.rounds[round_index as usize];
     if let Some(winner_status) = round.winners_and_collected_status.get_mut(&winner_index) {
-        // Validate if the winner hasn't claimed already
+        // Validate if the winner hasn't sended already
         if winner_status.claimed {
             return Err(TournamentError::AlreadyClaimed.into());
         }
@@ -71,7 +74,7 @@ pub fn claim_prize(ctx: Context<ClaimPrize>, args: ClaimPrizeArgs) -> Result<()>
             return Err(TournamentError::WonNextRound.into());
         }
 
-        // Mark as claimed
+        // Mark as sended
         winner_status.claimed = true;
     } else {
         return Err(TournamentError::WinnerNotFound.into());
@@ -96,7 +99,7 @@ pub fn claim_prize(ctx: Context<ClaimPrize>, args: ClaimPrizeArgs) -> Result<()>
         cpi_signer,
     );
     anchor_spl::token::transfer(cpi_ctx, round.winning_price)?;
-    msg!("Prize claimed successfully.");
+    msg!("Prize sended successfully.");
 
     Ok(())
 }

@@ -18,14 +18,20 @@ pub struct AddWinnerToRoundArgs {
 }
 
 pub fn add_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) -> Result<()> {
+    let tournament_immutable = ctx.accounts.tournament.clone();
     let tournament = &mut ctx.accounts.tournament;
     let winner = args.winner;
     let round_index = args.round_index;
-    let winner_index = tournament
+
+    let winner_index_option = tournament
         .players
         .iter()
-        .position(|address| address.eq(&winner))
-        .unwrap();
+        .position(|address| address.eq(&winner));
+
+    let winner_index = match winner_index_option {
+        Some(index) => index as u32,
+        None => return Err(TournamentError::PlayerNotFound.into()),
+    };
 
     // Ensure the round exists.
     if round_index as usize >= tournament.rounds.len() {
@@ -44,6 +50,8 @@ pub fn add_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) ->
         return Err(TournamentError::RoundWinnerLimitReached.into());
     }
 
+    msg!("ROUNDS: {:?}", tournament_immutable.rounds);
+
     // Add the winner with their initial status.
     round.winners_and_collected_status.insert(
         winner_index,
@@ -53,6 +61,7 @@ pub fn add_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) ->
         },
     );
 
+    msg!("ROUNDS: {:?}", tournament_immutable.rounds);
     Ok(())
 }
 
@@ -81,7 +90,7 @@ pub fn mark_winner_won_next_round(
         .players
         .iter()
         .position(|address| address.eq(&winner))
-        .unwrap();
+        .unwrap() as u32;
     // Ensure the round exists.
     if round_index as usize >= tournament.rounds.len() {
         return Err(TournamentError::InvalidRound.into());

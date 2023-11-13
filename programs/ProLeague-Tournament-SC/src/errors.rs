@@ -18,6 +18,8 @@ pub enum TournamentError {
     WonNextRound,
     #[msg("Player Already joined")]
     PlayerAlreadyJoined,
+    #[msg("Winner not found in players list")]
+    PlayerNotFound,
     #[msg("Exceeding Escrow Balance")]
     ExceedingEscrowBalance,
 }

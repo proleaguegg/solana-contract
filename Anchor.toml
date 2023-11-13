@@ -2,7 +2,7 @@
 seeds = false
 skip-lint = false
 [programs.localnet]
-pro_league_tournament_sc = "FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T"
+pro_league_tournament_sc = "DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR"
 
 [registry]
 url = "https://api.apr.dev"

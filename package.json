@@ -9,7 +9,8 @@
     "build": "yarn generate:clients && yarn compile",
     "publish": "node ./scripts/publish.js",
     "createToken": "ts-node ./tests/helpers/create-spl-token.ts",
-    "transferToken": "ts-node ./tests/helpers/transfer-mint-token.ts"
+    "transferToken": "ts-node ./tests/helpers/transfer-mint-token.ts",
+    "getTournament": "ts-node ./tests/getTournamentWithAnchor.ts"
   },
   "dependencies": {
     "@metaplex-foundation/kinobi": "^0.16.1",

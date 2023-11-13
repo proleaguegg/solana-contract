@@ -43,7 +43,8 @@ export type TournamentAccountData = {
   joiningFees: bigint;
   totalPlayers: number;
   totalRounds: number;
-  matchConcluded: boolean;
+  tournamentConcluded: boolean;
+  players: Array<PublicKey>;
   rounds: Array<Round>;
 };
 
@@ -54,7 +55,8 @@ export type TournamentAccountDataArgs = {
   joiningFees: number | bigint;
   totalPlayers: number;
   totalRounds: number;
-  matchConcluded: boolean;
+  tournamentConcluded: boolean;
+  players: Array<PublicKey>;
   rounds: Array<RoundArgs>;
 };
 
@@ -72,7 +74,8 @@ export function getTournamentAccountDataSerializer(): Serializer<
         ['joiningFees', u64()],
         ['totalPlayers', u16()],
         ['totalRounds', u16()],
-        ['matchConcluded', bool()],
+        ['tournamentConcluded', bool()],
+        ['players', array(publicKeySerializer())],
         ['rounds', array(getRoundSerializer())],
       ],
       { description: 'TournamentAccountData' }
@@ -147,7 +150,7 @@ export function getTournamentGpaBuilder(
 ) {
   const programId = context.programs.getPublicKey(
     'tournament',
-    'FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T'
+    'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'
   );
   return gpaBuilder(context, programId)
     .registerFields<{
@@ -158,7 +161,8 @@ export function getTournamentGpaBuilder(
       joiningFees: number | bigint;
       totalPlayers: number;
       totalRounds: number;
-      matchConcluded: boolean;
+      tournamentConcluded: boolean;
+      players: Array<PublicKey>;
       rounds: Array<RoundArgs>;
     }>({
       discriminator: [0, array(u8(), { size: 8 })],
@@ -168,8 +172,9 @@ export function getTournamentGpaBuilder(
       joiningFees: [49, u64()],
       totalPlayers: [57, u16()],
       totalRounds: [59, u16()],
-      matchConcluded: [61, bool()],
-      rounds: [62, array(getRoundSerializer())],
+      tournamentConcluded: [61, bool()],
+      players: [62, array(publicKeySerializer())],
+      rounds: [null, array(getRoundSerializer())],
     })
     .deserializeUsing<Tournament>((account) => deserializeTournament(account))
     .whereField('discriminator', [175, 139, 119, 242, 115, 194, 57, 92]);
@@ -184,7 +189,7 @@ export function findTournamentPda(
 ): Pda {
   const programId = context.programs.getPublicKey(
     'tournament',
-    'FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T'
+    'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'
   );
   return context.eddsa.findPda(programId, [
     string({ size: 'variable' }).serialize('TOURNAMENT_STATE'),

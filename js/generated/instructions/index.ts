@@ -7,7 +7,8 @@
  */
 
 export * from './addWinner';
-export * from './claimPrize';
 export * from './concludeMatch';
 export * from './initialize';
+export * from './joinTournament';
 export * from './markWinnerWonNextRound';
+export * from './sendPrize';
