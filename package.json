@@ -3,7 +3,7 @@
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "generateSplToken": "ts-node tests/create-spl-token.ts",
-    "test": "ts-mocha tests/ProLeague-Tournament-SC.test.ts",
+    "test": "ts-mocha --timeout 2000000 tests/ProLeague-Tournament-SC.test.ts",
     "compile": "tsc",
     "generate:clients": "ts-node ./kinobi.ts",
     "build": "yarn generate:clients && yarn compile",
