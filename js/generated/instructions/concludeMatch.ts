@@ -69,7 +69,7 @@ export function concludeMatch(
   // Program ID.
   const programId = context.programs.getPublicKey(
     'tournament',
-    'FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T'
+    'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'
   );
 
   // Accounts.

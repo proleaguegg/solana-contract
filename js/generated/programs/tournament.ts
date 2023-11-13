@@ -18,7 +18,7 @@ import {
 } from '../errors';
 
 export const TOURNAMENT_PROGRAM_ID =
-  'FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T' as PublicKey<'FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T'>;
+  'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR' as PublicKey<'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'>;
 
 export function createTournamentProgram(): Program {
   return {

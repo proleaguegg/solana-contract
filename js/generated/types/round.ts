@@ -6,12 +6,11 @@
  * @see https://github.com/metaplex-foundation/kinobi
  */
 
-import { PublicKey } from '@metaplex-foundation/umi';
 import {
   Serializer,
   map,
-  publicKey as publicKeySerializer,
   struct,
+  u32,
   u64,
   u8,
 } from '@metaplex-foundation/umi/serializers';
@@ -20,13 +19,13 @@ import { RoundWinners, RoundWinnersArgs, getRoundWinnersSerializer } from '.';
 export type Round = {
   reverseIndex: number;
   winningPrice: bigint;
-  winnersAndCollectedStatus: Map<PublicKey, RoundWinners>;
+  winnersAndCollectedStatus: Map<number, RoundWinners>;
 };
 
 export type RoundArgs = {
   reverseIndex: number;
   winningPrice: number | bigint;
-  winnersAndCollectedStatus: Map<PublicKey, RoundWinnersArgs>;
+  winnersAndCollectedStatus: Map<number, RoundWinnersArgs>;
 };
 
 export function getRoundSerializer(): Serializer<RoundArgs, Round> {
@@ -34,10 +33,7 @@ export function getRoundSerializer(): Serializer<RoundArgs, Round> {
     [
       ['reverseIndex', u8()],
       ['winningPrice', u64()],
-      [
-        'winnersAndCollectedStatus',
-        map(publicKeySerializer(), getRoundWinnersSerializer()),
-      ],
+      ['winnersAndCollectedStatus', map(u32(), getRoundWinnersSerializer())],
     ],
     { description: 'Round' }
   ) as Serializer<RoundArgs, Round>;

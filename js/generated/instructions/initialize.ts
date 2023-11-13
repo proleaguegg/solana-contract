@@ -6,12 +6,14 @@
  * @see https://github.com/metaplex-foundation/kinobi
  */
 
+import { findAssociatedTokenPda } from '@metaplex-foundation/mpl-toolbox';
 import {
   Context,
   Pda,
   PublicKey,
   Signer,
   TransactionBuilder,
+  publicKey,
   transactionBuilder,
 } from '@metaplex-foundation/umi';
 import {
@@ -21,7 +23,7 @@ import {
   mapSerializer,
   publicKey as publicKeySerializer,
   struct,
-  u32,
+  u16,
   u64,
   u8,
 } from '@metaplex-foundation/umi/serializers';
@@ -29,6 +31,7 @@ import { findTournamentPda } from '../accounts';
 import {
   ResolvedAccount,
   ResolvedAccountsWithIndices,
+  expectPublicKey,
   expectSome,
   getAccountMetasAndSigners,
 } from '../shared';
@@ -37,10 +40,10 @@ import {
 export type InitializeInstructionAccounts = {
   creator: Signer;
   tournament?: PublicKey | Pda;
-  tournamentTokenAccount: PublicKey | Pda;
-  creatorTokenAccount: PublicKey | Pda;
-  mint: PublicKey | Pda;
-  associatedTokenProgram: PublicKey | Pda;
+  tournamentTokenAccount?: PublicKey | Pda;
+  creatorTokenAccount?: PublicKey | Pda;
+  mint?: PublicKey | Pda;
+  associatedTokenProgram?: PublicKey | Pda;
   tokenProgram?: PublicKey | Pda;
   systemProgram?: PublicKey | Pda;
 };
@@ -52,8 +55,7 @@ export type InitializeInstructionData = {
   tournamentId: bigint;
   joiningFees: bigint;
   totalPlayers: number;
-  totalRounds: number;
-  matchConcluded: boolean;
+  tournamentConcluded: boolean;
   roundPrizes: Array<bigint>;
 };
 
@@ -62,8 +64,7 @@ export type InitializeInstructionDataArgs = {
   tournamentId: number | bigint;
   joiningFees: number | bigint;
   totalPlayers: number;
-  totalRounds: number;
-  matchConcluded: boolean;
+  tournamentConcluded: boolean;
   roundPrizes: Array<number | bigint>;
 };
 
@@ -82,9 +83,8 @@ export function getInitializeInstructionDataSerializer(): Serializer<
         ['creator', publicKeySerializer()],
         ['tournamentId', u64()],
         ['joiningFees', u64()],
-        ['totalPlayers', u32()],
-        ['totalRounds', u32()],
-        ['matchConcluded', bool()],
+        ['totalPlayers', u16()],
+        ['tournamentConcluded', bool()],
         ['roundPrizes', array(u64())],
       ],
       { description: 'InitializeInstructionData' }
@@ -108,7 +108,7 @@ export function initialize(
   // Program ID.
   const programId = context.programs.getPublicKey(
     'tournament',
-    'FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T'
+    'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'
   );
 
   // Accounts.
@@ -155,6 +155,37 @@ export function initialize(
     resolvedAccounts.tournament.value = findTournamentPda(context, {
       tournamentId: expectSome(resolvedArgs.tournamentId),
     });
+  }
+  if (!resolvedAccounts.mint.value) {
+    resolvedAccounts.mint.value = publicKey(
+      '2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ'
+    );
+  }
+  if (!resolvedAccounts.tournamentTokenAccount.value) {
+    resolvedAccounts.tournamentTokenAccount.value = findAssociatedTokenPda(
+      context,
+      {
+        mint: expectPublicKey(resolvedAccounts.mint.value),
+        owner: expectPublicKey(resolvedAccounts.tournament.value),
+      }
+    );
+  }
+  if (!resolvedAccounts.creatorTokenAccount.value) {
+    resolvedAccounts.creatorTokenAccount.value = findAssociatedTokenPda(
+      context,
+      {
+        mint: expectPublicKey(resolvedAccounts.mint.value),
+        owner: expectPublicKey(resolvedAccounts.creator.value),
+      }
+    );
+  }
+  if (!resolvedAccounts.associatedTokenProgram.value) {
+    resolvedAccounts.associatedTokenProgram.value =
+      context.programs.getPublicKey(
+        'associatedTokenProgram',
+        'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'
+      );
+    resolvedAccounts.associatedTokenProgram.isWritable = false;
   }
   if (!resolvedAccounts.tokenProgram.value) {
     resolvedAccounts.tokenProgram.value = context.programs.getPublicKey(

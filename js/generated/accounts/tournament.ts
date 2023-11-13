@@ -27,7 +27,7 @@ import {
   publicKey as publicKeySerializer,
   string,
   struct,
-  u32,
+  u16,
   u64,
   u8,
 } from '@metaplex-foundation/umi/serializers';
@@ -43,7 +43,8 @@ export type TournamentAccountData = {
   joiningFees: bigint;
   totalPlayers: number;
   totalRounds: number;
-  matchConcluded: boolean;
+  tournamentConcluded: boolean;
+  players: Array<PublicKey>;
   rounds: Array<Round>;
 };
 
@@ -54,7 +55,8 @@ export type TournamentAccountDataArgs = {
   joiningFees: number | bigint;
   totalPlayers: number;
   totalRounds: number;
-  matchConcluded: boolean;
+  tournamentConcluded: boolean;
+  players: Array<PublicKey>;
   rounds: Array<RoundArgs>;
 };
 
@@ -70,9 +72,10 @@ export function getTournamentAccountDataSerializer(): Serializer<
         ['creator', publicKeySerializer()],
         ['tournamentId', u64()],
         ['joiningFees', u64()],
-        ['totalPlayers', u32()],
-        ['totalRounds', u32()],
-        ['matchConcluded', bool()],
+        ['totalPlayers', u16()],
+        ['totalRounds', u16()],
+        ['tournamentConcluded', bool()],
+        ['players', array(publicKeySerializer())],
         ['rounds', array(getRoundSerializer())],
       ],
       { description: 'TournamentAccountData' }
@@ -147,7 +150,7 @@ export function getTournamentGpaBuilder(
 ) {
   const programId = context.programs.getPublicKey(
     'tournament',
-    'FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T'
+    'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'
   );
   return gpaBuilder(context, programId)
     .registerFields<{
@@ -158,7 +161,8 @@ export function getTournamentGpaBuilder(
       joiningFees: number | bigint;
       totalPlayers: number;
       totalRounds: number;
-      matchConcluded: boolean;
+      tournamentConcluded: boolean;
+      players: Array<PublicKey>;
       rounds: Array<RoundArgs>;
     }>({
       discriminator: [0, array(u8(), { size: 8 })],
@@ -166,10 +170,11 @@ export function getTournamentGpaBuilder(
       creator: [9, publicKeySerializer()],
       tournamentId: [41, u64()],
       joiningFees: [49, u64()],
-      totalPlayers: [57, u32()],
-      totalRounds: [61, u32()],
-      matchConcluded: [65, bool()],
-      rounds: [66, array(getRoundSerializer())],
+      totalPlayers: [57, u16()],
+      totalRounds: [59, u16()],
+      tournamentConcluded: [61, bool()],
+      players: [62, array(publicKeySerializer())],
+      rounds: [null, array(getRoundSerializer())],
     })
     .deserializeUsing<Tournament>((account) => deserializeTournament(account))
     .whereField('discriminator', [175, 139, 119, 242, 115, 194, 57, 92]);
@@ -184,7 +189,7 @@ export function findTournamentPda(
 ): Pda {
   const programId = context.programs.getPublicKey(
     'tournament',
-    'FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T'
+    'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'
   );
   return context.eddsa.findPda(programId, [
     string({ size: 'variable' }).serialize('TOURNAMENT_STATE'),

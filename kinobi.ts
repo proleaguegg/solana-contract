@@ -1,16 +1,17 @@
 import path from "path";
 import fs from "fs";
 import * as k from "@metaplex-foundation/kinobi";
+import { ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 const idlModifier = (idl) => {
   idl.types = idl.types.map((account) => {
     account.type.fields = account.type.fields.map((field) => {
       if (field.type.defined?.includes("HashMap")) {
+        let [key, val] = field.type.defined.split(",");
+        val = val.slice(0, -1);
+        key = key.slice(key.indexOf("<") + 1);
         field.type = {
-          hashMap: [
-            "publicKey",
-            { defined: field.type.defined.split(",")[1].slice(0, -1) },
-          ],
+          hashMap: [key, { defined: val }],
         };
       }
 
@@ -30,7 +31,7 @@ const idlPath = path.join(idlDir, "tournament.json");
 const idl = idlModifier(require(idlPath));
 idl.metadata = {
   origin: "anchor",
-  address: "FLx2dcA4c4ZYhamknXRTgWYPg8NCr4Bt8Ut8oiUKcG5T",
+  address: "DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR",
 };
 // Instanciate Kinobi.
 const kinobi = k.createFromIdls(idl);
@@ -59,17 +60,74 @@ kinobi.update(
       ignoreIfOptional: true,
       ...k.pdaDefault("tournament"),
     },
+    {
+      account: "tournamentTokenAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("associatedToken", {
+        importFrom: "mplToolbox",
+        seeds: {
+          mint: k.accountDefault("mint"),
+          owner: k.accountDefault("tournament"),
+        },
+      }),
+    },
+    {
+      account: "playerTokenAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("associatedToken", {
+        importFrom: "mplToolbox",
+        seeds: {
+          mint: k.accountDefault("mint"),
+          owner: k.accountDefault("player"),
+        },
+      }),
+    },
+    {
+      account: "creatorTokenAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("associatedToken", {
+        importFrom: "mplToolbox",
+        seeds: {
+          mint: k.accountDefault("mint"),
+          owner: k.accountDefault("creator"),
+        },
+      }),
+    },
+    {
+      account: "winnerTokenAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("associatedToken", {
+        importFrom: "mplToolbox",
+        seeds: {
+          mint: k.accountDefault("mint"),
+          owner: k.accountDefault("winner"),
+        },
+      }),
+    },
+    {
+      account: "associatedTokenProgram",
+      ignoreIfOptional: true,
+      ...k.programDefault(
+        "associatedTokenProgram",
+        ASSOCIATED_TOKEN_PROGRAM_ID.toString()
+      ),
+    },
+    {
+      account: "mint",
+      ignoreIfOptional: true,
+      ...k.publicKeyDefault("2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ"),
+    },
   ])
 );
-//   {
-//   initialize: {
-//     accounts: {
-//       tournament: {
-//         defaultsTo: k.resolverDefault("tournament", [
-//           k.dependsOnArg("tournament_id"),
-//         ]),
-//       },
+// {
+// initialize: {
+//   accounts: {
+//     tournament: {
+//       defaultsTo: k.resolverDefault("tournament", [
+//         k.dependsOnArg("tournament_id"),
+//       ]),
 //     },
+//   },
 //   },
 // }
 // Render JavaScript.

@@ -3,16 +3,20 @@
     "lint:fix": "prettier */*.js \"*/**/*{.js,.ts}\" -w",
     "lint": "prettier */*.js \"*/**/*{.js,.ts}\" --check",
     "generateSplToken": "ts-node tests/create-spl-token.ts",
-    "test": "ts-mocha tests/ProLeague-Tournament-SC.ts",
+    "test": "ts-mocha --timeout 2000000 tests/ProLeague-Tournament-SC.test.ts",
     "compile": "tsc",
     "generate:clients": "ts-node ./kinobi.ts",
-    "build":"yarn generate:clients && yarn compile",
-    "publish": "node ./scripts/publish.js"
+    "build": "yarn generate:clients && yarn compile",
+    "publish": "node ./scripts/publish.js",
+    "createToken": "ts-node ./tests/helpers/create-spl-token.ts",
+    "transferToken": "ts-node ./tests/helpers/transfer-mint-token.ts",
+    "getTournament": "ts-node ./tests/getTournamentWithAnchor.ts"
   },
   "dependencies": {
     "@metaplex-foundation/kinobi": "^0.16.1",
     "@metaplex-foundation/mpl-token-metadata": "^3.1.0",
     "@metaplex-foundation/umi": "^0.8.9",
+    "@metaplex-foundation/umi-bundle-defaults": "^0.8.9",
     "@project-serum/anchor": "^0.25.0",
     "@solana/spl-token": "^0.3.8",
     "@solana/web3.js": "^1.87.1",
