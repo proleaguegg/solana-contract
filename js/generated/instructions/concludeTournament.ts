@@ -28,43 +28,45 @@ import {
 } from '../shared';
 
 // Accounts.
-export type ConcludeMatchInstructionAccounts = {
+export type ConcludeTournamentInstructionAccounts = {
   tournament: PublicKey | Pda;
   creator: Signer;
 };
 
 // Data.
-export type ConcludeMatchInstructionData = { discriminator: Array<number> };
+export type ConcludeTournamentInstructionData = {
+  discriminator: Array<number>;
+};
 
-export type ConcludeMatchInstructionDataArgs = {};
+export type ConcludeTournamentInstructionDataArgs = {};
 
-export function getConcludeMatchInstructionDataSerializer(): Serializer<
-  ConcludeMatchInstructionDataArgs,
-  ConcludeMatchInstructionData
+export function getConcludeTournamentInstructionDataSerializer(): Serializer<
+  ConcludeTournamentInstructionDataArgs,
+  ConcludeTournamentInstructionData
 > {
   return mapSerializer<
-    ConcludeMatchInstructionDataArgs,
+    ConcludeTournamentInstructionDataArgs,
     any,
-    ConcludeMatchInstructionData
+    ConcludeTournamentInstructionData
   >(
-    struct<ConcludeMatchInstructionData>(
+    struct<ConcludeTournamentInstructionData>(
       [['discriminator', array(u8(), { size: 8 })]],
-      { description: 'ConcludeMatchInstructionData' }
+      { description: 'ConcludeTournamentInstructionData' }
     ),
     (value) => ({
       ...value,
-      discriminator: [223, 174, 74, 222, 39, 65, 83, 53],
+      discriminator: [12, 3, 223, 101, 137, 165, 187, 147],
     })
   ) as Serializer<
-    ConcludeMatchInstructionDataArgs,
-    ConcludeMatchInstructionData
+    ConcludeTournamentInstructionDataArgs,
+    ConcludeTournamentInstructionData
   >;
 }
 
 // Instruction.
-export function concludeMatch(
+export function concludeTournament(
   context: Pick<Context, 'programs'>,
-  input: ConcludeMatchInstructionAccounts
+  input: ConcludeTournamentInstructionAccounts
 ): TransactionBuilder {
   // Program ID.
   const programId = context.programs.getPublicKey(
@@ -91,7 +93,7 @@ export function concludeMatch(
   );
 
   // Data.
-  const data = getConcludeMatchInstructionDataSerializer().serialize({});
+  const data = getConcludeTournamentInstructionDataSerializer().serialize({});
 
   // Bytes Created On Chain.
   const bytesCreatedOnChain = 0;

@@ -12,7 +12,7 @@ import { tournamentProgram } from "./plugin.test";
 import {
   addWinner,
   sendPrize,
-  concludeMatch,
+  concludeTournament,
   fetchTournament,
   findTournamentPda,
   initialize,
@@ -315,9 +315,9 @@ describe("ProLeague-Tournament-SC", async function () {
   });
 
   // Close Tournament // Pass
-  it.skip("concludeMatch", async () => {
+  it.skip("concludeTournament", async () => {
     umi.use(keypairIdentity(creatorSigner));
-    const tx = await concludeMatch(umi, {
+    const tx = await concludeTournament(umi, {
       tournament,
       creator: creatorSigner,
     }).sendAndConfirm(umi, {
