@@ -38,8 +38,8 @@ mod tournament {
         instructions::mark_winner_won_next_round(ctx, args)
     }
 
-    pub fn conclude_match(ctx: Context<ConcludeMatch>) -> Result<()> {
-        instructions::conclude_match(ctx)
+    pub fn conclude_tournament(ctx: Context<ConcludeMatch>) -> Result<()> {
+        instructions::conclude_tournament(ctx)
     }
 
     pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {

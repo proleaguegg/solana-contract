@@ -121,7 +121,7 @@ pub struct ConcludeMatch<'info> {
     pub creator: Signer<'info>, // Assuming the creator (like an admin or match referee) is required to conclude the match.
 }
 
-pub fn conclude_match(ctx: Context<ConcludeMatch>) -> Result<()> {
+pub fn conclude_tournament(ctx: Context<ConcludeMatch>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
 
     // Mark the match as concluded.
