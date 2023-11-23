@@ -22,4 +22,6 @@ pub enum TournamentError {
     PlayerNotFound,
     #[msg("Exceeding Escrow Balance")]
     ExceedingEscrowBalance,
+    #[msg("Player must be Signer")]
+    PlayerMustBeSigner,
 }

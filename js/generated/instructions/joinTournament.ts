@@ -32,7 +32,8 @@ import {
 
 // Accounts.
 export type JoinTournamentInstructionAccounts = {
-  player: Signer;
+  driver: Signer;
+  player: PublicKey | Pda;
   playerTokenAccount?: PublicKey | Pda;
   tournament: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
@@ -83,31 +84,32 @@ export function joinTournament(
 
   // Accounts.
   const resolvedAccounts = {
-    player: { index: 0, isWritable: true, value: input.player ?? null },
+    driver: { index: 0, isWritable: true, value: input.driver ?? null },
+    player: { index: 1, isWritable: true, value: input.player ?? null },
     playerTokenAccount: {
-      index: 1,
+      index: 2,
       isWritable: true,
       value: input.playerTokenAccount ?? null,
     },
-    tournament: { index: 2, isWritable: true, value: input.tournament ?? null },
+    tournament: { index: 3, isWritable: true, value: input.tournament ?? null },
     tournamentTokenAccount: {
-      index: 3,
+      index: 4,
       isWritable: true,
       value: input.tournamentTokenAccount ?? null,
     },
-    mint: { index: 4, isWritable: true, value: input.mint ?? null },
+    mint: { index: 5, isWritable: true, value: input.mint ?? null },
     associatedTokenProgram: {
-      index: 5,
+      index: 6,
       isWritable: false,
       value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
-      index: 6,
+      index: 7,
       isWritable: false,
       value: input.tokenProgram ?? null,
     },
     systemProgram: {
-      index: 7,
+      index: 8,
       isWritable: false,
       value: input.systemProgram ?? null,
     },
