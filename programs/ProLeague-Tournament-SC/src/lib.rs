@@ -38,7 +38,7 @@ mod tournament {
         instructions::mark_winner_won_next_round(ctx, args)
     }
 
-    pub fn conclude_tournament(ctx: Context<ConcludeMatch>) -> Result<()> {
+    pub fn conclude_tournament(ctx: Context<ConcludeTournament>) -> Result<()> {
         instructions::conclude_tournament(ctx)
     }
 

@@ -30,7 +30,7 @@ import {
 // Accounts.
 export type ConcludeTournamentInstructionAccounts = {
   tournament: PublicKey | Pda;
-  creator: Signer;
+  driver: Signer;
 };
 
 // Data.
@@ -77,7 +77,7 @@ export function concludeTournament(
   // Accounts.
   const resolvedAccounts = {
     tournament: { index: 0, isWritable: true, value: input.tournament ?? null },
-    creator: { index: 1, isWritable: false, value: input.creator ?? null },
+    driver: { index: 1, isWritable: false, value: input.driver ?? null },
   } satisfies ResolvedAccountsWithIndices;
 
   // Accounts in order.

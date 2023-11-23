@@ -115,13 +115,15 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
 }
 
 #[derive(Accounts)]
-pub struct ConcludeMatch<'info> {
+pub struct ConcludeTournament<'info> {
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
-    pub creator: Signer<'info>, // Assuming the creator (like an admin or match referee) is required to conclude the match.
+
+    #[account(constraint = driver.key().eq(&DRIVER))]
+    pub driver: Signer<'info>,
 }
 
-pub fn conclude_tournament(ctx: Context<ConcludeMatch>) -> Result<()> {
+pub fn conclude_tournament(ctx: Context<ConcludeTournament>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
 
     // Mark the match as concluded.
