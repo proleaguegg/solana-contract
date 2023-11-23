@@ -21,7 +21,6 @@ import {
   array,
   bool,
   mapSerializer,
-  publicKey as publicKeySerializer,
   struct,
   u16,
   u64,
@@ -51,7 +50,6 @@ export type InitializeInstructionAccounts = {
 // Data.
 export type InitializeInstructionData = {
   discriminator: Array<number>;
-  creator: PublicKey;
   tournamentId: bigint;
   joiningFees: bigint;
   totalPlayers: number;
@@ -60,7 +58,6 @@ export type InitializeInstructionData = {
 };
 
 export type InitializeInstructionDataArgs = {
-  creator: PublicKey;
   tournamentId: number | bigint;
   joiningFees: number | bigint;
   totalPlayers: number;
@@ -80,7 +77,6 @@ export function getInitializeInstructionDataSerializer(): Serializer<
     struct<InitializeInstructionData>(
       [
         ['discriminator', array(u8(), { size: 8 })],
-        ['creator', publicKeySerializer()],
         ['tournamentId', u64()],
         ['joiningFees', u64()],
         ['totalPlayers', u16()],
@@ -102,8 +98,7 @@ export type InitializeInstructionArgs = InitializeInstructionDataArgs;
 // Instruction.
 export function initialize(
   context: Pick<Context, 'eddsa' | 'programs'>,
-  accounts: InitializeInstructionAccounts,
-  args: InitializeInstructionArgs
+  input: InitializeInstructionAccounts & InitializeInstructionArgs
 ): TransactionBuilder {
   // Program ID.
   const programId = context.programs.getPublicKey(
@@ -113,42 +108,38 @@ export function initialize(
 
   // Accounts.
   const resolvedAccounts = {
-    creator: { index: 0, isWritable: true, value: accounts.creator ?? null },
-    tournament: {
-      index: 1,
-      isWritable: true,
-      value: accounts.tournament ?? null,
-    },
+    creator: { index: 0, isWritable: true, value: input.creator ?? null },
+    tournament: { index: 1, isWritable: true, value: input.tournament ?? null },
     tournamentTokenAccount: {
       index: 2,
       isWritable: true,
-      value: accounts.tournamentTokenAccount ?? null,
+      value: input.tournamentTokenAccount ?? null,
     },
     creatorTokenAccount: {
       index: 3,
       isWritable: true,
-      value: accounts.creatorTokenAccount ?? null,
+      value: input.creatorTokenAccount ?? null,
     },
-    mint: { index: 4, isWritable: true, value: accounts.mint ?? null },
+    mint: { index: 4, isWritable: true, value: input.mint ?? null },
     associatedTokenProgram: {
       index: 5,
       isWritable: false,
-      value: accounts.associatedTokenProgram ?? null,
+      value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
       index: 6,
       isWritable: false,
-      value: accounts.tokenProgram ?? null,
+      value: input.tokenProgram ?? null,
     },
     systemProgram: {
       index: 7,
       isWritable: false,
-      value: accounts.systemProgram ?? null,
+      value: input.systemProgram ?? null,
     },
   } satisfies ResolvedAccountsWithIndices;
 
   // Arguments.
-  const resolvedArgs: InitializeInstructionArgs = { ...args };
+  const resolvedArgs: InitializeInstructionArgs = { ...input };
 
   // Default values.
   if (!resolvedAccounts.tournament.value) {

@@ -157,20 +157,14 @@ describe("ProLeague-Tournament-SC", async function () {
   it.skip("Initialize Tournament", async function () {
     umi.use(keypairIdentity(creatorSigner));
 
-    const tx = await initialize(
-      umi,
-      {
-        creator: creatorSigner,
-      },
-      {
-        creator: creator.publicKey,
-        tournamentId,
-        joiningFees: 8 * 10 ** 9,
-        totalPlayers: 8,
-        tournamentConcluded: false,
-        roundPrizes: [60 * 10 ** 9, 10 * 10 ** 9, 5 * 10 ** 9],
-      }
-    ).sendAndConfirm(umi, {
+    const tx = await initialize(umi, {
+      creator: creatorSigner,
+      tournamentId,
+      joiningFees: 8 * 10 ** 9,
+      totalPlayers: 8,
+      tournamentConcluded: false,
+      roundPrizes: [60 * 10 ** 9, 10 * 10 ** 9, 5 * 10 ** 9],
+    }).sendAndConfirm(umi, {
       send: {
         preflightCommitment: "processed",
       },
@@ -237,7 +231,8 @@ describe("ProLeague-Tournament-SC", async function () {
     console.dir(transferTokenToPlayer, { depth: null });
 
     const tx = await joinTournament(umi, {
-      player: playerSigner,
+      player: player.publicKey,
+      driver: driverSigner,
       playerTokenAccount,
       tournament,
     }).sendAndConfirm(umi, {
@@ -319,7 +314,7 @@ describe("ProLeague-Tournament-SC", async function () {
     umi.use(keypairIdentity(creatorSigner));
     const tx = await concludeTournament(umi, {
       tournament,
-      creator: creatorSigner,
+      driver: creatorSigner,
     }).sendAndConfirm(umi, {
       send: {
         preflightCommitment: "processed",

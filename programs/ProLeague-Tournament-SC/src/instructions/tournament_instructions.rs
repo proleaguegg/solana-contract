@@ -44,7 +44,6 @@ pub struct Initialize<'info> {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct ArgumentInitialize {
-    pub creator: Pubkey,
     pub tournament_id: u64,
     pub joining_fees: u64,
     pub total_players: u16,
@@ -60,7 +59,7 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
 
     // Update tournament details
     tournament.bump = ctx.bumps.tournament;
-    tournament.creator = data.creator;
+    tournament.creator = creator.key();
     tournament.tournament_id = data.tournament_id;
     tournament.joining_fees = data.joining_fees;
     tournament.total_players = data.total_players;
@@ -136,12 +135,16 @@ pub fn conclude_tournament(ctx: Context<ConcludeTournament>) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct JoinTournament<'info> {
+    #[account(mut, constraint = driver.key().eq(&DRIVER))]
+    pub driver: Signer<'info>,
+
+    /// CHECK: We are checking it in the body
     #[account(mut)]
-    pub player: Signer<'info>,
+    pub player: AccountInfo<'info>,
 
     #[account(
         init_if_needed,
-        payer = player,
+        payer = driver,
         associated_token::mint = mint,
         associated_token::authority = player,
     )]
@@ -178,6 +181,9 @@ pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
 
     // Only transfer the joining fee if it is greater than zero
     if tournament.joining_fees > 0 {
+        // Ensure that the player is a signer if joining fees are required
+        require!(player.is_signer, TournamentError::PlayerMustBeSigner);
+
         let cpi_ctx = CpiContext::new(
             ctx.accounts.token_program.to_account_info().clone(),
             Transfer {

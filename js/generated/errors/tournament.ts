@@ -149,6 +149,19 @@ export class ExceedingEscrowBalanceError extends ProgramError {
 codeToErrorMap.set(0x1779, ExceedingEscrowBalanceError);
 nameToErrorMap.set('ExceedingEscrowBalance', ExceedingEscrowBalanceError);
 
+/** PlayerMustBeSigner: Player must be Signer */
+export class PlayerMustBeSignerError extends ProgramError {
+  override readonly name: string = 'PlayerMustBeSigner';
+
+  readonly code: number = 0x177a; // 6010
+
+  constructor(program: Program, cause?: Error) {
+    super('Player must be Signer', program, cause);
+  }
+}
+codeToErrorMap.set(0x177a, PlayerMustBeSignerError);
+nameToErrorMap.set('PlayerMustBeSigner', PlayerMustBeSignerError);
+
 /**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
