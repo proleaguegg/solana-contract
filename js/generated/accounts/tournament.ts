@@ -39,11 +39,11 @@ export type TournamentAccountData = {
   discriminator: Array<number>;
   bump: number;
   creator: PublicKey;
-  tournamentId: bigint;
   joiningFees: bigint;
   totalPlayers: number;
   totalRounds: number;
   tournamentConcluded: boolean;
+  tournamentId: string;
   players: Array<PublicKey>;
   rounds: Array<Round>;
 };
@@ -51,11 +51,11 @@ export type TournamentAccountData = {
 export type TournamentAccountDataArgs = {
   bump: number;
   creator: PublicKey;
-  tournamentId: number | bigint;
   joiningFees: number | bigint;
   totalPlayers: number;
   totalRounds: number;
   tournamentConcluded: boolean;
+  tournamentId: string;
   players: Array<PublicKey>;
   rounds: Array<RoundArgs>;
 };
@@ -70,11 +70,11 @@ export function getTournamentAccountDataSerializer(): Serializer<
         ['discriminator', array(u8(), { size: 8 })],
         ['bump', u8()],
         ['creator', publicKeySerializer()],
-        ['tournamentId', u64()],
         ['joiningFees', u64()],
         ['totalPlayers', u16()],
         ['totalRounds', u16()],
         ['tournamentConcluded', bool()],
+        ['tournamentId', string()],
         ['players', array(publicKeySerializer())],
         ['rounds', array(getRoundSerializer())],
       ],
@@ -157,23 +157,23 @@ export function getTournamentGpaBuilder(
       discriminator: Array<number>;
       bump: number;
       creator: PublicKey;
-      tournamentId: number | bigint;
       joiningFees: number | bigint;
       totalPlayers: number;
       totalRounds: number;
       tournamentConcluded: boolean;
+      tournamentId: string;
       players: Array<PublicKey>;
       rounds: Array<RoundArgs>;
     }>({
       discriminator: [0, array(u8(), { size: 8 })],
       bump: [8, u8()],
       creator: [9, publicKeySerializer()],
-      tournamentId: [41, u64()],
-      joiningFees: [49, u64()],
-      totalPlayers: [57, u16()],
-      totalRounds: [59, u16()],
-      tournamentConcluded: [61, bool()],
-      players: [62, array(publicKeySerializer())],
+      joiningFees: [41, u64()],
+      totalPlayers: [49, u16()],
+      totalRounds: [51, u16()],
+      tournamentConcluded: [53, bool()],
+      tournamentId: [54, string()],
+      players: [null, array(publicKeySerializer())],
       rounds: [null, array(getRoundSerializer())],
     })
     .deserializeUsing<Tournament>((account) => deserializeTournament(account))
@@ -184,7 +184,7 @@ export function findTournamentPda(
   context: Pick<Context, 'eddsa' | 'programs'>,
   seeds: {
     /** Random Tournament id */
-    tournamentId: number | bigint;
+    tournamentId: string;
   }
 ): Pda {
   const programId = context.programs.getPublicKey(
@@ -193,7 +193,7 @@ export function findTournamentPda(
   );
   return context.eddsa.findPda(programId, [
     string({ size: 'variable' }).serialize('TOURNAMENT_STATE'),
-    u64().serialize(seeds.tournamentId),
+    string().serialize(seeds.tournamentId),
   ]);
 }
 

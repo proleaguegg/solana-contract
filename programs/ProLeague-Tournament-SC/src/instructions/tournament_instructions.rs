@@ -17,7 +17,7 @@ pub struct Initialize<'info> {
     pub creator: Signer<'info>,
     #[account(
         init,
-        seeds = [TOURNAMENT_TAG.as_ref(), data.tournament_id.to_le_bytes().as_ref()],
+        seeds = [TOURNAMENT_TAG.as_ref(), data.tournament_id.as_ref()],
         bump,
         payer = creator,
         space = Tournament::calculate_size(data.total_players, data.round_prizes.len()),
@@ -44,13 +44,14 @@ pub struct Initialize<'info> {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
 pub struct ArgumentInitialize {
-    pub tournament_id: u64,
     pub joining_fees: u64,
     pub total_players: u16,
     pub tournament_concluded: bool,
     pub round_prizes: Vec<u64>, // Array of integers representing prizes for each round
+    pub tournament_id: String,
 }
 pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<()> {
+    msg!("Tournament Initialized with data: {:?}!", data);
     let tournament = &mut ctx.accounts.tournament;
     let creator = &mut ctx.accounts.creator;
     let creator_token_account = &mut ctx.accounts.creator_token_account;
@@ -94,7 +95,6 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
         });
     }
 
-    msg!("Tournament Initialized with data: {:?}!", data);
     if total_fee < total_prize_sum {
         // Transfer the escrow balance from the creator to the new account (vault)
         let cpi_ctx = CpiContext::new(
@@ -108,7 +108,7 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
         anchor_spl::token::transfer(cpi_ctx, total_prize_sum - total_fee)?;
     }
 
-    msg!("Changed data to: {:?}!", data);
+    // msg!("Changed data to: {:?}!", data);
 
     Ok(())
 }

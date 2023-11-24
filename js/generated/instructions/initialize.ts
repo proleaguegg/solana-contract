@@ -21,6 +21,7 @@ import {
   array,
   bool,
   mapSerializer,
+  string,
   struct,
   u16,
   u64,
@@ -50,19 +51,19 @@ export type InitializeInstructionAccounts = {
 // Data.
 export type InitializeInstructionData = {
   discriminator: Array<number>;
-  tournamentId: bigint;
   joiningFees: bigint;
   totalPlayers: number;
   tournamentConcluded: boolean;
   roundPrizes: Array<bigint>;
+  tournamentId: string;
 };
 
 export type InitializeInstructionDataArgs = {
-  tournamentId: number | bigint;
   joiningFees: number | bigint;
   totalPlayers: number;
   tournamentConcluded: boolean;
   roundPrizes: Array<number | bigint>;
+  tournamentId: string;
 };
 
 export function getInitializeInstructionDataSerializer(): Serializer<
@@ -77,11 +78,11 @@ export function getInitializeInstructionDataSerializer(): Serializer<
     struct<InitializeInstructionData>(
       [
         ['discriminator', array(u8(), { size: 8 })],
-        ['tournamentId', u64()],
         ['joiningFees', u64()],
         ['totalPlayers', u16()],
         ['tournamentConcluded', bool()],
         ['roundPrizes', array(u64())],
+        ['tournamentId', string()],
       ],
       { description: 'InitializeInstructionData' }
     ),
