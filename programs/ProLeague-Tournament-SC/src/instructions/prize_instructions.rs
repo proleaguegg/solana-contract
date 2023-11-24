@@ -84,7 +84,7 @@ pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {
 
     let staker_seeds = &[
         TOURNAMENT_TAG.as_ref(),
-        &tournament_copy.tournament_id.clone().to_le_bytes()[..],
+        &tournament_copy.tournament_id.as_ref(),
         &[tournament_copy.bump],
     ];
     let cpi_signer = &[&staker_seeds[..]];

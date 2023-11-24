@@ -7,11 +7,11 @@ use super::Round;
 pub struct Tournament {
     pub bump: u8,
     pub creator: Pubkey,
-    pub tournament_id: u64,
     pub joining_fees: u64,
     pub total_players: u16,
     pub total_rounds: u16,
     pub tournament_concluded: bool,
+    pub tournament_id: String,
     pub players: Vec<Pubkey>,
     pub rounds: Vec<Round>,
 }
@@ -23,7 +23,7 @@ impl Tournament {
     pub fn set_defaults(&mut self) {
         self.creator = Pubkey::default();
         self.bump = 0;
-        self.tournament_id = 0;
+        self.tournament_id = String::from("default");
         self.joining_fees = 0;
         self.total_players = 0;
         self.total_rounds = 0;

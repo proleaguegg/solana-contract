@@ -30,6 +30,7 @@ import {
   transferTokens,
   createAssociatedToken,
 } from "@metaplex-foundation/mpl-toolbox";
+import { randomStringGenerator } from "./helpers/randomString";
 dotenv.config();
 
 // Tournament Test
@@ -40,7 +41,7 @@ describe("ProLeague-Tournament-SC", async function () {
   const umi = BaseCreateUmi(deventRpc)
     .use(tournamentProgram())
     .use(web3JsRpc(deventRpc));
-  const tournamentId = 851; // Math.ceil(Math.random() * 100) + 1; // 33;
+  const tournamentId = randomStringGenerator.getRandomString();
   const tournament = findTournamentPda(umi, {
     tournamentId: tournamentId,
   });
