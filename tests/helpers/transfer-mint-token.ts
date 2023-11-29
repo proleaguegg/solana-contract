@@ -71,7 +71,7 @@ const getOrCreateAccountToHoldBalance = async (
 (async () => {
   try {
     const receiverPublicKey: PublicKey = new PublicKey(
-      "3idCHfBHAgf3ZkjSLcyzyjMaQMfkqya9UYyEVgLgS9mP"
+      "4cs2geUpq927xWZ5fdTxFSwcB6bwL15eMSKs8p2cmAUq"
     ); //
     const tokenMint = new PublicKey(process.env.TOKEN_MINT || "");
     const driverKeyPair = Keypair.fromSecretKey(
