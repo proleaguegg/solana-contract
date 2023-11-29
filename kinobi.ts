@@ -45,7 +45,11 @@ kinobi.update(
         k.stringConstantSeed("TOURNAMENT_STATE"),
         k.variableSeed(
           "tournament_id",
-          k.stringTypeNode(),
+          k.stringTypeNode({
+            size: {
+              kind: "remainder",
+            },
+          }),
           "Random Tournament id"
         ),
       ],

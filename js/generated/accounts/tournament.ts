@@ -193,7 +193,7 @@ export function findTournamentPda(
   );
   return context.eddsa.findPda(programId, [
     string({ size: 'variable' }).serialize('TOURNAMENT_STATE'),
-    string().serialize(seeds.tournamentId),
+    string({ size: 'variable' }).serialize(seeds.tournamentId),
   ]);
 }
 
