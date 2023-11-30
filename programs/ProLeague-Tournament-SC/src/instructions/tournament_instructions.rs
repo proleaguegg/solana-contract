@@ -139,8 +139,12 @@ pub struct JoinTournament<'info> {
     pub driver: Signer<'info>,
 
     /// CHECK: We are checking it in the body
+    #[account(mut,constraint = player.key().eq(&player_info.key()) )]
+    pub player: Option<Signer<'info>>,
+
+    /// CHECK: We are checking it in the body
     #[account(mut)]
-    pub player: AccountInfo<'info>,
+    pub player_info: AccountInfo<'info>,
 
     #[account(
         init_if_needed,
@@ -148,7 +152,7 @@ pub struct JoinTournament<'info> {
         associated_token::mint = mint,
         associated_token::authority = player,
     )]
-    pub player_token_account: Account<'info, TokenAccount>,
+    pub player_token_account: Option<Account<'info, TokenAccount>>,
 
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
@@ -165,8 +169,7 @@ pub struct JoinTournament<'info> {
 
 pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
-    let player = &ctx.accounts.player;
-    let player_token_account = &ctx.accounts.player_token_account;
+    let player = &ctx.accounts.player_info;
     let tournament_token_account = &ctx.accounts.tournament_token_account;
 
     // Check if the tournament is already concluded
@@ -181,13 +184,14 @@ pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
 
     // Only transfer the joining fee if it is greater than zero
     if tournament.joining_fees > 0 {
+        let player_token_account = ctx.accounts.player_token_account.as_ref().unwrap();
         // Ensure that the player is a signer if joining fees are required
         require!(player.is_signer, TournamentError::PlayerMustBeSigner);
 
         let cpi_ctx = CpiContext::new(
             ctx.accounts.token_program.to_account_info().clone(),
             Transfer {
-                from: player_token_account.to_account_info().clone(),
+                from: player_token_account.to_account_info(),
                 to: tournament_token_account.to_account_info().clone(),
                 authority: player.to_account_info().clone(),
             },

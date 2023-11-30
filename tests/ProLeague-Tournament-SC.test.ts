@@ -5,6 +5,7 @@ import {
   keypairIdentity,
   createSignerFromKeypair,
   publicKey,
+  createNoopSigner,
 } from "@metaplex-foundation/umi";
 import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
 import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
@@ -43,7 +44,7 @@ describe("ProLeague-Tournament-SC", async function () {
     .use(web3JsRpc(deventRpc));
   const tournamentId = randomStringGenerator.getRandomString();
   const tournament = findTournamentPda(umi, {
-    tournamentId: tournamentId,
+    tournamentId: "656711bad6f929f7eda9d841",
   });
 
   // Constant
@@ -232,7 +233,8 @@ describe("ProLeague-Tournament-SC", async function () {
     console.dir(transferTokenToPlayer, { depth: null });
 
     const tx = await joinTournament(umi, {
-      player: player.publicKey,
+      player: createNoopSigner(player.publicKey),
+      playerInfo: player.publicKey,
       driver: driverSigner,
       playerTokenAccount,
       tournament,

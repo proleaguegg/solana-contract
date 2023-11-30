@@ -71,7 +71,7 @@ const getOrCreateAccountToHoldBalance = async (
 (async () => {
   try {
     const receiverPublicKey: PublicKey = new PublicKey(
-      "4cs2geUpq927xWZ5fdTxFSwcB6bwL15eMSKs8p2cmAUq"
+      "CbTUX8A2QscCia8CiiZop935ABNh7nf9N17YD1ZqAZYX"
     ); //
     const tokenMint = new PublicKey(process.env.TOKEN_MINT || "");
     const driverKeyPair = Keypair.fromSecretKey(
@@ -103,7 +103,7 @@ const getOrCreateAccountToHoldBalance = async (
       tokenAccountDriver.address,
       tokenAccountReceiver.address,
       mintOwnerAccount.publicKey,
-      900,
+      70,
       driverKeyPair
     );
 
