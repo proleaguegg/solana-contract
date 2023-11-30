@@ -33,7 +33,8 @@ import {
 // Accounts.
 export type JoinTournamentInstructionAccounts = {
   driver: Signer;
-  player: PublicKey | Pda;
+  player?: Signer;
+  playerInfo: PublicKey | Pda;
   playerTokenAccount?: PublicKey | Pda;
   tournament: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
@@ -86,30 +87,31 @@ export function joinTournament(
   const resolvedAccounts = {
     driver: { index: 0, isWritable: true, value: input.driver ?? null },
     player: { index: 1, isWritable: true, value: input.player ?? null },
+    playerInfo: { index: 2, isWritable: true, value: input.playerInfo ?? null },
     playerTokenAccount: {
-      index: 2,
+      index: 3,
       isWritable: true,
       value: input.playerTokenAccount ?? null,
     },
-    tournament: { index: 3, isWritable: true, value: input.tournament ?? null },
+    tournament: { index: 4, isWritable: true, value: input.tournament ?? null },
     tournamentTokenAccount: {
-      index: 4,
+      index: 5,
       isWritable: true,
       value: input.tournamentTokenAccount ?? null,
     },
-    mint: { index: 5, isWritable: true, value: input.mint ?? null },
+    mint: { index: 6, isWritable: true, value: input.mint ?? null },
     associatedTokenProgram: {
-      index: 6,
+      index: 7,
       isWritable: false,
       value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
-      index: 7,
+      index: 8,
       isWritable: false,
       value: input.tokenProgram ?? null,
     },
     systemProgram: {
-      index: 8,
+      index: 9,
       isWritable: false,
       value: input.systemProgram ?? null,
     },
@@ -119,15 +121,6 @@ export function joinTournament(
   if (!resolvedAccounts.mint.value) {
     resolvedAccounts.mint.value = publicKey(
       '2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ'
-    );
-  }
-  if (!resolvedAccounts.playerTokenAccount.value) {
-    resolvedAccounts.playerTokenAccount.value = findAssociatedTokenPda(
-      context,
-      {
-        mint: expectPublicKey(resolvedAccounts.mint.value),
-        owner: expectPublicKey(resolvedAccounts.player.value),
-      }
     );
   }
   if (!resolvedAccounts.tournamentTokenAccount.value) {
