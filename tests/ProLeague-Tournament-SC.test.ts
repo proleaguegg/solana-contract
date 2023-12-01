@@ -215,25 +215,25 @@ describe("ProLeague-Tournament-SC", async function () {
     });
     console.log({ driverTokenAccount });
 
-    const transferTokenToPlayer = await transferTokens(umi, {
-      source: driverTokenAccount,
-      destination: playerTokenAccount,
-      amount: 12 * 10 ** 9,
-      // authority: driverSigner,
-      // mint: mintToken,
-      // owner: player.publicKey,
-    }).sendAndConfirm(umi, {
-      send: {
-        preflightCommitment: "processed",
-      },
-      confirm: {
-        commitment: "processed",
-      },
-    });
-    console.dir(transferTokenToPlayer, { depth: null });
+    // const transferTokenToPlayer = await transferTokens(umi, {
+    //   source: driverTokenAccount,
+    //   destination: playerTokenAccount,
+    //   amount: 12 * 10 ** 9,
+    //   // authority: driverSigner,
+    //   // mint: mintToken,
+    //   // owner: player.publicKey,
+    // }).sendAndConfirm(umi, {
+    //   send: {
+    //     preflightCommitment: "processed",
+    //   },
+    //   confirm: {
+    //     commitment: "processed",
+    //   },
+    // });
+    // console.dir(transferTokenToPlayer, { depth: null });
 
     const tx = await joinTournament(umi, {
-      player: createNoopSigner(player.publicKey),
+      player: playerSigner,
       playerInfo: player.publicKey,
       driver: driverSigner,
       playerTokenAccount,
