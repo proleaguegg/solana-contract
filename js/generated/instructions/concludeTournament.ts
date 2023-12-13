@@ -6,12 +6,14 @@
  * @see https://github.com/metaplex-foundation/kinobi
  */
 
+import { findAssociatedTokenPda } from '@metaplex-foundation/mpl-toolbox';
 import {
   Context,
   Pda,
   PublicKey,
   Signer,
   TransactionBuilder,
+  publicKey,
   transactionBuilder,
 } from '@metaplex-foundation/umi';
 import {
@@ -24,13 +26,20 @@ import {
 import {
   ResolvedAccount,
   ResolvedAccountsWithIndices,
+  expectPublicKey,
   getAccountMetasAndSigners,
 } from '../shared';
 
 // Accounts.
 export type ConcludeTournamentInstructionAccounts = {
   tournament: PublicKey | Pda;
+  tournamentTokenAccount?: PublicKey | Pda;
+  creatorTokenAccount: PublicKey | Pda;
   driver: Signer;
+  mint?: PublicKey | Pda;
+  associatedTokenProgram?: PublicKey | Pda;
+  tokenProgram?: PublicKey | Pda;
+  systemProgram?: PublicKey | Pda;
 };
 
 // Data.
@@ -65,7 +74,7 @@ export function getConcludeTournamentInstructionDataSerializer(): Serializer<
 
 // Instruction.
 export function concludeTournament(
-  context: Pick<Context, 'programs'>,
+  context: Pick<Context, 'eddsa' | 'programs'>,
   input: ConcludeTournamentInstructionAccounts
 ): TransactionBuilder {
   // Program ID.
@@ -77,8 +86,72 @@ export function concludeTournament(
   // Accounts.
   const resolvedAccounts = {
     tournament: { index: 0, isWritable: true, value: input.tournament ?? null },
-    driver: { index: 1, isWritable: false, value: input.driver ?? null },
+    tournamentTokenAccount: {
+      index: 1,
+      isWritable: true,
+      value: input.tournamentTokenAccount ?? null,
+    },
+    creatorTokenAccount: {
+      index: 2,
+      isWritable: true,
+      value: input.creatorTokenAccount ?? null,
+    },
+    driver: { index: 3, isWritable: false, value: input.driver ?? null },
+    mint: { index: 4, isWritable: true, value: input.mint ?? null },
+    associatedTokenProgram: {
+      index: 5,
+      isWritable: false,
+      value: input.associatedTokenProgram ?? null,
+    },
+    tokenProgram: {
+      index: 6,
+      isWritable: false,
+      value: input.tokenProgram ?? null,
+    },
+    systemProgram: {
+      index: 7,
+      isWritable: false,
+      value: input.systemProgram ?? null,
+    },
   } satisfies ResolvedAccountsWithIndices;
+
+  // Default values.
+  if (!resolvedAccounts.mint.value) {
+    resolvedAccounts.mint.value = publicKey(
+      '2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ'
+    );
+  }
+  if (!resolvedAccounts.tournamentTokenAccount.value) {
+    resolvedAccounts.tournamentTokenAccount.value = findAssociatedTokenPda(
+      context,
+      {
+        mint: expectPublicKey(resolvedAccounts.mint.value),
+        owner: expectPublicKey(resolvedAccounts.tournament.value),
+      }
+    );
+  }
+  if (!resolvedAccounts.associatedTokenProgram.value) {
+    resolvedAccounts.associatedTokenProgram.value =
+      context.programs.getPublicKey(
+        'associatedTokenProgram',
+        'ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL'
+      );
+    resolvedAccounts.associatedTokenProgram.isWritable = false;
+  }
+  if (!resolvedAccounts.tokenProgram.value) {
+    resolvedAccounts.tokenProgram.value = context.programs.getPublicKey(
+      'splToken',
+      'TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA'
+    );
+    resolvedAccounts.tokenProgram.isWritable = false;
+  }
+  if (!resolvedAccounts.systemProgram.value) {
+    resolvedAccounts.systemProgram.value = context.programs.getPublicKey(
+      'splSystem',
+      '11111111111111111111111111111111'
+    );
+    resolvedAccounts.systemProgram.isWritable = false;
+  }
 
   // Accounts in order.
   const orderedAccounts: ResolvedAccount[] = Object.values(

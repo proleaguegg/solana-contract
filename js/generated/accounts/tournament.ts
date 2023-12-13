@@ -42,7 +42,7 @@ export type TournamentAccountData = {
   joiningFees: bigint;
   totalPlayers: number;
   totalRounds: number;
-  tournamentConcluded: boolean;
+  isPublished: boolean;
   tournamentId: string;
   players: Array<PublicKey>;
   rounds: Array<Round>;
@@ -54,7 +54,7 @@ export type TournamentAccountDataArgs = {
   joiningFees: number | bigint;
   totalPlayers: number;
   totalRounds: number;
-  tournamentConcluded: boolean;
+  isPublished: boolean;
   tournamentId: string;
   players: Array<PublicKey>;
   rounds: Array<RoundArgs>;
@@ -73,7 +73,7 @@ export function getTournamentAccountDataSerializer(): Serializer<
         ['joiningFees', u64()],
         ['totalPlayers', u16()],
         ['totalRounds', u16()],
-        ['tournamentConcluded', bool()],
+        ['isPublished', bool()],
         ['tournamentId', string()],
         ['players', array(publicKeySerializer())],
         ['rounds', array(getRoundSerializer())],
@@ -160,7 +160,7 @@ export function getTournamentGpaBuilder(
       joiningFees: number | bigint;
       totalPlayers: number;
       totalRounds: number;
-      tournamentConcluded: boolean;
+      isPublished: boolean;
       tournamentId: string;
       players: Array<PublicKey>;
       rounds: Array<RoundArgs>;
@@ -171,7 +171,7 @@ export function getTournamentGpaBuilder(
       joiningFees: [41, u64()],
       totalPlayers: [49, u16()],
       totalRounds: [51, u16()],
-      tournamentConcluded: [53, bool()],
+      isPublished: [53, bool()],
       tournamentId: [54, string()],
       players: [null, array(publicKeySerializer())],
       rounds: [null, array(getRoundSerializer())],

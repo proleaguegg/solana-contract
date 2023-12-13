@@ -10,15 +10,18 @@ pub struct Tournament {
     pub joining_fees: u64,
     pub total_players: u16,
     pub total_rounds: u16,
-    pub tournament_concluded: bool,
+    pub is_published: bool,
     pub tournament_id: String,
     pub players: Vec<Pubkey>,
     pub rounds: Vec<Round>,
+    // pub tournament_concluded: bool,
+    // pub is_closed: bool,
+    // pub is_sponsored: bool,
 }
 
 impl Tournament {
     /// The expected size of the `GuildKit` struct in bytes.
-    pub const LEN: usize = 56 + 8;
+    pub const LEN: usize = 59 + 8;
     /// Sets default values for a GuildKit.
     pub fn set_defaults(&mut self) {
         self.creator = Pubkey::default();
@@ -27,9 +30,12 @@ impl Tournament {
         self.joining_fees = 0;
         self.total_players = 0;
         self.total_rounds = 0;
-        self.tournament_concluded = false;
+        self.is_published = false;
+        // self.tournament_concluded = false;
         self.players = Vec::new();
         self.rounds = Vec::new();
+        // self.is_closed = false;
+        // self.is_sponsored = false;
     }
     pub fn calculate_size(total_players: u16, winning_rounds: usize) -> usize {
         let mut len = Self::LEN;

@@ -56,10 +56,10 @@ pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {
         .position(|address| address.eq(&winner))
         .unwrap() as u32;
 
-    // Validate if the match has been concluded
-    if !tournament.tournament_concluded {
-        return Err(TournamentError::TournamentNotConcluded.into());
-    }
+    // // Validate if the match has been concluded
+    // if !tournament.tournament_concluded {
+    //     return Err(TournamentError::TournamentNotConcluded.into());
+    // }
 
     // Check if winner exists in this round
     let round = &mut tournament.rounds[round_index as usize];
