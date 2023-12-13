@@ -162,6 +162,61 @@ export class PlayerMustBeSignerError extends ProgramError {
 codeToErrorMap.set(0x177a, PlayerMustBeSignerError);
 nameToErrorMap.set('PlayerMustBeSigner', PlayerMustBeSignerError);
 
+/** TournamentIsClosed: Tournament is Closed */
+export class TournamentIsClosedError extends ProgramError {
+  override readonly name: string = 'TournamentIsClosed';
+
+  readonly code: number = 0x177b; // 6011
+
+  constructor(program: Program, cause?: Error) {
+    super('Tournament is Closed', program, cause);
+  }
+}
+codeToErrorMap.set(0x177b, TournamentIsClosedError);
+nameToErrorMap.set('TournamentIsClosed', TournamentIsClosedError);
+
+/** TournamentAlreadySponsored: Tournament is already sponsored */
+export class TournamentAlreadySponsoredError extends ProgramError {
+  override readonly name: string = 'TournamentAlreadySponsored';
+
+  readonly code: number = 0x177c; // 6012
+
+  constructor(program: Program, cause?: Error) {
+    super('Tournament is already sponsored', program, cause);
+  }
+}
+codeToErrorMap.set(0x177c, TournamentAlreadySponsoredError);
+nameToErrorMap.set(
+  'TournamentAlreadySponsored',
+  TournamentAlreadySponsoredError
+);
+
+/** PrizeNotClaimed: Prize not Claimed */
+export class PrizeNotClaimedError extends ProgramError {
+  override readonly name: string = 'PrizeNotClaimed';
+
+  readonly code: number = 0x177d; // 6013
+
+  constructor(program: Program, cause?: Error) {
+    super('Prize not Claimed', program, cause);
+  }
+}
+codeToErrorMap.set(0x177d, PrizeNotClaimedError);
+nameToErrorMap.set('PrizeNotClaimed', PrizeNotClaimedError);
+
+/** ExpectedWinnerLength: Expected Winner Length Error */
+export class ExpectedWinnerLengthError extends ProgramError {
+  override readonly name: string = 'ExpectedWinnerLength';
+
+  readonly code: number = 0x177e; // 6014
+
+  constructor(program: Program, cause?: Error) {
+    super('Expected Winner Length Error', program, cause);
+  }
+}
+codeToErrorMap.set(0x177e, ExpectedWinnerLengthError);
+nameToErrorMap.set('ExpectedWinnerLength', ExpectedWinnerLengthError);
+
 /**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors

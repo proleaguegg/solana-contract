@@ -24,4 +24,12 @@ pub enum TournamentError {
     ExceedingEscrowBalance,
     #[msg("Player must be Signer")]
     PlayerMustBeSigner,
+    #[msg("Tournament is Closed")]
+    TournamentIsClosed,
+    #[msg("Tournament is already sponsored")]
+    TournamentAlreadySponsored,
+    #[msg("Prize not Claimed")]
+    PrizeNotClaimed,
+    #[msg("Expected Winner Length Error")]
+    ExpectedWinnerLength,
 }

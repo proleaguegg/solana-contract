@@ -11,4 +11,6 @@ export * from './concludeTournament';
 export * from './initialize';
 export * from './joinTournament';
 export * from './markWinnerWonNextRound';
+export * from './publishTournament';
 export * from './sendPrize';
+export * from './sponsorTournament';

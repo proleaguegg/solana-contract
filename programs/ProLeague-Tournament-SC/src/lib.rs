@@ -45,4 +45,18 @@ mod tournament {
     pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {
         instructions::send_prize(ctx, args)
     }
+
+    pub fn publish_tournament(
+        ctx: Context<PublishTournament>,
+        args: ArgumentPublishTournament,
+    ) -> Result<()> {
+        instructions::publish_tournament(ctx, args)
+    }
+
+    pub fn sponsor_tournament(
+        ctx: Context<SponsorTournament>,
+        args: ArgumentSponsorTournament,
+    ) -> Result<()> {
+        instructions::sponsor_tournament(ctx, args)
+    }
 }

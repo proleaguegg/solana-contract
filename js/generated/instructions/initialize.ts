@@ -19,7 +19,6 @@ import {
 import {
   Serializer,
   array,
-  bool,
   mapSerializer,
   string,
   struct,
@@ -38,7 +37,8 @@ import {
 
 // Accounts.
 export type InitializeInstructionAccounts = {
-  creator: Signer;
+  driver: Signer;
+  creator: PublicKey | Pda;
   tournament?: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
   creatorTokenAccount?: PublicKey | Pda;
@@ -53,16 +53,14 @@ export type InitializeInstructionData = {
   discriminator: Array<number>;
   joiningFees: bigint;
   totalPlayers: number;
-  tournamentConcluded: boolean;
-  roundPrizes: Array<bigint>;
+  winningRounds: number;
   tournamentId: string;
 };
 
 export type InitializeInstructionDataArgs = {
   joiningFees: number | bigint;
   totalPlayers: number;
-  tournamentConcluded: boolean;
-  roundPrizes: Array<number | bigint>;
+  winningRounds: number;
   tournamentId: string;
 };
 
@@ -80,8 +78,7 @@ export function getInitializeInstructionDataSerializer(): Serializer<
         ['discriminator', array(u8(), { size: 8 })],
         ['joiningFees', u64()],
         ['totalPlayers', u16()],
-        ['tournamentConcluded', bool()],
-        ['roundPrizes', array(u64())],
+        ['winningRounds', u8()],
         ['tournamentId', string()],
       ],
       { description: 'InitializeInstructionData' }
@@ -109,31 +106,32 @@ export function initialize(
 
   // Accounts.
   const resolvedAccounts = {
-    creator: { index: 0, isWritable: true, value: input.creator ?? null },
-    tournament: { index: 1, isWritable: true, value: input.tournament ?? null },
+    driver: { index: 0, isWritable: true, value: input.driver ?? null },
+    creator: { index: 1, isWritable: true, value: input.creator ?? null },
+    tournament: { index: 2, isWritable: true, value: input.tournament ?? null },
     tournamentTokenAccount: {
-      index: 2,
+      index: 3,
       isWritable: true,
       value: input.tournamentTokenAccount ?? null,
     },
     creatorTokenAccount: {
-      index: 3,
+      index: 4,
       isWritable: true,
       value: input.creatorTokenAccount ?? null,
     },
-    mint: { index: 4, isWritable: true, value: input.mint ?? null },
+    mint: { index: 5, isWritable: true, value: input.mint ?? null },
     associatedTokenProgram: {
-      index: 5,
+      index: 6,
       isWritable: false,
       value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
-      index: 6,
+      index: 7,
       isWritable: false,
       value: input.tokenProgram ?? null,
     },
     systemProgram: {
-      index: 7,
+      index: 8,
       isWritable: false,
       value: input.systemProgram ?? null,
     },
