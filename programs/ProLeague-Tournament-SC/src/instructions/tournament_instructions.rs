@@ -107,7 +107,7 @@ pub struct ArgumentPublishTournament {
 }
 pub fn publish_tournament(
     ctx: Context<PublishTournament>,
-    mut data: ArgumentPublishTournament,
+    data: ArgumentPublishTournament,
 ) -> Result<()> {
     msg!("Pulbish Tournament with data: {:?}!", data);
     let tournament = &mut ctx.accounts.tournament;
@@ -146,7 +146,7 @@ pub fn publish_tournament(
     for i in 0..num_rounds {
         tournament.rounds.push(Round {
             reverse_index: i as u8,
-            winning_price: data.round_prizes.pop().unwrap_or(0u64), // Or any default value you want
+            winning_price: data.round_prizes.get(i).clone().map(|x| x.to_owned()).unwrap_or(0u64), // Or any default value you want
             winners_and_collected_status: HashMap::new(),
         });
     }
