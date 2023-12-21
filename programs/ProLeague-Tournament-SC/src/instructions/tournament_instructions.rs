@@ -35,10 +35,6 @@ pub struct Initialize<'info> {
         associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account(mut,
-       constraint = creator_token_account.mint == mint.key() && creator_token_account.owner == creator.key(),
-    )]
-    pub creator_token_account: Account<'info, TokenAccount>,
     #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
