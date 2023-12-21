@@ -41,7 +41,6 @@ export type InitializeInstructionAccounts = {
   creator: PublicKey | Pda;
   tournament?: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
-  creatorTokenAccount?: PublicKey | Pda;
   mint?: PublicKey | Pda;
   associatedTokenProgram?: PublicKey | Pda;
   tokenProgram?: PublicKey | Pda;
@@ -114,24 +113,19 @@ export function initialize(
       isWritable: true,
       value: input.tournamentTokenAccount ?? null,
     },
-    creatorTokenAccount: {
-      index: 4,
-      isWritable: true,
-      value: input.creatorTokenAccount ?? null,
-    },
-    mint: { index: 5, isWritable: true, value: input.mint ?? null },
+    mint: { index: 4, isWritable: true, value: input.mint ?? null },
     associatedTokenProgram: {
-      index: 6,
+      index: 5,
       isWritable: false,
       value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
-      index: 7,
+      index: 6,
       isWritable: false,
       value: input.tokenProgram ?? null,
     },
     systemProgram: {
-      index: 8,
+      index: 7,
       isWritable: false,
       value: input.systemProgram ?? null,
     },
@@ -157,15 +151,6 @@ export function initialize(
       {
         mint: expectPublicKey(resolvedAccounts.mint.value),
         owner: expectPublicKey(resolvedAccounts.tournament.value),
-      }
-    );
-  }
-  if (!resolvedAccounts.creatorTokenAccount.value) {
-    resolvedAccounts.creatorTokenAccount.value = findAssociatedTokenPda(
-      context,
-      {
-        mint: expectPublicKey(resolvedAccounts.mint.value),
-        owner: expectPublicKey(resolvedAccounts.creator.value),
       }
     );
   }
