@@ -97,7 +97,7 @@ export function publishTournament(
   // Program ID.
   const programId = context.programs.getPublicKey(
     'tournament',
-    'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'
+    'matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR'
   );
 
   // Accounts.

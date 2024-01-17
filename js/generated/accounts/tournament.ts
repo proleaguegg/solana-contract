@@ -150,7 +150,7 @@ export function getTournamentGpaBuilder(
 ) {
   const programId = context.programs.getPublicKey(
     'tournament',
-    'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'
+    'matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR'
   );
   return gpaBuilder(context, programId)
     .registerFields<{
@@ -189,7 +189,7 @@ export function findTournamentPda(
 ): Pda {
   const programId = context.programs.getPublicKey(
     'tournament',
-    'DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR'
+    'matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR'
   );
   return context.eddsa.findPda(programId, [
     string({ size: 'variable' }).serialize('TOURNAMENT_STATE'),

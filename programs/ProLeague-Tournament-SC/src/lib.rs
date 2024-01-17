@@ -13,7 +13,7 @@ use instructions::*;
 
 // This is your program's public key and it will update
 // automatically when you build the project.
-declare_id!("DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR");
+declare_id!("matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR");
 
 #[program]
 mod tournament {
