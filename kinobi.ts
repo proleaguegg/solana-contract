@@ -31,7 +31,7 @@ const idlPath = path.join(idlDir, "tournament.json");
 const idl = idlModifier(require(idlPath));
 idl.metadata = {
   origin: "anchor",
-  address: "DRxkk1zSd1my8RP1HkD3D9gK43ReSHnCBcPjMg6mG7tR",
+  address: "matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR",
 };
 // Instanciate Kinobi.
 const kinobi = k.createFromIdls(idl);
