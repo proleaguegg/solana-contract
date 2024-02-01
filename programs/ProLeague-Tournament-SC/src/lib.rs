@@ -77,7 +77,7 @@ mod tournament {
     ) -> Result<()> {
         instructions::refund_sponsor(ctx)
     }
-    
+
     pub fn refund_creator_and_close_tournament(
         ctx: Context<RefundCreatorAndCloseTournament>,
     ) -> Result<()> {
