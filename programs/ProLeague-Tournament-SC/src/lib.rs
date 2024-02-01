@@ -59,4 +59,28 @@ mod tournament {
     ) -> Result<()> {
         instructions::sponsor_tournament(ctx, args)
     }
+
+    pub fn pause_tournament(
+        ctx: Context<PauseTournament>,
+    ) -> Result<()> {
+        instructions::pause_tournament(ctx)
+    }
+
+    pub fn refund_joining_fees(
+        ctx: Context<RefundJoiningFees>,
+    ) -> Result<()> {
+        instructions::refund_joining_fees(ctx)
+    }
+
+    pub fn refund_sponsor(
+        ctx: Context<RefundSponsor>,
+    ) -> Result<()> {
+        instructions::refund_sponsor(ctx)
+    }
+    
+    pub fn refund_creator_and_close_tournament(
+        ctx: Context<RefundCreatorAndCloseTournament>,
+    ) -> Result<()> {
+        instructions::refund_creator_and_close_tournament(ctx)
+    }
 }

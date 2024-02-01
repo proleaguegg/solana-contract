@@ -39,11 +39,15 @@ export type TournamentAccountData = {
   discriminator: Array<number>;
   bump: number;
   creator: PublicKey;
+  sponsor: PublicKey;
+  sponsorAmount: bigint;
   joiningFees: bigint;
   totalPlayers: number;
   totalRounds: number;
   isPublished: boolean;
+  isPaused: boolean;
   tournamentId: string;
+  isSponsored: boolean;
   players: Array<PublicKey>;
   rounds: Array<Round>;
 };
@@ -51,11 +55,15 @@ export type TournamentAccountData = {
 export type TournamentAccountDataArgs = {
   bump: number;
   creator: PublicKey;
+  sponsor: PublicKey;
+  sponsorAmount: number | bigint;
   joiningFees: number | bigint;
   totalPlayers: number;
   totalRounds: number;
   isPublished: boolean;
+  isPaused: boolean;
   tournamentId: string;
+  isSponsored: boolean;
   players: Array<PublicKey>;
   rounds: Array<RoundArgs>;
 };
@@ -70,11 +78,15 @@ export function getTournamentAccountDataSerializer(): Serializer<
         ['discriminator', array(u8(), { size: 8 })],
         ['bump', u8()],
         ['creator', publicKeySerializer()],
+        ['sponsor', publicKeySerializer()],
+        ['sponsorAmount', u64()],
         ['joiningFees', u64()],
         ['totalPlayers', u16()],
         ['totalRounds', u16()],
         ['isPublished', bool()],
+        ['isPaused', bool()],
         ['tournamentId', string()],
+        ['isSponsored', bool()],
         ['players', array(publicKeySerializer())],
         ['rounds', array(getRoundSerializer())],
       ],
@@ -157,22 +169,30 @@ export function getTournamentGpaBuilder(
       discriminator: Array<number>;
       bump: number;
       creator: PublicKey;
+      sponsor: PublicKey;
+      sponsorAmount: number | bigint;
       joiningFees: number | bigint;
       totalPlayers: number;
       totalRounds: number;
       isPublished: boolean;
+      isPaused: boolean;
       tournamentId: string;
+      isSponsored: boolean;
       players: Array<PublicKey>;
       rounds: Array<RoundArgs>;
     }>({
       discriminator: [0, array(u8(), { size: 8 })],
       bump: [8, u8()],
       creator: [9, publicKeySerializer()],
-      joiningFees: [41, u64()],
-      totalPlayers: [49, u16()],
-      totalRounds: [51, u16()],
-      isPublished: [53, bool()],
-      tournamentId: [54, string()],
+      sponsor: [41, publicKeySerializer()],
+      sponsorAmount: [73, u64()],
+      joiningFees: [81, u64()],
+      totalPlayers: [89, u16()],
+      totalRounds: [91, u16()],
+      isPublished: [93, bool()],
+      isPaused: [94, bool()],
+      tournamentId: [95, string()],
+      isSponsored: [null, bool()],
       players: [null, array(publicKeySerializer())],
       rounds: [null, array(getRoundSerializer())],
     })

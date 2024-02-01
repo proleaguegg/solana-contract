@@ -11,6 +11,7 @@ pub const DRIVER: Pubkey = pubkey!("proL2SQUmHzNFRonxZBkSLkbAbpYhfX2z11XiUfkL4V"
 
 #[constant]
 pub const CURRENCY_MINT: Pubkey = pubkey!("2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ"); // Dev-net Custom Token address
+// pub const CURRENCY_MINT: Pubkey = pubkey!("CotcDD2HN6uLR6BZs2gUUcAQwvM3gdjDFgya3fnshaVN"); // Test-net Custom Token address
 // pub const CURRENCY_MINT: Pubkey = pubkey!("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"); // Main-net USDC address
 
 // #[constant]
