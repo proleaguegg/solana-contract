@@ -217,6 +217,116 @@ export class ExpectedWinnerLengthError extends ProgramError {
 codeToErrorMap.set(0x177e, ExpectedWinnerLengthError);
 nameToErrorMap.set('ExpectedWinnerLength', ExpectedWinnerLengthError);
 
+/** OnlyCreatorCanPause: Only creator can pause the tournament */
+export class OnlyCreatorCanPauseError extends ProgramError {
+  override readonly name: string = 'OnlyCreatorCanPause';
+
+  readonly code: number = 0x177f; // 6015
+
+  constructor(program: Program, cause?: Error) {
+    super('Only creator can pause the tournament', program, cause);
+  }
+}
+codeToErrorMap.set(0x177f, OnlyCreatorCanPauseError);
+nameToErrorMap.set('OnlyCreatorCanPause', OnlyCreatorCanPauseError);
+
+/** NoJoiningFeeFound: No Joining Fee found */
+export class NoJoiningFeeFoundError extends ProgramError {
+  override readonly name: string = 'NoJoiningFeeFound';
+
+  readonly code: number = 0x1780; // 6016
+
+  constructor(program: Program, cause?: Error) {
+    super('No Joining Fee found', program, cause);
+  }
+}
+codeToErrorMap.set(0x1780, NoJoiningFeeFoundError);
+nameToErrorMap.set('NoJoiningFeeFound', NoJoiningFeeFoundError);
+
+/** TournamentNotSponsored: Tournament is not sponsored */
+export class TournamentNotSponsoredError extends ProgramError {
+  override readonly name: string = 'TournamentNotSponsored';
+
+  readonly code: number = 0x1781; // 6017
+
+  constructor(program: Program, cause?: Error) {
+    super('Tournament is not sponsored', program, cause);
+  }
+}
+codeToErrorMap.set(0x1781, TournamentNotSponsoredError);
+nameToErrorMap.set('TournamentNotSponsored', TournamentNotSponsoredError);
+
+/** InvalidSponsorProvided: Invalid sponsor provided */
+export class InvalidSponsorProvidedError extends ProgramError {
+  override readonly name: string = 'InvalidSponsorProvided';
+
+  readonly code: number = 0x1782; // 6018
+
+  constructor(program: Program, cause?: Error) {
+    super('Invalid sponsor provided', program, cause);
+  }
+}
+codeToErrorMap.set(0x1782, InvalidSponsorProvidedError);
+nameToErrorMap.set('InvalidSponsorProvided', InvalidSponsorProvidedError);
+
+/** AlreadyRefundedSponsorAmount: Already refunded sponsor amount */
+export class AlreadyRefundedSponsorAmountError extends ProgramError {
+  override readonly name: string = 'AlreadyRefundedSponsorAmount';
+
+  readonly code: number = 0x1783; // 6019
+
+  constructor(program: Program, cause?: Error) {
+    super('Already refunded sponsor amount', program, cause);
+  }
+}
+codeToErrorMap.set(0x1783, AlreadyRefundedSponsorAmountError);
+nameToErrorMap.set(
+  'AlreadyRefundedSponsorAmount',
+  AlreadyRefundedSponsorAmountError
+);
+
+/** SponsorAmountNotRefunded: Sponsor Amount is not refunded */
+export class SponsorAmountNotRefundedError extends ProgramError {
+  override readonly name: string = 'SponsorAmountNotRefunded';
+
+  readonly code: number = 0x1784; // 6020
+
+  constructor(program: Program, cause?: Error) {
+    super('Sponsor Amount is not refunded', program, cause);
+  }
+}
+codeToErrorMap.set(0x1784, SponsorAmountNotRefundedError);
+nameToErrorMap.set('SponsorAmountNotRefunded', SponsorAmountNotRefundedError);
+
+/** PlayersJoiningFeeNotRefunded: Players joining Fees is not refunded */
+export class PlayersJoiningFeeNotRefundedError extends ProgramError {
+  override readonly name: string = 'PlayersJoiningFeeNotRefunded';
+
+  readonly code: number = 0x1785; // 6021
+
+  constructor(program: Program, cause?: Error) {
+    super('Players joining Fees is not refunded', program, cause);
+  }
+}
+codeToErrorMap.set(0x1785, PlayersJoiningFeeNotRefundedError);
+nameToErrorMap.set(
+  'PlayersJoiningFeeNotRefunded',
+  PlayersJoiningFeeNotRefundedError
+);
+
+/** TournamentNotPaused: Tournament is not paused */
+export class TournamentNotPausedError extends ProgramError {
+  override readonly name: string = 'TournamentNotPaused';
+
+  readonly code: number = 0x1786; // 6022
+
+  constructor(program: Program, cause?: Error) {
+    super('Tournament is not paused', program, cause);
+  }
+}
+codeToErrorMap.set(0x1786, TournamentNotPausedError);
+nameToErrorMap.set('TournamentNotPaused', TournamentNotPausedError);
+
 /**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors

@@ -9,11 +9,10 @@ import {
 import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 import base58 from "bs58";
 import dotenv from "dotenv";
+import { solanaRpc } from "./test_contant";
 dotenv.config();
 
-const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
-// mintToken = 2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ
-// driverTokenAccount = 5mB8xan8AQ9yZczQPy36doQBjdn2znGVywsHXyYnq2jr
+const connection = new Connection(solanaRpc, "confirmed");
 const createNewTokenMint = async (
   payer: Keypair,
   mintAuthority: Keypair,
@@ -80,7 +79,7 @@ const trnasferTokens = async (
     );
     return { transfer };
   } catch (error) {
-    throw error;
+    throw Error(error);
   }
 };
 

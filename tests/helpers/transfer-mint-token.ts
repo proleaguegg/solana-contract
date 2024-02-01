@@ -13,9 +13,10 @@ import {
 } from "@solana/web3.js";
 import base58 from "bs58";
 import dotenv from "dotenv";
+import { solanaRpc } from "./test_contant";
 dotenv.config();
 
-const connection = new Connection(clusterApiUrl("devnet"), "confirmed");
+const connection = new Connection(solanaRpc, "confirmed");
 
 // Transfer SOL to associated token account and use SyncNative to update wrapped SOL balance
 const solTransferTransactionFunc = async (
@@ -71,7 +72,7 @@ const getOrCreateAccountToHoldBalance = async (
 (async () => {
   try {
     const receiverPublicKey: PublicKey = new PublicKey(
-      "CbTUX8A2QscCia8CiiZop935ABNh7nf9N17YD1ZqAZYX"
+      "3idCHfBHAgf3ZkjSLcyzyjMaQMfkqya9UYyEVgLgS9mP"
     ); //
     const tokenMint = new PublicKey(process.env.TOKEN_MINT || "");
     const driverKeyPair = Keypair.fromSecretKey(

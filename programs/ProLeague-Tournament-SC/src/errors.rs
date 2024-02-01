@@ -32,4 +32,20 @@ pub enum TournamentError {
     PrizeNotClaimed,
     #[msg("Expected Winner Length Error")]
     ExpectedWinnerLength,
+    #[msg("Only creator can pause the tournament")]
+    OnlyCreatorCanPause,
+    #[msg("No Joining Fee found")]
+    NoJoiningFeeFound,
+    #[msg("Tournament is not sponsored")]
+    TournamentNotSponsored,
+    #[msg("Invalid sponsor provided")]
+    InvalidSponsorProvided,
+    #[msg("Already refunded sponsor amount")]
+    AlreadyRefundedSponsorAmount,
+    #[msg("Sponsor Amount is not refunded")]
+    SponsorAmountNotRefunded,
+    #[msg("Players joining Fees is not refunded")]
+    PlayersJoiningFeeNotRefunded,
+    #[msg("Tournament is not paused")]
+    TournamentNotPaused,
 }

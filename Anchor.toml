@@ -6,9 +6,11 @@ pro_league_tournament_sc = "matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR"
 
 [registry]
 url = "https://api.apr.dev"
+# url = " http://127.0.0.1:8899"
 
 [provider]
 cluster = "https://devnet.helius-rpc.com/?api-key=7050a011-776f-432b-8b0e-a4e490ec6c9f"
+# cluster = "localnet"
 wallet = "key.json"
 
 [scripts]
