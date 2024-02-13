@@ -118,7 +118,7 @@ export function refundJoiningFees(
   // Default values.
   if (!resolvedAccounts.mint.value) {
     resolvedAccounts.mint.value = publicKey(
-      'Ej8XN4HgKXmbTNUCtwHWAtkek1Jz8dRtupttK2TRWy6p'
+      '2uYJ5kcsxXHr32eK5XydhTFFNBPjPhJztxBn6K5sLV7g'
     );
   }
   if (!resolvedAccounts.playerTokenAccount.value) {
