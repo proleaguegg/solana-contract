@@ -119,7 +119,7 @@ kinobi.update(
     {
       account: "mint",
       ignoreIfOptional: true,
-      ...k.publicKeyDefault("Ej8XN4HgKXmbTNUCtwHWAtkek1Jz8dRtupttK2TRWy6p"),
+      ...k.publicKeyDefault("2uYJ5kcsxXHr32eK5XydhTFFNBPjPhJztxBn6K5sLV7g"),
     },
   ])
 );

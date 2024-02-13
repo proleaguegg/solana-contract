@@ -67,37 +67,50 @@ export class TournamentNotConcludedError extends ProgramError {
 codeToErrorMap.set(0x1773, TournamentNotConcludedError);
 nameToErrorMap.set('TournamentNotConcluded', TournamentNotConcludedError);
 
+/** TournamentIsFull: Tournament is full */
+export class TournamentIsFullError extends ProgramError {
+  override readonly name: string = 'TournamentIsFull';
+
+  readonly code: number = 0x1774; // 6004
+
+  constructor(program: Program, cause?: Error) {
+    super('Tournament is full', program, cause);
+  }
+}
+codeToErrorMap.set(0x1774, TournamentIsFullError);
+nameToErrorMap.set('TournamentIsFull', TournamentIsFullError);
+
 /** WinnerNotFound: Winner not found in this round */
 export class WinnerNotFoundError extends ProgramError {
   override readonly name: string = 'WinnerNotFound';
 
-  readonly code: number = 0x1774; // 6004
+  readonly code: number = 0x1775; // 6005
 
   constructor(program: Program, cause?: Error) {
     super('Winner not found in this round', program, cause);
   }
 }
-codeToErrorMap.set(0x1774, WinnerNotFoundError);
+codeToErrorMap.set(0x1775, WinnerNotFoundError);
 nameToErrorMap.set('WinnerNotFound', WinnerNotFoundError);
 
 /** AlreadyClaimed: Prize has already been claimed by the winner */
 export class AlreadyClaimedError extends ProgramError {
   override readonly name: string = 'AlreadyClaimed';
 
-  readonly code: number = 0x1775; // 6005
+  readonly code: number = 0x1776; // 6006
 
   constructor(program: Program, cause?: Error) {
     super('Prize has already been claimed by the winner', program, cause);
   }
 }
-codeToErrorMap.set(0x1775, AlreadyClaimedError);
+codeToErrorMap.set(0x1776, AlreadyClaimedError);
 nameToErrorMap.set('AlreadyClaimed', AlreadyClaimedError);
 
 /** WonNextRound: Winner has won the next round and cannot claim this prize */
 export class WonNextRoundError extends ProgramError {
   override readonly name: string = 'WonNextRound';
 
-  readonly code: number = 0x1776; // 6006
+  readonly code: number = 0x1777; // 6007
 
   constructor(program: Program, cause?: Error) {
     super(
@@ -107,85 +120,85 @@ export class WonNextRoundError extends ProgramError {
     );
   }
 }
-codeToErrorMap.set(0x1776, WonNextRoundError);
+codeToErrorMap.set(0x1777, WonNextRoundError);
 nameToErrorMap.set('WonNextRound', WonNextRoundError);
 
 /** PlayerAlreadyJoined: Player Already joined */
 export class PlayerAlreadyJoinedError extends ProgramError {
   override readonly name: string = 'PlayerAlreadyJoined';
 
-  readonly code: number = 0x1777; // 6007
+  readonly code: number = 0x1778; // 6008
 
   constructor(program: Program, cause?: Error) {
     super('Player Already joined', program, cause);
   }
 }
-codeToErrorMap.set(0x1777, PlayerAlreadyJoinedError);
+codeToErrorMap.set(0x1778, PlayerAlreadyJoinedError);
 nameToErrorMap.set('PlayerAlreadyJoined', PlayerAlreadyJoinedError);
 
 /** PlayerNotFound: Winner not found in players list */
 export class PlayerNotFoundError extends ProgramError {
   override readonly name: string = 'PlayerNotFound';
 
-  readonly code: number = 0x1778; // 6008
+  readonly code: number = 0x1779; // 6009
 
   constructor(program: Program, cause?: Error) {
     super('Winner not found in players list', program, cause);
   }
 }
-codeToErrorMap.set(0x1778, PlayerNotFoundError);
+codeToErrorMap.set(0x1779, PlayerNotFoundError);
 nameToErrorMap.set('PlayerNotFound', PlayerNotFoundError);
 
 /** ExceedingEscrowBalance: Exceeding Escrow Balance */
 export class ExceedingEscrowBalanceError extends ProgramError {
   override readonly name: string = 'ExceedingEscrowBalance';
 
-  readonly code: number = 0x1779; // 6009
+  readonly code: number = 0x177a; // 6010
 
   constructor(program: Program, cause?: Error) {
     super('Exceeding Escrow Balance', program, cause);
   }
 }
-codeToErrorMap.set(0x1779, ExceedingEscrowBalanceError);
+codeToErrorMap.set(0x177a, ExceedingEscrowBalanceError);
 nameToErrorMap.set('ExceedingEscrowBalance', ExceedingEscrowBalanceError);
 
 /** PlayerMustBeSigner: Player must be Signer */
 export class PlayerMustBeSignerError extends ProgramError {
   override readonly name: string = 'PlayerMustBeSigner';
 
-  readonly code: number = 0x177a; // 6010
+  readonly code: number = 0x177b; // 6011
 
   constructor(program: Program, cause?: Error) {
     super('Player must be Signer', program, cause);
   }
 }
-codeToErrorMap.set(0x177a, PlayerMustBeSignerError);
+codeToErrorMap.set(0x177b, PlayerMustBeSignerError);
 nameToErrorMap.set('PlayerMustBeSigner', PlayerMustBeSignerError);
 
 /** TournamentIsClosed: Tournament is Closed */
 export class TournamentIsClosedError extends ProgramError {
   override readonly name: string = 'TournamentIsClosed';
 
-  readonly code: number = 0x177b; // 6011
+  readonly code: number = 0x177c; // 6012
 
   constructor(program: Program, cause?: Error) {
     super('Tournament is Closed', program, cause);
   }
 }
-codeToErrorMap.set(0x177b, TournamentIsClosedError);
+codeToErrorMap.set(0x177c, TournamentIsClosedError);
 nameToErrorMap.set('TournamentIsClosed', TournamentIsClosedError);
 
 /** TournamentAlreadySponsored: Tournament is already sponsored */
 export class TournamentAlreadySponsoredError extends ProgramError {
   override readonly name: string = 'TournamentAlreadySponsored';
 
-  readonly code: number = 0x177c; // 6012
+  readonly code: number = 0x177d; // 6013
 
   constructor(program: Program, cause?: Error) {
     super('Tournament is already sponsored', program, cause);
   }
 }
-codeToErrorMap.set(0x177c, TournamentAlreadySponsoredError);
+codeToErrorMap.set(0x177d, TournamentAlreadySponsoredError);
 nameToErrorMap.set(
   'TournamentAlreadySponsored',
   TournamentAlreadySponsoredError
@@ -195,91 +208,91 @@ nameToErrorMap.set(
 export class PrizeNotClaimedError extends ProgramError {
   override readonly name: string = 'PrizeNotClaimed';
 
-  readonly code: number = 0x177d; // 6013
+  readonly code: number = 0x177e; // 6014
 
   constructor(program: Program, cause?: Error) {
     super('Prize not Claimed', program, cause);
   }
 }
-codeToErrorMap.set(0x177d, PrizeNotClaimedError);
+codeToErrorMap.set(0x177e, PrizeNotClaimedError);
 nameToErrorMap.set('PrizeNotClaimed', PrizeNotClaimedError);
 
 /** ExpectedWinnerLength: Expected Winner Length Error */
 export class ExpectedWinnerLengthError extends ProgramError {
   override readonly name: string = 'ExpectedWinnerLength';
 
-  readonly code: number = 0x177e; // 6014
+  readonly code: number = 0x177f; // 6015
 
   constructor(program: Program, cause?: Error) {
     super('Expected Winner Length Error', program, cause);
   }
 }
-codeToErrorMap.set(0x177e, ExpectedWinnerLengthError);
+codeToErrorMap.set(0x177f, ExpectedWinnerLengthError);
 nameToErrorMap.set('ExpectedWinnerLength', ExpectedWinnerLengthError);
 
 /** OnlyCreatorCanPause: Only creator can pause the tournament */
 export class OnlyCreatorCanPauseError extends ProgramError {
   override readonly name: string = 'OnlyCreatorCanPause';
 
-  readonly code: number = 0x177f; // 6015
+  readonly code: number = 0x1780; // 6016
 
   constructor(program: Program, cause?: Error) {
     super('Only creator can pause the tournament', program, cause);
   }
 }
-codeToErrorMap.set(0x177f, OnlyCreatorCanPauseError);
+codeToErrorMap.set(0x1780, OnlyCreatorCanPauseError);
 nameToErrorMap.set('OnlyCreatorCanPause', OnlyCreatorCanPauseError);
 
 /** NoJoiningFeeFound: No Joining Fee found */
 export class NoJoiningFeeFoundError extends ProgramError {
   override readonly name: string = 'NoJoiningFeeFound';
 
-  readonly code: number = 0x1780; // 6016
+  readonly code: number = 0x1781; // 6017
 
   constructor(program: Program, cause?: Error) {
     super('No Joining Fee found', program, cause);
   }
 }
-codeToErrorMap.set(0x1780, NoJoiningFeeFoundError);
+codeToErrorMap.set(0x1781, NoJoiningFeeFoundError);
 nameToErrorMap.set('NoJoiningFeeFound', NoJoiningFeeFoundError);
 
 /** TournamentNotSponsored: Tournament is not sponsored */
 export class TournamentNotSponsoredError extends ProgramError {
   override readonly name: string = 'TournamentNotSponsored';
 
-  readonly code: number = 0x1781; // 6017
+  readonly code: number = 0x1782; // 6018
 
   constructor(program: Program, cause?: Error) {
     super('Tournament is not sponsored', program, cause);
   }
 }
-codeToErrorMap.set(0x1781, TournamentNotSponsoredError);
+codeToErrorMap.set(0x1782, TournamentNotSponsoredError);
 nameToErrorMap.set('TournamentNotSponsored', TournamentNotSponsoredError);
 
 /** InvalidSponsorProvided: Invalid sponsor provided */
 export class InvalidSponsorProvidedError extends ProgramError {
   override readonly name: string = 'InvalidSponsorProvided';
 
-  readonly code: number = 0x1782; // 6018
+  readonly code: number = 0x1783; // 6019
 
   constructor(program: Program, cause?: Error) {
     super('Invalid sponsor provided', program, cause);
   }
 }
-codeToErrorMap.set(0x1782, InvalidSponsorProvidedError);
+codeToErrorMap.set(0x1783, InvalidSponsorProvidedError);
 nameToErrorMap.set('InvalidSponsorProvided', InvalidSponsorProvidedError);
 
 /** AlreadyRefundedSponsorAmount: Already refunded sponsor amount */
 export class AlreadyRefundedSponsorAmountError extends ProgramError {
   override readonly name: string = 'AlreadyRefundedSponsorAmount';
 
-  readonly code: number = 0x1783; // 6019
+  readonly code: number = 0x1784; // 6020
 
   constructor(program: Program, cause?: Error) {
     super('Already refunded sponsor amount', program, cause);
   }
 }
-codeToErrorMap.set(0x1783, AlreadyRefundedSponsorAmountError);
+codeToErrorMap.set(0x1784, AlreadyRefundedSponsorAmountError);
 nameToErrorMap.set(
   'AlreadyRefundedSponsorAmount',
   AlreadyRefundedSponsorAmountError
@@ -289,26 +302,26 @@ nameToErrorMap.set(
 export class SponsorAmountNotRefundedError extends ProgramError {
   override readonly name: string = 'SponsorAmountNotRefunded';
 
-  readonly code: number = 0x1784; // 6020
+  readonly code: number = 0x1785; // 6021
 
   constructor(program: Program, cause?: Error) {
     super('Sponsor Amount is not refunded', program, cause);
   }
 }
-codeToErrorMap.set(0x1784, SponsorAmountNotRefundedError);
+codeToErrorMap.set(0x1785, SponsorAmountNotRefundedError);
 nameToErrorMap.set('SponsorAmountNotRefunded', SponsorAmountNotRefundedError);
 
 /** PlayersJoiningFeeNotRefunded: Players joining Fees is not refunded */
 export class PlayersJoiningFeeNotRefundedError extends ProgramError {
   override readonly name: string = 'PlayersJoiningFeeNotRefunded';
 
-  readonly code: number = 0x1785; // 6021
+  readonly code: number = 0x1786; // 6022
 
   constructor(program: Program, cause?: Error) {
     super('Players joining Fees is not refunded', program, cause);
   }
 }
-codeToErrorMap.set(0x1785, PlayersJoiningFeeNotRefundedError);
+codeToErrorMap.set(0x1786, PlayersJoiningFeeNotRefundedError);
 nameToErrorMap.set(
   'PlayersJoiningFeeNotRefunded',
   PlayersJoiningFeeNotRefundedError
@@ -318,13 +331,13 @@ nameToErrorMap.set(
 export class TournamentNotPausedError extends ProgramError {
   override readonly name: string = 'TournamentNotPaused';
 
-  readonly code: number = 0x1786; // 6022
+  readonly code: number = 0x1787; // 6023
 
   constructor(program: Program, cause?: Error) {
     super('Tournament is not paused', program, cause);
   }
 }
-codeToErrorMap.set(0x1786, TournamentNotPausedError);
+codeToErrorMap.set(0x1787, TournamentNotPausedError);
 nameToErrorMap.set('TournamentNotPaused', TournamentNotPausedError);
 
 /**
