@@ -118,7 +118,7 @@ export function refundCreatorAndCloseTournament(
   // Default values.
   if (!resolvedAccounts.mint.value) {
     resolvedAccounts.mint.value = publicKey(
-      'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+      'Ej8XN4HgKXmbTNUCtwHWAtkek1Jz8dRtupttK2TRWy6p'
     );
   }
   if (!resolvedAccounts.tournamentTokenAccount.value) {

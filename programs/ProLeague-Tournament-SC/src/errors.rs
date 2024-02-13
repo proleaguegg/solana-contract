@@ -10,6 +10,8 @@ pub enum TournamentError {
     RoundWinnerLimitReached,
     #[msg("Tournament has not been concluded")]
     TournamentNotConcluded,
+    #[msg("Tournament is full")]
+    TournamentIsFull,
     #[msg("Winner not found in this round")]
     WinnerNotFound,
     #[msg("Prize has already been claimed by the winner")]

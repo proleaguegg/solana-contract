@@ -24,7 +24,7 @@ pub struct Tournament {
 
 impl Tournament {
     /// The expected size of the `GuildKit` struct in bytes.
-    pub const LEN: usize = 59 + 8;
+    pub const LEN: usize = 8 + 1 + 32 + 32 + 8 + 8 + 2 + 2 + 1 + 1 + 28 + 1 + 4 +4 ;
     /// Sets default values for a GuildKit.
     pub fn set_defaults(&mut self) {
         self.creator = Pubkey::default();
@@ -46,12 +46,12 @@ impl Tournament {
     pub fn calculate_size(total_players: u16, winning_rounds: usize) -> usize {
         let mut len = Self::LEN;
         let tp = total_players as usize;
-        let tr = (total_players as f32).log2() as usize;
+        // let tr = (total_players as f32).log2() as usize;
         len += tp * 32;
-        len += tr * 32;
+        // len += tr * 32;
         len += 1;
         for i in 0..winning_rounds {
-            len += 10 + (2u32.pow(i as u32) as usize * 5);
+            len += 13 + (2u32.pow(i as u32) as usize * 6);
         }
         len
     }
