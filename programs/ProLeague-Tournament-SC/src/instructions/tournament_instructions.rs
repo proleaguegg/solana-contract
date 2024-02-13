@@ -379,6 +379,9 @@ pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
     // if tournament.tournament_concluded {
     //     return Err(TournamentError::TournamentNotConcluded.into());
     // }
+    if tournament.players.len() >= tournament.total_players as usize  {
+        return Err(TournamentError::TournamentIsFull.into());
+    }
 
     // Check if the player has already joined
     if tournament.players.contains(&player.key()) {

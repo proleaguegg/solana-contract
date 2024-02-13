@@ -48,7 +48,7 @@ describe("ProLeague-Tournament-SC", async function () {
   const umi = BaseCreateUmi(solanaRpc)
     .use(tournamentProgram())
     .use(web3JsRpc(solanaRpc));
-  const tournamentId = "13kUUW18xK"; // randomStringGenerator.getRandomString(); // "OZyRgKs1BI"; "Vc8EHbXgVA";
+  const tournamentId = "PPpzAO5wJX"; //randomStringGenerator.getRandomString(); // "OZyRgKs1BI"; "Vc8EHbXgVA";
   const tournament = findTournamentPda(umi, {
     tournamentId,
   });
@@ -61,7 +61,7 @@ describe("ProLeague-Tournament-SC", async function () {
   const creator = umi.eddsa.createKeypairFromSecretKey(
     new Uint8Array(base58.decode(process.env.CREATOR_ACCOUNT || ""))
   );
-  // console.log({ creator: creator.publicKey });
+  console.log({ creator: creator.publicKey });
   const creatorSigner = createSignerFromKeypair(umi, creator);
   // Sponsor Account
   const sponsor = umi.eddsa.createKeypairFromSecretKey(
@@ -156,7 +156,7 @@ describe("ProLeague-Tournament-SC", async function () {
   // console.log("umi=>",umi,"tokenMint=>",tokenMint,"programId=>",programId,"driver=>",driver,"creator=>",creator);
 
   // Fetch tournament // Pass
-  it("Fetch Tournament", async function () {
+  it.skip("Fetch Tournament", async function () {
     const tournamentObj = await safeFetchTournament(umi, tournament);
 
     console.dir(tournamentObj, { depth: null });
@@ -191,8 +191,8 @@ describe("ProLeague-Tournament-SC", async function () {
       creator: creatorSigner.publicKey,
       tournamentId,
       joiningFees: 0, // 8 * 10 ** 9,
-      totalPlayers: 4,
-      winningRounds: [20 * 10 ** 9, 5 * 10 ** 9].length,
+      totalPlayers: 8,
+      winningRounds: [20 * 10 ** 9, 10 * 10 ** 9, 5 * 10 ** 9].length,
     })
       .setFeePayer(driverSigner)
       .sendAndConfirm(umi, {
@@ -219,8 +219,8 @@ describe("ProLeague-Tournament-SC", async function () {
     const tx = await publishTournament(umi, {
       creator: creatorSigner,
       tournament,
-      joiningFees: 5 * 10 ** 9,
-      roundPrizes: [20 * 10 ** 9, 10 * 10 ** 9],
+      joiningFees: 0,
+      roundPrizes: [20 * 10 ** 9, 10 * 10 ** 9, 5 * 10 ** 9],
     })
       .setFeePayer(driverSigner)
       .sendAndConfirm(umi, {
@@ -310,70 +310,50 @@ describe("ProLeague-Tournament-SC", async function () {
 
   // Join Tournament // Pass
   it.skip("Join Tournament", async function () {
-    umi.use(keypairIdentity(driverSigner));
+    for (let i = 0; i < 8; i++) {
+      umi.use(keypairIdentity(driverSigner));
+      const player = umi.eddsa.generateKeypair();
 
-    try {
-      const createAssociatedTokenPlayer = await createAssociatedToken(umi, {
+      const playerSigner = createSignerFromKeypair(umi, player);
+      console.log({ player: player.publicKey });
+
+      try {
+        const createAssociatedTokenPlayer = await createAssociatedToken(umi, {
+          mint: tokenMint,
+          owner: player.publicKey,
+          payer: driverSigner,
+        })
+          .setFeePayer(driverSigner)
+          .sendAndConfirm(umi, {
+            send: {
+              preflightCommitment: "processed",
+            },
+            confirm: {
+              commitment: "processed",
+            },
+          });
+        console.log({ createAssociatedTokenPlayer });
+      } catch (error) {
+        console.log("Already account created =>", error);
+      }
+      const playerTokenAccount = findAssociatedTokenPda(umi, {
         mint: tokenMint,
         owner: player.publicKey,
-        payer: driverSigner,
-      })
-        .setFeePayer(driverSigner)
-        .sendAndConfirm(umi, {
-          send: {
-            preflightCommitment: "processed",
-          },
-          confirm: {
-            commitment: "processed",
-          },
-        });
-      console.log({ createAssociatedTokenPlayer });
-    } catch (error) {
-      console.log("Already account created =>", error);
-    }
-    const playerTokenAccount = findAssociatedTokenPda(umi, {
-      mint: tokenMint,
-      owner: player.publicKey,
-    });
-    console.log({ playerTokenAccount });
-    const driverTokenAccount = findAssociatedTokenPda(umi, {
-      mint: tokenMint,
-      owner: driver.publicKey,
-    });
-    console.log({ driverTokenAccount });
-
-    const transferTokenToPlayer = await transferTokens(umi, {
-      source: driverTokenAccount,
-      destination: playerTokenAccount,
-      amount: 6 * 10 ** 9,
-      authority: driverSigner,
-      // mint: tokenMint,
-      // owner: player.publicKey,
-    })
-      .setFeePayer(driverSigner)
-      .sendAndConfirm(umi, {
-        send: {
-          preflightCommitment: "processed",
-        },
-        confirm: {
-          commitment: "processed",
-        },
       });
+      console.log({ playerTokenAccount });
+      const driverTokenAccount = findAssociatedTokenPda(umi, {
+        mint: tokenMint,
+        owner: driver.publicKey,
+      });
+      console.log({ driverTokenAccount });
 
-    console.log(
-      "\x1b[32m", //Green Text
-      `Transaction Signature for Transfering Token Success!🎉`,
-      `\n    https://${solanaUrl}/tx/${base58.encode(
-        transferTokenToPlayer.signature
-      )}?cluster=${clusterUrl}`
-    );
-    setTimeout(async () => {
-      const tx = await joinTournament(umi, {
-        player: playerSigner,
-        playerInfo: player.publicKey,
-        driver: driverSigner,
-        playerTokenAccount,
-        tournament,
+      const transferTokenToPlayer = await transferTokens(umi, {
+        source: driverTokenAccount,
+        destination: playerTokenAccount,
+        amount: 6 * 10 ** 9,
+        authority: driverSigner,
+        // mint: tokenMint,
+        // owner: player.publicKey,
       })
         .setFeePayer(driverSigner)
         .sendAndConfirm(umi, {
@@ -384,79 +364,121 @@ describe("ProLeague-Tournament-SC", async function () {
             commitment: "processed",
           },
         });
-      // console.log("Transaction Signature for Initialization", tx);
+
       console.log(
         "\x1b[32m", //Green Text
-        `Transaction Signature for Join Tournament Success!🎉`,
+        `Transaction Signature for Transfering Token Success!🎉`,
         `\n    https://${solanaUrl}/tx/${base58.encode(
-          tx.signature
+          transferTokenToPlayer.signature
         )}?cluster=${clusterUrl}`
       );
-    }, 2000);
+      setTimeout(async () => {
+        const tx = await joinTournament(umi, {
+          player: playerSigner,
+          playerInfo: player.publicKey,
+          driver: driverSigner,
+          playerTokenAccount,
+          tournament,
+        })
+          .setFeePayer(driverSigner)
+          .sendAndConfirm(umi, {
+            send: {
+              preflightCommitment: "processed",
+            },
+            confirm: {
+              commitment: "processed",
+            },
+          });
+        // console.log("Transaction Signature for Initialization", tx);
+        console.log(
+          "\x1b[32m", //Green Text
+          `Transaction Signature for Join Tournament Success!🎉`,
+          `\n    https://${solanaUrl}/tx/${base58.encode(
+            tx.signature
+          )}?cluster=${clusterUrl}`
+        );
+      }, 2000);
+    }
   });
 
   // Add Winner in the round // Pass
   it.skip("addWinner", async () => {
-    umi.use(keypairIdentity(driverSigner));
-    const tx = await addWinner(umi, {
-      tournament,
-      driver: driverSigner,
-      winner: player.publicKey,
-      roundIndex: 0,
-    })
-      .setFeePayer(driverSigner)
-      .sendAndConfirm(umi, {
-        send: {
-          preflightCommitment: "processed",
-        },
-        confirm: {
-          commitment: "processed",
-        },
-      });
-    // console.log("Transaction Signature for adding Winner", tx);
-    console.log(
-      "\x1b[32m", //Green Text
-      `Transaction Signature for adding Winner Success!🎉`,
-      `\n    https://${solanaUrl}/tx/${base58.encode(
-        tx.signature
-      )}?cluster=${clusterUrl}`
-    );
+    const players = [
+      "EkcxLSN9Udad5K5khcXrLAHdZgsALqP2r4RGjXKb6LzK",
+      "GTfvruXVPkLAVh4Re8JUEZ481wjMk6LBcmmfLMDY1JWp",
+      "3iqxzKcZdTijd5Vq2WANcXCMLprDxjNMuiFMcLov7aVP",
+      "5ruDcUTr197mZZJSrEsk9a7sqmQ6iEYKGPuTsptoHw5G",
+    ];
+    for (let i = 0; i < players.length; i++) {
+      umi.use(keypairIdentity(driverSigner));
+      const tx = await addWinner(umi, {
+        tournament,
+        driver: driverSigner,
+        winner: publicKey(players[i]),
+        roundIndex: 0,
+      })
+        .setFeePayer(driverSigner)
+        .sendAndConfirm(umi, {
+          send: {
+            preflightCommitment: "processed",
+          },
+          confirm: {
+            commitment: "processed",
+          },
+        });
+      // console.log("Transaction Signature for adding Winner", tx);
+      console.log(
+        "\x1b[32m", //Green Text
+        `Transaction Signature for adding Winner Success!🎉`,
+        `\n    https://${solanaUrl}/tx/${base58.encode(
+          tx.signature
+        )}?cluster=${clusterUrl}`
+      );
+    }
   });
 
   // Marking winner for next round // Pass
   it.skip("markWinnerWonNextRound", async () => {
-    umi.use(keypairIdentity(driverSigner));
+    const players = [
+      "EkcxLSN9Udad5K5khcXrLAHdZgsALqP2r4RGjXKb6LzK",
+      // "GTfvruXVPkLAVh4Re8JUEZ481wjMk6LBcmmfLMDY1JWp",
+      // "3iqxzKcZdTijd5Vq2WANcXCMLprDxjNMuiFMcLov7aVP",
+      // "5ruDcUTr197mZZJSrEsk9a7sqmQ6iEYKGPuTsptoHw5G",
+    ];
+    for (let i = 0; i < players.length; i++) {
+      umi.use(keypairIdentity(driverSigner));
 
-    const tx = await markWinnerWonNextRound(umi, {
-      tournament,
-      driver: driverSigner,
-      winner: winner.publicKey,
-      roundIndex: 1,
-    })
-      .setFeePayer(driverSigner)
-      .sendAndConfirm(umi, {
-        send: {
-          preflightCommitment: "processed",
-        },
-        confirm: {
-          commitment: "processed",
-        },
-      });
-    // console.log(
-    //   "Transaction Signature for marking winner for next round",
-    //   tx
-    // );
-    console.log(
-      "\x1b[32m", //Green Text
-      `Transaction Signature for marking winner for next round Success!🎉`,
-      `\n    https://${solanaUrl}/tx/${base58.encode(
-        tx.signature
-      )}?cluster=${clusterUrl}`
-    );
+      const tx = await markWinnerWonNextRound(umi, {
+        tournament,
+        driver: driverSigner,
+        winner: publicKey(players[i]),
+        roundIndex: 1,
+      })
+        .setFeePayer(driverSigner)
+        .sendAndConfirm(umi, {
+          send: {
+            preflightCommitment: "processed",
+          },
+          confirm: {
+            commitment: "processed",
+          },
+        });
+      // console.log(
+      //   "Transaction Signature for marking winner for next round",
+      //   tx
+      // );
+      console.log(
+        "\x1b[32m", //Green Text
+        `Transaction Signature for marking winner for next round Success!🎉`,
+        `\n    https://${solanaUrl}/tx/${base58.encode(
+          tx.signature
+        )}?cluster=${clusterUrl}`
+      );
+    }
   });
 
   // Close Tournament // Pass
-  it.skip("concludeTournament", async () => {
+  it("concludeTournament", async () => {
     const creatorTokenAccount = findAssociatedTokenPda(umi, {
       mint: tokenMint,
       owner: creatorSigner.publicKey,
@@ -489,30 +511,38 @@ describe("ProLeague-Tournament-SC", async function () {
 
   // Claim Price // Pass
   it.skip("sendPrize", async () => {
-    umi.use(keypairIdentity(driverSigner));
-    const tx = await sendPrize(umi, {
-      roundIndex: 0,
-      tournament,
-      winner: player.publicKey,
-      driver: driverSigner,
-    })
-      .setFeePayer(driverSigner)
-      .sendAndConfirm(umi, {
-        send: {
-          preflightCommitment: "processed",
-        },
-        confirm: {
-          commitment: "processed",
-        },
-      });
-    // console.log("Transaction Signature for claiming prize", tx);
-    console.log(
-      "\x1b[32m", //Green Text
-      `Transaction Signature for claiming prize Success!🎉`,
-      `\n    https://${solanaUrl}/tx/${base58.encode(
-        tx.signature
-      )}?cluster=${clusterUrl}`
-    );
+    const players = [
+      "EkcxLSN9Udad5K5khcXrLAHdZgsALqP2r4RGjXKb6LzK",
+      // "GTfvruXVPkLAVh4Re8JUEZ481wjMk6LBcmmfLMDY1JWp",
+      // "3iqxzKcZdTijd5Vq2WANcXCMLprDxjNMuiFMcLov7aVP",
+      // "5ruDcUTr197mZZJSrEsk9a7sqmQ6iEYKGPuTsptoHw5G",
+    ];
+    for (let i = 0; i < players.length; i++) {
+      umi.use(keypairIdentity(driverSigner));
+      const tx = await sendPrize(umi, {
+        roundIndex: 0,
+        tournament,
+        winner: publicKey(players[i]),
+        driver: driverSigner,
+      })
+        .setFeePayer(driverSigner)
+        .sendAndConfirm(umi, {
+          send: {
+            preflightCommitment: "processed",
+          },
+          confirm: {
+            commitment: "processed",
+          },
+        });
+      // console.log("Transaction Signature for claiming prize", tx);
+      console.log(
+        "\x1b[32m", //Green Text
+        `Transaction Signature for claiming prize Success!🎉`,
+        `\n    https://${solanaUrl}/tx/${base58.encode(
+          tx.signature
+        )}?cluster=${clusterUrl}`
+      );
+    }
   });
 
   // Pause Tournament // Pass
