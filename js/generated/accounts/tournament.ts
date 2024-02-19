@@ -39,33 +39,33 @@ export type TournamentAccountData = {
   discriminator: Array<number>;
   bump: number;
   creator: PublicKey;
-  sponsor: PublicKey;
-  sponsorAmount: bigint;
   joiningFees: bigint;
   totalPlayers: number;
   totalRounds: number;
   isPublished: boolean;
-  isPaused: boolean;
   tournamentId: string;
-  isSponsored: boolean;
   players: Array<PublicKey>;
   rounds: Array<Round>;
+  sponsor: PublicKey;
+  sponsorAmount: bigint;
+  isSponsored: boolean;
+  isPaused: boolean;
 };
 
 export type TournamentAccountDataArgs = {
   bump: number;
   creator: PublicKey;
-  sponsor: PublicKey;
-  sponsorAmount: number | bigint;
   joiningFees: number | bigint;
   totalPlayers: number;
   totalRounds: number;
   isPublished: boolean;
-  isPaused: boolean;
   tournamentId: string;
-  isSponsored: boolean;
   players: Array<PublicKey>;
   rounds: Array<RoundArgs>;
+  sponsor: PublicKey;
+  sponsorAmount: number | bigint;
+  isSponsored: boolean;
+  isPaused: boolean;
 };
 
 export function getTournamentAccountDataSerializer(): Serializer<
@@ -78,17 +78,17 @@ export function getTournamentAccountDataSerializer(): Serializer<
         ['discriminator', array(u8(), { size: 8 })],
         ['bump', u8()],
         ['creator', publicKeySerializer()],
-        ['sponsor', publicKeySerializer()],
-        ['sponsorAmount', u64()],
         ['joiningFees', u64()],
         ['totalPlayers', u16()],
         ['totalRounds', u16()],
         ['isPublished', bool()],
-        ['isPaused', bool()],
         ['tournamentId', string()],
-        ['isSponsored', bool()],
         ['players', array(publicKeySerializer())],
         ['rounds', array(getRoundSerializer())],
+        ['sponsor', publicKeySerializer()],
+        ['sponsorAmount', u64()],
+        ['isSponsored', bool()],
+        ['isPaused', bool()],
       ],
       { description: 'TournamentAccountData' }
     ),
@@ -169,32 +169,32 @@ export function getTournamentGpaBuilder(
       discriminator: Array<number>;
       bump: number;
       creator: PublicKey;
-      sponsor: PublicKey;
-      sponsorAmount: number | bigint;
       joiningFees: number | bigint;
       totalPlayers: number;
       totalRounds: number;
       isPublished: boolean;
-      isPaused: boolean;
       tournamentId: string;
-      isSponsored: boolean;
       players: Array<PublicKey>;
       rounds: Array<RoundArgs>;
+      sponsor: PublicKey;
+      sponsorAmount: number | bigint;
+      isSponsored: boolean;
+      isPaused: boolean;
     }>({
       discriminator: [0, array(u8(), { size: 8 })],
       bump: [8, u8()],
       creator: [9, publicKeySerializer()],
-      sponsor: [41, publicKeySerializer()],
-      sponsorAmount: [73, u64()],
-      joiningFees: [81, u64()],
-      totalPlayers: [89, u16()],
-      totalRounds: [91, u16()],
-      isPublished: [93, bool()],
-      isPaused: [94, bool()],
-      tournamentId: [95, string()],
-      isSponsored: [null, bool()],
+      joiningFees: [41, u64()],
+      totalPlayers: [49, u16()],
+      totalRounds: [51, u16()],
+      isPublished: [53, bool()],
+      tournamentId: [54, string()],
       players: [null, array(publicKeySerializer())],
       rounds: [null, array(getRoundSerializer())],
+      sponsor: [null, publicKeySerializer()],
+      sponsorAmount: [null, u64()],
+      isSponsored: [null, bool()],
+      isPaused: [null, bool()],
     })
     .deserializeUsing<Tournament>((account) => deserializeTournament(account))
     .whereField('discriminator', [175, 139, 119, 242, 115, 194, 57, 92]);

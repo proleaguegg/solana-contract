@@ -7,17 +7,17 @@ use super::Round;
 pub struct Tournament {
     pub bump: u8,
     pub creator: Pubkey,
-    pub sponsor: Pubkey,
-    pub sponsor_amount: u64,
     pub joining_fees: u64,
     pub total_players: u16,
     pub total_rounds: u16,
     pub is_published: bool,
-    pub is_paused: bool,
     pub tournament_id: String,
-    pub is_sponsored: bool,
     pub players: Vec<Pubkey>,
     pub rounds: Vec<Round>,
+    pub sponsor: Pubkey,
+    pub sponsor_amount: u64,
+    pub is_sponsored: bool,
+    pub is_paused: bool,
     // pub tournament_concluded: bool,
     // pub is_closed: bool,
 }
@@ -37,7 +37,7 @@ impl Tournament {
         self.total_rounds = 0;
         self.is_published = false;
         self.is_paused = false;
-        self.is_sponsored = false;
+        self.is_sponsored = false;  
         // self.tournament_concluded = false;
         self.players = Vec::new();
         self.rounds = Vec::new();
