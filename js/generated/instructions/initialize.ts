@@ -142,7 +142,7 @@ export function initialize(
   }
   if (!resolvedAccounts.mint.value) {
     resolvedAccounts.mint.value = publicKey(
-      '2uYJ5kcsxXHr32eK5XydhTFFNBPjPhJztxBn6K5sLV7g'
+      '2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ'
     );
   }
   if (!resolvedAccounts.tournamentTokenAccount.value) {
