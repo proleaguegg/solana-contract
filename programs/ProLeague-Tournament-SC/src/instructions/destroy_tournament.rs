@@ -8,6 +8,7 @@ use {crate::constant::*, anchor_lang::prelude::*};
 
 #[derive(Accounts)]
 pub struct DestroyTournament<'info> {
+    /// CHECK: We are checking it in the body
     #[account(mut)]
     pub tournament: AccountInfo<'info>,
 
@@ -16,6 +17,7 @@ pub struct DestroyTournament<'info> {
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
 
+    /// CHECK: We are checking it in the body
     #[account(mut)]
     pub creator: AccountInfo<'info>,
 
