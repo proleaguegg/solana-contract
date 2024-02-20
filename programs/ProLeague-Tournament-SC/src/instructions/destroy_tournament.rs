@@ -1,7 +1,7 @@
 use anchor_lang::system_program;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{CloseAccount, Mint, Token, TokenAccount, Transfer},
+    token::{CloseAccount, Mint, Token, TokenAccount},
 };
 
 use {crate::constant::*, anchor_lang::prelude::*};
@@ -21,10 +21,10 @@ pub struct DestroyTournament<'info> {
     #[account(mut)]
     pub creator: AccountInfo<'info>,
 
-    #[account(mut,
-        constraint = creator_token_account.mint == mint.key() && creator_token_account.owner == creator.key(),
-    )]
-    pub creator_token_account: Account<'info, TokenAccount>,
+    // #[account(mut,
+    //     constraint = creator_token_account.mint == mint.key() && creator_token_account.owner == creator.key(),
+    // )]
+    // pub creator_token_account: Account<'info, TokenAccount>,
 
     #[account(constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
@@ -59,25 +59,25 @@ pub fn destroy_tournament(
             tournament_acc_info.key, tournament_key
         );
     }
-    let creator_token_account = &mut ctx.accounts.creator_token_account;
+    // let creator_token_account = &mut ctx.accounts.creator_token_account;
     let driver = &mut ctx.accounts.driver;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
-    let remaining_balance = tournament_token_account.amount;
+    // let remaining_balance = tournament_token_account.amount;
     let cpi_signer = &[&tournament_seed[..]];
 
-    if remaining_balance > 0 {
-        // Transfer the escrow balance from the tournament to the creator (vault)
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info().clone(),
-            Transfer {
-                from: tournament_token_account.to_account_info(),
-                to: creator_token_account.to_account_info(),
-                authority: tournament_acc_info.to_account_info(),
-            },
-            cpi_signer,
-        );
-        anchor_spl::token::transfer(cpi_ctx, remaining_balance)?;
-    }
+    // if remaining_balance > 0 {
+    //     // Transfer the escrow balance from the tournament to the creator (vault)
+    //     let cpi_ctx = CpiContext::new_with_signer(
+    //         ctx.accounts.token_program.to_account_info().clone(),
+    //         Transfer {
+    //             from: tournament_token_account.to_account_info(),
+    //             to: creator_token_account.to_account_info(),
+    //             authority: tournament_acc_info.to_account_info(),
+    //         },
+    //         cpi_signer,
+    //     );
+    //     anchor_spl::token::transfer(cpi_ctx, remaining_balance)?;
+    // }
 
     // Close Tournament Token Account
     let cpi_ctx = CpiContext::new_with_signer(
