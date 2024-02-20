@@ -1,3 +1,4 @@
+use anchor_lang::system_program;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{CloseAccount, Mint, Token, TokenAccount, Transfer},
@@ -43,7 +44,19 @@ pub fn destroy_tournament(
     data: DestroyTournamentArgs,
 ) -> Result<()> {
     let tournament_acc_info = &mut ctx.accounts.tournament;
-    let tournament_seed = &[TOURNAMENT_TAG.as_ref(), &data.tournament_id.as_ref(), &[data.bump]];
+    let tournament_seed = &[
+        TOURNAMENT_TAG.as_ref(),
+        &data.tournament_id.as_ref(),
+        &[data.bump],
+    ];
+
+    let tournament_key = Pubkey::create_program_address(tournament_seed, ctx.program_id).unwrap();
+    if !tournament_key.eq(&tournament_acc_info.key) {
+        panic!(
+            "Tournament key mismatch, expected {}, derived {}",
+            tournament_acc_info.key, tournament_key
+        );
+    }
     let creator_token_account = &mut ctx.accounts.creator_token_account;
     let driver = &mut ctx.accounts.driver;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
@@ -76,7 +89,24 @@ pub fn destroy_tournament(
     );
     anchor_spl::token::close_account(cpi_ctx)?;
 
+    // Close Tournament Account
+    close(tournament_acc_info, driver.to_account_info())
+        .map_err(|e| e.with_account_name("tournament"))?;
     msg!("Tournament Refund and Close Sucessfully.");
 
     Ok(())
+}
+
+pub fn close<'info>(
+    info: &mut AccountInfo<'info>,
+    sol_destination: AccountInfo<'info>,
+) -> Result<()> {
+    // Transfer tokens from the account to the sol_destination.
+    let dest_starting_lamports = sol_destination.lamports();
+    **sol_destination.lamports.borrow_mut() =
+        dest_starting_lamports.checked_add(info.lamports()).unwrap();
+    **info.lamports.borrow_mut() = 0;
+
+    info.assign(&system_program::ID);
+    info.realloc(0, false).map_err(Into::into)
 }
