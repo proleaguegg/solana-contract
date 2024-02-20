@@ -9,3 +9,7 @@ pub use winner_instructions::*;
 pub mod prize_instructions;
 
 pub use prize_instructions::*;
+
+pub mod destroy_tournament;
+
+pub use destroy_tournament::*;

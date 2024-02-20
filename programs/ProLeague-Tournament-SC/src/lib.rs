@@ -60,21 +60,15 @@ mod tournament {
         instructions::sponsor_tournament(ctx, args)
     }
 
-    pub fn pause_tournament(
-        ctx: Context<PauseTournament>,
-    ) -> Result<()> {
+    pub fn pause_tournament(ctx: Context<PauseTournament>) -> Result<()> {
         instructions::pause_tournament(ctx)
     }
 
-    pub fn refund_joining_fees(
-        ctx: Context<RefundJoiningFees>,
-    ) -> Result<()> {
+    pub fn refund_joining_fees(ctx: Context<RefundJoiningFees>) -> Result<()> {
         instructions::refund_joining_fees(ctx)
     }
 
-    pub fn refund_sponsor(
-        ctx: Context<RefundSponsor>,
-    ) -> Result<()> {
+    pub fn refund_sponsor(ctx: Context<RefundSponsor>) -> Result<()> {
         instructions::refund_sponsor(ctx)
     }
 
@@ -82,5 +76,12 @@ mod tournament {
         ctx: Context<RefundCreatorAndCloseTournament>,
     ) -> Result<()> {
         instructions::refund_creator_and_close_tournament(ctx)
+    }
+
+    pub fn destroy_tournament(
+        ctx: Context<DestroyTournament>,
+        data: DestroyTournamentArgs,
+    ) -> Result<()> {
+        instructions::destroy_tournament(ctx, data)
     }
 }
