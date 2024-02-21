@@ -118,7 +118,7 @@ export function refundSponsor(
   // Default values.
   if (!resolvedAccounts.mint.value) {
     resolvedAccounts.mint.value = publicKey(
-      '2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ'
+      'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
     );
   }
   if (!resolvedAccounts.tournamentTokenAccount.value) {
