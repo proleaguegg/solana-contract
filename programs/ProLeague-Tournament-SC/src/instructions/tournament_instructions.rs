@@ -645,7 +645,7 @@ pub fn refund_creator_and_close_tournament(ctx: Context<RefundCreatorAndCloseTou
         return Err(TournamentError::SponsorAmountNotRefunded.into());
     }
     // Check player array should be empty
-    if tournament.players.len() != 0 {
+    if tournament.joining_fees > 0 && tournament.players.len() != 0 {
         return Err(TournamentError::PlayersJoiningFeeNotRefunded.into());
     }
     // Send remaining tokens to the specific address
