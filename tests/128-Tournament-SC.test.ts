@@ -6,6 +6,8 @@ import {
   createSignerFromKeypair,
   publicKey,
   createNoopSigner,
+  PublicKey,
+  Keypair,
 } from "@metaplex-foundation/umi";
 import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
 import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
@@ -26,8 +28,9 @@ import {
   refundJoiningFees,
   refundSponsor,
   refundCreatorAndCloseTournament,
+  reallocateTournament,
 } from "../js";
-import { writeFile } from "fs";
+import { readFileSync, writeFile, writeFileSync } from "fs";
 import {
   publicKey as publicKeySerializer,
   string,
@@ -39,6 +42,11 @@ import {
 } from "@metaplex-foundation/mpl-toolbox";
 import { randomStringGenerator } from "./helpers/randomString";
 import { clusterUrl, solanaRpc, solanaUrl } from "./helpers/test_contant";
+import {
+  appendToJsonFile,
+  findTempTournamentPda,
+  setComputeUnitsFunc,
+} from "./helpers/helper";
 dotenv.config();
 
 // Tournament Test
@@ -48,7 +56,9 @@ describe("ProLeague-Tournament-SC", async function () {
   const umi = BaseCreateUmi(solanaRpc)
     .use(tournamentProgram())
     .use(web3JsRpc(solanaRpc));
-  const tournamentId = randomStringGenerator.getRandomString(); // "65ccb08ecc6beb1f5441c1c8"; "OZyRgKs1BI"; "Vc8EHbXgVA";
+  // 4ZWwQENlCI // serialize issue
+  // 6xFxMleruG // New tournament 128 success with updated code
+  const tournamentId = "XrbOak8AT3"; //randomStringGenerator.getRandomString(); // Old 128 pl tournament "rjPhHvupsQ" "8IlfbnVQp2" "z9TpbdstnN" "hCUoHRP5WO";  //"4ZWwQENlCI"; //randomStringGenerator.getRandomString(); // "65ccb08ecc6beb1f5441c1c8"; "OZyRgKs1BI"; "Vc8EHbXgVA";
   const tournament = findTournamentPda(umi, {
     tournamentId,
   });
@@ -157,8 +167,10 @@ describe("ProLeague-Tournament-SC", async function () {
 
   // Fetch tournament // Pass
   it.skip("Fetch Tournament", async function () {
+    // const tournament = findTempTournamentPda(umi, {
+    //   tournamentId,
+    // });
     const tournamentObj = await safeFetchTournament(umi, tournament);
-
     console.dir(tournamentObj, { depth: null });
     console.log("Fetch Tournament");
   });
@@ -183,7 +195,7 @@ describe("ProLeague-Tournament-SC", async function () {
   });
 
   // Initialize Tournament  // Pass
-  it("Initialize Tournament", async function () {
+  it.skip("Initialize Tournament", async function () {
     umi.use(keypairIdentity(driverSigner));
 
     const tx = await initialize(umi, {
@@ -191,7 +203,7 @@ describe("ProLeague-Tournament-SC", async function () {
       creator: creatorSigner.publicKey,
       tournamentId,
       joiningFees: 0, // 8 * 10 ** 9,
-      totalPlayers: 128,
+      totalPlayers: 4,
       winningRounds: [20 * 10 ** 9, 10 * 10 ** 9, 5 * 10 ** 9].length,
     })
       .setFeePayer(driverSigner)
@@ -220,7 +232,7 @@ describe("ProLeague-Tournament-SC", async function () {
       creator: creatorSigner,
       tournament,
       joiningFees: 0,
-      roundPrizes: [20 * 10 ** 9, 10 * 10 ** 9, 5 * 10 ** 9],
+      roundPrizes: [40 * 10 ** 9, 10 * 10 ** 9, 5 * 10 ** 9],
     })
       .setFeePayer(driverSigner)
       .sendAndConfirm(umi, {
@@ -310,22 +322,24 @@ describe("ProLeague-Tournament-SC", async function () {
 
   // Join Tournament // Pass
   it.skip("Join Tournament", async function () {
-    // const player = umi.eddsa.generateKeypair();
-    const players = [
-      // "7aaTnhtwGg9APJQweriaiqkV5BSFDLJ6PLgrbLxzkpyX",
-      // "HvTin23sNwCEi6PDs8BMmPNaCLFmMdFPVrttJrVFSuMj",
-      // "BHANE8mP84NLaXqewZAB8rPCywKc8sBKDQ952iD1rfzB",
-      "8zA55jrHrHyQUfro1WfwhyxXqDPQBRuX42xaBK8DagUq",
-    ];
-    const ids = [
-      "65cc8fdd180fb14b43044c18",
-      "65b8eaac8b07e4d540244110",
-      "6543891b00b6aa2d2a2804b8",
-      "6567400bcbb7c08c59aa2277",
-    ];
-    for (let i = 0; i < players.length; i++) {
+    // const players: PublicKey[] = [];
+    const playerData: Keypair[] = [];
+    const playersLength = 128;
+    for (let i = 0; i < playersLength; i++) {
+      const player = umi.eddsa.generateKeypair();
+      // players.push(player.publicKey);
+      playerData.push({
+        ...player,
+        secretKey: base58.encode(player.secretKey),
+      });
+    }
+    // This is create players data containing publickey and secretkey
+    const da = appendToJsonFile("new-128-playerData.json", playerData);
+    // const da = JSON.parse(readFileSync("128-playerData.json", "utf8"));
+
+    for (let i = 0; i < playerData.length; i++) {
       umi.use(keypairIdentity(driverSigner));
-      const player = publicKey(players[i]);
+      const player = publicKey(playerData[i].publicKey);
       // const playerSigner = createSignerFromKeypair(umi, player);
       console.log({ player: player });
 
@@ -415,19 +429,31 @@ describe("ProLeague-Tournament-SC", async function () {
 
   // Add Winner in the round // Pass
   it.skip("addWinner", async () => {
-    const players = [
-      "EkcxLSN9Udad5K5khcXrLAHdZgsALqP2r4RGjXKb6LzK",
-      "GTfvruXVPkLAVh4Re8JUEZ481wjMk6LBcmmfLMDY1JWp",
-      "3iqxzKcZdTijd5Vq2WANcXCMLprDxjNMuiFMcLov7aVP",
-      "5ruDcUTr197mZZJSrEsk9a7sqmQ6iEYKGPuTsptoHw5G",
-    ];
+    // const players = [
+    //   "EkcxLSN9Udad5K5khcXrLAHdZgsALqP2r4RGjXKb6LzK",
+    //   "GTfvruXVPkLAVh4Re8JUEZ481wjMk6LBcmmfLMDY1JWp",
+    //   "3iqxzKcZdTijd5Vq2WANcXCMLprDxjNMuiFMcLov7aVP",
+    //   "5ruDcUTr197mZZJSrEsk9a7sqmQ6iEYKGPuTsptoHw5G",
+    // ];
+    const playersData: Keypair[] = JSON.parse(
+      readFileSync("new-128-playerData-round-1.json", "utf8")
+    );
+    const players = playersData.slice(0, playersData.length / 2);
+    const roundIndex = 0;
+    // console.log(players);
+    // console.log(players.length);
+    writeFileSync(
+      `new-128-playerData-round-${roundIndex}.json`,
+      JSON.stringify(players, null, 4),
+      "utf8"
+    );
     for (let i = 0; i < players.length; i++) {
       umi.use(keypairIdentity(driverSigner));
       const tx = await addWinner(umi, {
         tournament,
         driver: driverSigner,
-        winner: publicKey(players[i]),
-        roundIndex: 0,
+        winner: publicKey(players[i].publicKey),
+        roundIndex,
       })
         .setFeePayer(driverSigner)
         .sendAndConfirm(umi, {
@@ -451,20 +477,32 @@ describe("ProLeague-Tournament-SC", async function () {
 
   // Marking winner for next round // Pass
   it.skip("markWinnerWonNextRound", async () => {
-    const players = [
-      "EkcxLSN9Udad5K5khcXrLAHdZgsALqP2r4RGjXKb6LzK",
-      // "GTfvruXVPkLAVh4Re8JUEZ481wjMk6LBcmmfLMDY1JWp",
-      // "3iqxzKcZdTijd5Vq2WANcXCMLprDxjNMuiFMcLov7aVP",
-      // "5ruDcUTr197mZZJSrEsk9a7sqmQ6iEYKGPuTsptoHw5G",
-    ];
+    // const players = [
+    //   "EkcxLSN9Udad5K5khcXrLAHdZgsALqP2r4RGjXKb6LzK",
+    //   // "GTfvruXVPkLAVh4Re8JUEZ481wjMk6LBcmmfLMDY1JWp",
+    //   // "3iqxzKcZdTijd5Vq2WANcXCMLprDxjNMuiFMcLov7aVP",
+    //   // "5ruDcUTr197mZZJSrEsk9a7sqmQ6iEYKGPuTsptoHw5G",
+    // ];
+    const roundIndex = 1;
+    const playersData: Keypair[] = JSON.parse(
+      readFileSync(`new-128-playerData-round-${roundIndex}.json`, "utf8")
+    );
+    const players = playersData.slice(0, playersData.length / 2);
+    // console.log(players);
+    // console.log(players.length);
+    writeFileSync(
+      `new-128-playerData-round-mark-winner-${roundIndex}.json`,
+      JSON.stringify(players, null, 4),
+      "utf8"
+    );
     for (let i = 0; i < players.length; i++) {
       umi.use(keypairIdentity(driverSigner));
 
       const tx = await markWinnerWonNextRound(umi, {
         tournament,
         driver: driverSigner,
-        winner: publicKey(players[i]),
-        roundIndex: 1,
+        winner: publicKey(players[i].publicKey),
+        roundIndex,
       })
         .setFeePayer(driverSigner)
         .sendAndConfirm(umi, {
@@ -523,23 +561,41 @@ describe("ProLeague-Tournament-SC", async function () {
 
   // Claim Price // Pass
   it.skip("sendPrize", async () => {
-    const players = [
-      "EkcxLSN9Udad5K5khcXrLAHdZgsALqP2r4RGjXKb6LzK",
-      // "GTfvruXVPkLAVh4Re8JUEZ481wjMk6LBcmmfLMDY1JWp",
-      // "3iqxzKcZdTijd5Vq2WANcXCMLprDxjNMuiFMcLov7aVP",
-      // "5ruDcUTr197mZZJSrEsk9a7sqmQ6iEYKGPuTsptoHw5G",
-    ];
+    // const players = [
+    //   "EkcxLSN9Udad5K5khcXrLAHdZgsALqP2r4RGjXKb6LzK",
+    //   // "GTfvruXVPkLAVh4Re8JUEZ481wjMk6LBcmmfLMDY1JWp",
+    //   // "3iqxzKcZdTijd5Vq2WANcXCMLprDxjNMuiFMcLov7aVP",
+    //   // "5ruDcUTr197mZZJSrEsk9a7sqmQ6iEYKGPuTsptoHw5G",
+    // ];
+    const roundIndex = 3;
+    const playersData: Keypair[] = JSON.parse(
+      readFileSync(
+        `new-128-playerData-round-mark-winner-${roundIndex}.json`,
+        "utf8"
+      )
+    );
+    const players = playersData.reverse().slice(0, playersData.length / 2);
+    // const players = playersData;
+    // console.log(players);
+    // console.log(players.length);
+    writeFileSync(
+      `new-128-playerData-round-prize-${roundIndex}.json`,
+      JSON.stringify(players, null, 4),
+      "utf8"
+    );
     for (let i = 0; i < players.length; i++) {
       umi.use(keypairIdentity(driverSigner));
       const tx = await sendPrize(umi, {
-        roundIndex: 0,
+        roundIndex: roundIndex - 1,
         tournament,
-        winner: publicKey(players[i]),
+        winner: publicKey(players[i].publicKey),
         driver: driverSigner,
       })
         .setFeePayer(driverSigner)
+        .prepend(setComputeUnitsFunc(umi))
         .sendAndConfirm(umi, {
           send: {
+            skipPreflight: true,
             preflightCommitment: "processed",
           },
           confirm: {
@@ -668,6 +724,35 @@ describe("ProLeague-Tournament-SC", async function () {
     console.log(
       "\x1b[32m", //Green Text
       `Transaction Signature for Refund Creator And Close Tournament Success!🎉`,
+      `\n    https://${solanaUrl}/tx/${base58.encode(
+        tx.signature
+      )}?cluster=${clusterUrl}`
+    );
+  });
+
+  // Reallocate bytes for tournament
+  it.skip("ReallocateBytesTournament", async () => {
+    // const tempTournament = findTempTournamentPda(umi, {
+    //   tournamentId,
+    // });
+    umi.use(keypairIdentity(driverSigner));
+    const tx = await reallocateTournament(umi, {
+      driver: driverSigner,
+      tournament, // tempTournament
+    })
+      .setFeePayer(driverSigner)
+      .sendAndConfirm(umi, {
+        send: {
+          // skipPreflight: true,
+          preflightCommitment: "processed",
+        },
+        confirm: {
+          commitment: "processed",
+        },
+      });
+    console.log(
+      "\x1b[32m", //Green Text
+      `Transaction Signature for Resize Tournament Success!🎉`,
       `\n    https://${solanaUrl}/tx/${base58.encode(
         tx.signature
       )}?cluster=${clusterUrl}`

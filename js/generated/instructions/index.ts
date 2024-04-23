@@ -14,6 +14,7 @@ export * from './joinTournament';
 export * from './markWinnerWonNextRound';
 export * from './pauseTournament';
 export * from './publishTournament';
+export * from './reallocateTournament';
 export * from './refundCreatorAndCloseTournament';
 export * from './refundJoiningFees';
 export * from './refundSponsor';

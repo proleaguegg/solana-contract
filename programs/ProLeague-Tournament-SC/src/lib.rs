@@ -7,6 +7,7 @@ pub mod constant;
 pub mod errors;
 pub mod instructions;
 pub mod state;
+pub mod utils;
 
 // use crate::{accountsInfo::*, arguments::*, errors::*, state::*};
 use instructions::*;
@@ -83,5 +84,9 @@ mod tournament {
         data: DestroyTournamentArgs,
     ) -> Result<()> {
         instructions::destroy_tournament(ctx, data)
+    }
+
+    pub fn reallocate_tournament(ctx: Context<ReallocateTournament>) -> Result<()> {
+        instructions::reallocate_tournament(ctx)
     }
 }
