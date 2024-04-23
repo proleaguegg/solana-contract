@@ -340,6 +340,19 @@ export class TournamentNotPausedError extends ProgramError {
 codeToErrorMap.set(0x1787, TournamentNotPausedError);
 nameToErrorMap.set('TournamentNotPaused', TournamentNotPausedError);
 
+/** OverFlow: Opertaion overflowed */
+export class OverFlowError extends ProgramError {
+  override readonly name: string = 'OverFlow';
+
+  readonly code: number = 0x1788; // 6024
+
+  constructor(program: Program, cause?: Error) {
+    super('Opertaion overflowed', program, cause);
+  }
+}
+codeToErrorMap.set(0x1788, OverFlowError);
+nameToErrorMap.set('OverFlow', OverFlowError);
+
 /**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors

@@ -4,6 +4,7 @@ use anchor_spl::{
     associated_token::AssociatedToken,
     token::{Mint, Token, TokenAccount, Transfer, CloseAccount},
 };
+use crate::utils::reallocate_bytes;
 
 use {
     crate::{constant::*, errors::TournamentError, state::*},
@@ -25,7 +26,7 @@ pub struct Initialize<'info> {
         seeds = [TOURNAMENT_TAG.as_ref(), data.tournament_id.as_ref()],
         bump,
         payer = driver,
-        space = Tournament::calculate_size(data.total_players, data.winning_rounds as usize),
+        space = Tournament::calculate_size(data.total_players, (data.total_players as f32).log2() as u16),
     )]
     pub tournament: Account<'info, Tournament>,
 
@@ -686,5 +687,46 @@ pub fn refund_creator_and_close_tournament(ctx: Context<RefundCreatorAndCloseTou
 
     msg!("Refund to Creator and tournament close Successfully");
 
+    Ok(())
+}
+
+
+#[derive(Accounts)]
+pub struct ReallocateTournament<'info> {
+    
+    #[account(constraint = driver.key().eq(&DRIVER))]
+    pub driver: Signer<'info>,
+
+    #[account(mut)]
+    pub tournament: Account<'info, Tournament>,
+
+    // #[account(mut)]
+    pub rent_sysvar: Sysvar<'info, Rent>,
+    pub system_program: Program<'info, System>,
+}
+
+pub fn reallocate_tournament(ctx: Context<ReallocateTournament>) -> Result<()> {
+    let tournament = &mut ctx.accounts.tournament;
+    // let tournament_info: &mut _ = &mut ctx.accounts.tournament_info;
+    let driver = &mut ctx.accounts.driver;
+    
+    let existing_size = tournament.to_account_info().data_len();
+    let required_size = Tournament::calculate_size(tournament.total_players, (tournament.total_players as f32).log2() as u16);
+
+    msg!("Existing and Required Size: {:?}! {:?}!", existing_size, required_size);
+    
+    if required_size > existing_size  {        
+        // Reallocate the switch account with the new length.
+        reallocate_bytes(
+            (required_size - existing_size) as isize,
+            tournament.to_account_info(),
+            driver.to_account_info(),
+            &ctx.accounts.rent_sysvar,
+            &ctx.accounts.system_program,
+        )?;
+        msg!("Account realocate success");
+    } else{
+        msg!("No Need to allocate space");
+    }
     Ok(())
 }

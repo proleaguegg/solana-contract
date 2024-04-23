@@ -9,7 +9,7 @@ url = "https://api.apr.dev"
 # url = " http://127.0.0.1:8899"
 
 [provider]
-cluster = "https://devnet.helius-rpc.com/?api-key=7050a011-776f-432b-8b0e-a4e490ec6c9f"
+cluster = "https://devnet.helius-rpc.com/?api-key=0d7dd884-43aa-4447-ab09-a4076ac93c8a"
 # cluster = "localnet"
 wallet = "key.json"
 

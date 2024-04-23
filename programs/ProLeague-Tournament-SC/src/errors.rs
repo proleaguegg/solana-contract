@@ -50,4 +50,6 @@ pub enum TournamentError {
     PlayersJoiningFeeNotRefunded,
     #[msg("Tournament is not paused")]
     TournamentNotPaused,
+    #[msg("Opertaion overflowed")]
+    OverFlow,
 }

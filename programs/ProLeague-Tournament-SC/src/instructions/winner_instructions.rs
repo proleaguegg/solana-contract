@@ -18,7 +18,7 @@ pub struct AddWinnerToRoundArgs {
 }
 
 pub fn add_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) -> Result<()> {
-    let tournament_immutable = ctx.accounts.tournament.clone();
+    // let tournament_immutable = ctx.accounts.tournament.clone();
     let tournament = &mut ctx.accounts.tournament;
     let winner = args.winner;
     let round_index = args.round_index;
@@ -50,7 +50,7 @@ pub fn add_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) ->
         return Err(TournamentError::RoundWinnerLimitReached.into());
     }
 
-    msg!("ROUNDS: {:?}", tournament_immutable.rounds);
+    // msg!("ROUNDS: {:?}", tournament_immutable.rounds);
 
     // Add the winner with their initial status.
     round.winners_and_collected_status.insert(
@@ -61,7 +61,7 @@ pub fn add_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) ->
         },
     );
 
-    msg!("ROUNDS: {:?}", tournament_immutable.rounds);
+    msg!("ROUNDS round_index: {:?}", round_index);
     Ok(())
 }
 

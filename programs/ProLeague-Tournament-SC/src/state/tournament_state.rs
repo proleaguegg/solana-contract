@@ -24,7 +24,19 @@ pub struct Tournament {
 
 impl Tournament {
     /// The expected size of the `GuildKit` struct in bytes.
-    pub const LEN: usize = 8 + 1 + 32 + 32 + 8 + 8 + 2 + 2 + 1 + 1 + 28 + 1 + 4 +4 ;
+    pub const LEN: usize = 8 // discriminator
+    + 1 // bump
+    + 32 // creator pubkey
+    + 32 // sponsor pubkey
+    + 8 // joining_fees
+    + 8 // sponsor_amount
+    + 2 // total_players
+    + 2 // total_rounds
+    + 1 // is_published
+    + 1 // is_sponsored
+    + 1 // is_paused
+    + 4 // tournament_id (length)
+    + 28; // Default string size for tournament_id (adjustable)
     /// Sets default values for a GuildKit.
     pub fn set_defaults(&mut self) {
         self.creator = Pubkey::default();
@@ -37,22 +49,26 @@ impl Tournament {
         self.total_rounds = 0;
         self.is_published = false;
         self.is_paused = false;
-        self.is_sponsored = false;  
+        self.is_sponsored = false;
         // self.tournament_concluded = false;
         self.players = Vec::new();
         self.rounds = Vec::new();
         // self.is_closed = false;
     }
-    pub fn calculate_size(total_players: u16, winning_rounds: usize) -> usize {
-        let mut len = Self::LEN;
-        let tp = total_players as usize;
-        let tr = (total_players as f32).log2() as usize;
-        len += tp * 32;
-        len += tr * 32;
-        len += 1;
-        for i in 0..winning_rounds {
-            len += 13 + (2u32.pow(i as u32) as usize * 6);
+    pub fn calculate_size(total_players: u16, total_rounds: u16) -> usize {
+        let mut size = Self::LEN;
+
+        // Add size for each player's pubkey
+        size += (total_players as usize) * 32; // Each pubkey is 32 bytes
+
+        // Add size for each round
+        for round_index in 0..total_rounds as usize {
+            let entries = 2u32.pow(round_index as u32) as usize; // Number of possible winners per round
+            let map_entry_size = 8 + 4 + 1 + 1; // Approx size for each map entry: 8 bytes for key, 4 bytes for value struct, and additional overhead
+            let hashmap_overhead = 16; // Generic overhead for hash map metadata
+            size += hashmap_overhead + (entries * map_entry_size);
         }
-        len
+
+        size
     }
 }
