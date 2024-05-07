@@ -353,6 +353,32 @@ export class OverFlowError extends ProgramError {
 codeToErrorMap.set(0x1788, OverFlowError);
 nameToErrorMap.set('OverFlow', OverFlowError);
 
+/** WrongCreator: Wrong Creator provided */
+export class WrongCreatorError extends ProgramError {
+  override readonly name: string = 'WrongCreator';
+
+  readonly code: number = 0x1789; // 6025
+
+  constructor(program: Program, cause?: Error) {
+    super('Wrong Creator provided', program, cause);
+  }
+}
+codeToErrorMap.set(0x1789, WrongCreatorError);
+nameToErrorMap.set('WrongCreator', WrongCreatorError);
+
+/** PlayerNotExist: Player not exist */
+export class PlayerNotExistError extends ProgramError {
+  override readonly name: string = 'PlayerNotExist';
+
+  readonly code: number = 0x178a; // 6026
+
+  constructor(program: Program, cause?: Error) {
+    super('Player not exist', program, cause);
+  }
+}
+codeToErrorMap.set(0x178a, PlayerNotExistError);
+nameToErrorMap.set('PlayerNotExist', PlayerNotExistError);
+
 /**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors

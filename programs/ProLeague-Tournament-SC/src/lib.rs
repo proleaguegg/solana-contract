@@ -81,12 +81,26 @@ mod tournament {
 
     pub fn destroy_tournament(
         ctx: Context<DestroyTournament>,
-        data: DestroyTournamentArgs,
+        args: DestroyTournamentArgs,
     ) -> Result<()> {
-        instructions::destroy_tournament(ctx, data)
+        instructions::destroy_tournament(ctx, args)
     }
 
     pub fn reallocate_tournament(ctx: Context<ReallocateTournament>) -> Result<()> {
         instructions::reallocate_tournament(ctx)
+    }
+
+    pub fn transpose_tournament_creator(
+        ctx: Context<TransposeTournamentCreator>,
+        args: ArgumentTransposeTournamentCreator,
+    ) -> Result<()> {
+        instructions::transpose_tournament_creator(ctx, args)
+    }
+
+    pub fn transpose_tournament_player(
+        ctx: Context<TransposeTournamentPlayer>,
+        args: ArgumentTransposeTournamentPlayer,
+    ) -> Result<()> {
+        instructions::transpose_tournament_player(ctx, args)
     }
 }

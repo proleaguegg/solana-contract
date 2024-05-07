@@ -20,3 +20,5 @@ export * from './refundJoiningFees';
 export * from './refundSponsor';
 export * from './sendPrize';
 export * from './sponsorTournament';
+export * from './transposeTournamentCreator';
+export * from './transposeTournamentPlayer';

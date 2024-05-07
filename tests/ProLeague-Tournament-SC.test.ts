@@ -26,6 +26,8 @@ import {
   refundJoiningFees,
   refundSponsor,
   refundCreatorAndCloseTournament,
+  transposeTournamentCreator,
+  transposeTournamentPlayer,
 } from "../js";
 import { writeFile } from "fs";
 import {
@@ -48,7 +50,8 @@ describe("ProLeague-Tournament-SC", async function () {
   const umi = BaseCreateUmi(solanaRpc)
     .use(tournamentProgram())
     .use(web3JsRpc(solanaRpc));
-  const tournamentId = randomStringGenerator.getRandomString(); // "65ccb08ecc6beb1f5441c1c8"; "OZyRgKs1BI"; "Vc8EHbXgVA";
+  const tournamentId = "kb7n4G3Dyf"; //randomStringGenerator.getRandomString(); // "65ccb08ecc6beb1f5441c1c8"; "OZyRgKs1BI"; "Vc8EHbXgVA";
+  console.log({ tournamentId });
   const tournament = findTournamentPda(umi, {
     tournamentId,
   });
@@ -156,7 +159,7 @@ describe("ProLeague-Tournament-SC", async function () {
   // console.log("umi=>",umi,"tokenMint=>",tokenMint,"programId=>",programId,"driver=>",driver,"creator=>",creator);
 
   // Fetch tournament // Pass
-  it.skip("Fetch Tournament", async function () {
+  it("Fetch Tournament", async function () {
     const tournamentObj = await safeFetchTournament(umi, tournament);
 
     console.dir(tournamentObj, { depth: null });
@@ -668,6 +671,64 @@ describe("ProLeague-Tournament-SC", async function () {
     console.log(
       "\x1b[32m", //Green Text
       `Transaction Signature for Refund Creator And Close Tournament Success!🎉`,
+      `\n    https://${solanaUrl}/tx/${base58.encode(
+        tx.signature
+      )}?cluster=${clusterUrl}`
+    );
+  });
+
+  // Transpose Tournament Creator
+  it.skip("transposeTournamentCreator", async () => {
+    const newCreator = umi.eddsa.generateKeypair();
+
+    umi.use(keypairIdentity(driverSigner));
+    const tx = await transposeTournamentCreator(umi, {
+      creator: creator.publicKey,
+      driver: driverSigner,
+      tournament,
+      newCreator: newCreator.publicKey,
+    })
+      .setFeePayer(driverSigner)
+      .sendAndConfirm(umi, {
+        send: {
+          preflightCommitment: "processed",
+        },
+        confirm: {
+          commitment: "processed",
+        },
+      });
+    console.log(
+      "\x1b[32m", //Green Text
+      `Transaction Signature for Transpose Tournament Creator Success!🎉`,
+      `\n    https://${solanaUrl}/tx/${base58.encode(
+        tx.signature
+      )}?cluster=${clusterUrl}`
+    );
+  });
+
+  // Transpose Tournament Player
+  it.skip("transposeTournamentPlayer", async () => {
+    const newPlayer = umi.eddsa.generateKeypair();
+
+    umi.use(keypairIdentity(driverSigner));
+    const tx = await transposeTournamentPlayer(umi, {
+      player: publicKey("9Ki1XRbWdVHrXWMpnSRsGs4HxrRQ3HRJDMFfewoJFykd"),
+      driver: driverSigner,
+      tournament,
+      newPlayer: newPlayer.publicKey,
+    })
+      .setFeePayer(driverSigner)
+      .sendAndConfirm(umi, {
+        send: {
+          preflightCommitment: "processed",
+        },
+        confirm: {
+          commitment: "processed",
+        },
+      });
+    console.log(
+      "\x1b[32m", //Green Text
+      `Transaction Signature for Transpose Tournament Player Success!🎉`,
       `\n    https://${solanaUrl}/tx/${base58.encode(
         tx.signature
       )}?cluster=${clusterUrl}`

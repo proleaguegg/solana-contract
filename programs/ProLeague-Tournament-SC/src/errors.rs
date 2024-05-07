@@ -52,4 +52,8 @@ pub enum TournamentError {
     TournamentNotPaused,
     #[msg("Opertaion overflowed")]
     OverFlow,
+    #[msg("Wrong Creator provided")]
+    WrongCreator,
+    #[msg("Player not exist")]
+    PlayerNotExist,
 }
