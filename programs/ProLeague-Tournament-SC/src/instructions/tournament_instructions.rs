@@ -18,7 +18,7 @@ pub struct Initialize<'info> {
     pub driver: Signer<'info>,
 
     /// CHECK: We are checking it in the body
-    #[account(mut)]
+    #[account()]
     pub creator: AccountInfo<'info>,
 
     #[account(
@@ -36,7 +36,7 @@ pub struct Initialize<'info> {
         associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account(constraint = mint.key().eq(&CURRENCY_MINT))]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -53,7 +53,7 @@ pub struct ArgumentInitialize {
 pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<()> {
     msg!("Tournament Initialized with data: {:?}!", data);
     let tournament = &mut ctx.accounts.tournament;
-    let creator = &mut ctx.accounts.creator;
+    let creator = &ctx.accounts.creator;
     tournament.set_defaults();
 
     // Update tournament details
@@ -75,7 +75,7 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
 #[derive(Accounts)]
 #[instruction(data: ArgumentPublishTournament)]
 pub struct PublishTournament<'info> {
-    #[account(mut)]
+    #[account()]
     pub creator: Signer<'info>,
 
     #[account(mut)]
@@ -90,7 +90,7 @@ pub struct PublishTournament<'info> {
        constraint = creator_token_account.mint == mint.key() && creator_token_account.owner == creator.key(),
     )]
     pub creator_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account(constraint = mint.key().eq(&CURRENCY_MINT))]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -108,7 +108,7 @@ pub fn publish_tournament(
 ) -> Result<()> {
     msg!("Pulbish Tournament with data: {:?}!", data);
     let tournament = &mut ctx.accounts.tournament;
-    let creator = &mut ctx.accounts.creator;
+    let creator = &ctx.accounts.creator;
     let creator_token_account = &mut ctx.accounts.creator_token_account;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
 
@@ -174,7 +174,7 @@ pub fn publish_tournament(
 #[derive(Accounts)]
 #[instruction(data: ArgumentSponsorTournament)]
 pub struct SponsorTournament<'info> {
-    #[account(mut)]
+    #[account()]
     pub sponsor: Signer<'info>,
 
     #[account(mut)]
@@ -189,7 +189,7 @@ pub struct SponsorTournament<'info> {
        constraint = sponsor_token_account.mint == mint.key() && sponsor_token_account.owner == sponsor.key(),
     )]
     pub sponsor_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account(constraint = mint.key().eq(&CURRENCY_MINT))]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -206,7 +206,7 @@ pub fn sponsor_tournament(
 ) -> Result<()> {
     msg!("Sponsor Tournament with data: {:?}!", data);
     let tournament = &mut ctx.accounts.tournament;
-    let sponsor = &mut ctx.accounts.sponsor;
+    let sponsor = &ctx.accounts.sponsor;
     let sponsor_token_account = &mut ctx.accounts.sponsor_token_account;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
     let sponsor_amount = data.sponsor_amount;
@@ -262,7 +262,7 @@ pub struct ConcludeTournament<'info> {
     #[account(constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account(constraint = mint.key().eq(&CURRENCY_MINT))]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -272,7 +272,7 @@ pub struct ConcludeTournament<'info> {
 pub fn conclude_tournament(ctx: Context<ConcludeTournament>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
     let creator_token_account = &mut ctx.accounts.creator_token_account;
-    let driver = &mut ctx.accounts.driver;
+    let driver = &ctx.accounts.driver;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
     
     // Loop through each round
@@ -343,11 +343,11 @@ pub struct JoinTournament<'info> {
     pub driver: Signer<'info>,
 
     /// CHECK: We are checking it in the body
-    #[account(mut,constraint = player.key().eq(&player_info.key()) )]
+    #[account(constraint = player.key().eq(&player_info.key()) )]
     pub player: Option<Signer<'info>>,
 
     /// CHECK: We are checking it in the body
-    #[account(mut)]
+    #[account()]
     pub player_info: AccountInfo<'info>,
 
     #[account(
@@ -363,7 +363,7 @@ pub struct JoinTournament<'info> {
 
     #[account(mut)]
     pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account(constraint = mint.key().eq(&CURRENCY_MINT))]
     pub mint: Account<'info, Mint>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -374,7 +374,7 @@ pub struct JoinTournament<'info> {
 pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
     let player = &ctx.accounts.player_info;
-    let tournament_token_account = &ctx.accounts.tournament_token_account;
+    let tournament_token_account = &mut ctx.accounts.tournament_token_account;
 
     // // Check if the tournament is already concluded
     // if tournament.tournament_concluded {
@@ -417,14 +417,13 @@ pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct PauseTournament<'info> {
-    #[account(mut, constraint = driver.key().eq(&DRIVER))]
+    #[account(constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
     
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
 
-    // #[account(mut, constraint = tournament.creator.key() == creator.key())]
-    #[account(mut)]
+    #[account()]
     pub creator: Signer<'info>,
 
 }
@@ -433,7 +432,7 @@ pub fn pause_tournament(
     ctx: Context<PauseTournament>
 ) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
-    let creator = &mut ctx.accounts.creator;
+    let creator = &ctx.accounts.creator;
   
     if tournament.creator.key() != creator.key(){
         return Err(TournamentError::OnlyCreatorCanPause.into());
@@ -451,7 +450,7 @@ pub struct RefundJoiningFees<'info> {
     pub driver: Signer<'info>,
 
     /// CHECK: We are checking it in the body
-    #[account(mut)]
+    #[account()]
     pub player: AccountInfo<'info>,
 
     #[account(
@@ -469,7 +468,7 @@ pub struct RefundJoiningFees<'info> {
         constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),        
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account(constraint = mint.key().eq(&CURRENCY_MINT))]
     pub mint: Account<'info, Mint>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -480,7 +479,7 @@ pub struct RefundJoiningFees<'info> {
 pub fn refund_joining_fees(ctx: Context<RefundJoiningFees>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
     let player = &ctx.accounts.player;
-    let tournament_token_account = &ctx.accounts.tournament_token_account;
+    let tournament_token_account = &mut ctx.accounts.tournament_token_account;
 
 
     // Check joining fees
@@ -530,7 +529,7 @@ pub struct RefundSponsor<'info> {
     pub driver: Signer<'info>,
     
     /// CHECK: We are checking it in the body
-    #[account(mut)]
+    #[account()]
     pub sponsor: AccountInfo<'info>,
 
     #[account(
@@ -548,7 +547,7 @@ pub struct RefundSponsor<'info> {
         constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),        
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account(constraint = mint.key().eq(&CURRENCY_MINT))]
     pub mint: Account<'info, Mint>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -559,7 +558,7 @@ pub struct RefundSponsor<'info> {
 pub fn refund_sponsor(ctx: Context<RefundSponsor>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
     let sponsor = &ctx.accounts.sponsor;
-    let tournament_token_account = &ctx.accounts.tournament_token_account;
+    let tournament_token_account = &mut ctx.accounts.tournament_token_account;
 
 
     // Check sponsor
@@ -624,7 +623,7 @@ pub struct RefundCreatorAndCloseTournament<'info> {
     #[account(constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account(constraint = mint.key().eq(&CURRENCY_MINT))]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -634,7 +633,7 @@ pub struct RefundCreatorAndCloseTournament<'info> {
 pub fn refund_creator_and_close_tournament(ctx: Context<RefundCreatorAndCloseTournament>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
     let creator_token_account = &mut ctx.accounts.creator_token_account;
-    let driver = &mut ctx.accounts.driver;
+    let driver = &ctx.accounts.driver;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
     
      // Check tournament should be paused
@@ -700,15 +699,13 @@ pub struct ReallocateTournament<'info> {
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
 
-    // #[account(mut)]
     pub rent_sysvar: Sysvar<'info, Rent>,
     pub system_program: Program<'info, System>,
 }
 
 pub fn reallocate_tournament(ctx: Context<ReallocateTournament>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
-    // let tournament_info: &mut _ = &mut ctx.accounts.tournament_info;
-    let driver = &mut ctx.accounts.driver;
+    let driver = &ctx.accounts.driver;
     
     let existing_size = tournament.to_account_info().data_len();
     let required_size = Tournament::calculate_size(tournament.total_players, (tournament.total_players as f32).log2() as u16);
@@ -735,11 +732,11 @@ pub fn reallocate_tournament(ctx: Context<ReallocateTournament>) -> Result<()> {
 
 #[derive(Accounts)]
 pub struct TransposeTournamentCreator<'info> {
-    #[account(mut, constraint = driver.key().eq(&DRIVER))]
+    #[account(constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
     /// CHECK: We are checking it in the body
-    #[account(mut)]
+    #[account()]
     pub creator: AccountInfo<'info>,
 
     #[account(mut)]
@@ -753,7 +750,7 @@ pub struct ArgumentTransposeTournamentCreator {
 
 pub fn transpose_tournament_creator(ctx: Context<TransposeTournamentCreator>,data:ArgumentTransposeTournamentCreator ) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
-    let creator =  &mut ctx.accounts.creator;
+    let creator =  &ctx.accounts.creator;
     let new_creator =  data.new_creator;
   
     if tournament.creator.key() != creator.key(){
@@ -768,11 +765,11 @@ pub fn transpose_tournament_creator(ctx: Context<TransposeTournamentCreator>,dat
 
 #[derive(Accounts)]
 pub struct TransposeTournamentPlayer<'info> {
-    #[account(mut, constraint = driver.key().eq(&DRIVER))]
+    #[account(constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
     /// CHECK: We are checking it in the body
-    #[account(mut)]
+    #[account()]
     pub player: AccountInfo<'info>,
 
     #[account(mut)]
@@ -786,7 +783,7 @@ pub struct ArgumentTransposeTournamentPlayer {
 
 pub fn transpose_tournament_player(ctx: Context<TransposeTournamentPlayer>,data:ArgumentTransposeTournamentPlayer ) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
-    let player =  &mut ctx.accounts.player;
+    let player =  &ctx.accounts.player;
     let new_player =  data.new_player;
   
      // Check the player exist or not

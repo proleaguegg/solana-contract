@@ -12,7 +12,7 @@ pub struct SendPrize<'info> {
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
     /// CHECK: This is not unsafe
-    #[account(mut)]
+    #[account()]
     pub winner: AccountInfo<'info>,
     #[account(mut)]
     pub driver: Signer<'info>,
@@ -31,7 +31,7 @@ pub struct SendPrize<'info> {
     )]
     pub winner_token_account: Account<'info, TokenAccount>,
 
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account(constraint = mint.key().eq(&CURRENCY_MINT))]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
