@@ -89,8 +89,8 @@ export function transposeTournamentPlayer(
 
   // Accounts.
   const resolvedAccounts = {
-    driver: { index: 0, isWritable: true, value: input.driver ?? null },
-    player: { index: 1, isWritable: true, value: input.player ?? null },
+    driver: { index: 0, isWritable: false, value: input.driver ?? null },
+    player: { index: 1, isWritable: false, value: input.player ?? null },
     tournament: { index: 2, isWritable: true, value: input.tournament ?? null },
   } satisfies ResolvedAccountsWithIndices;
 

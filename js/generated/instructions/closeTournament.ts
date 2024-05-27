@@ -13,7 +13,6 @@ import {
   PublicKey,
   Signer,
   TransactionBuilder,
-  publicKey,
   transactionBuilder,
 } from '@metaplex-foundation/umi';
 import {
@@ -31,51 +30,46 @@ import {
 } from '../shared';
 
 // Accounts.
-export type ConcludeTournamentInstructionAccounts = {
+export type CloseTournamentInstructionAccounts = {
   tournament: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
   creatorTokenAccount: PublicKey | Pda;
   driver: Signer;
-  mint?: PublicKey | Pda;
+  mint: PublicKey | Pda;
   associatedTokenProgram?: PublicKey | Pda;
   tokenProgram?: PublicKey | Pda;
   systemProgram?: PublicKey | Pda;
 };
 
 // Data.
-export type ConcludeTournamentInstructionData = {
-  discriminator: Array<number>;
-};
+export type CloseTournamentInstructionData = { discriminator: Array<number> };
 
-export type ConcludeTournamentInstructionDataArgs = {};
+export type CloseTournamentInstructionDataArgs = {};
 
-export function getConcludeTournamentInstructionDataSerializer(): Serializer<
-  ConcludeTournamentInstructionDataArgs,
-  ConcludeTournamentInstructionData
+export function getCloseTournamentInstructionDataSerializer(): Serializer<
+  CloseTournamentInstructionDataArgs,
+  CloseTournamentInstructionData
 > {
   return mapSerializer<
-    ConcludeTournamentInstructionDataArgs,
+    CloseTournamentInstructionDataArgs,
     any,
-    ConcludeTournamentInstructionData
+    CloseTournamentInstructionData
   >(
-    struct<ConcludeTournamentInstructionData>(
+    struct<CloseTournamentInstructionData>(
       [['discriminator', array(u8(), { size: 8 })]],
-      { description: 'ConcludeTournamentInstructionData' }
+      { description: 'CloseTournamentInstructionData' }
     ),
-    (value) => ({
-      ...value,
-      discriminator: [12, 3, 223, 101, 137, 165, 187, 147],
-    })
+    (value) => ({ ...value, discriminator: [14, 80, 54, 9, 221, 239, 201, 35] })
   ) as Serializer<
-    ConcludeTournamentInstructionDataArgs,
-    ConcludeTournamentInstructionData
+    CloseTournamentInstructionDataArgs,
+    CloseTournamentInstructionData
   >;
 }
 
 // Instruction.
-export function concludeTournament(
+export function closeTournament(
   context: Pick<Context, 'eddsa' | 'programs'>,
-  input: ConcludeTournamentInstructionAccounts
+  input: CloseTournamentInstructionAccounts
 ): TransactionBuilder {
   // Program ID.
   const programId = context.programs.getPublicKey(
@@ -97,7 +91,7 @@ export function concludeTournament(
       value: input.creatorTokenAccount ?? null,
     },
     driver: { index: 3, isWritable: false, value: input.driver ?? null },
-    mint: { index: 4, isWritable: true, value: input.mint ?? null },
+    mint: { index: 4, isWritable: false, value: input.mint ?? null },
     associatedTokenProgram: {
       index: 5,
       isWritable: false,
@@ -116,11 +110,6 @@ export function concludeTournament(
   } satisfies ResolvedAccountsWithIndices;
 
   // Default values.
-  if (!resolvedAccounts.mint.value) {
-    resolvedAccounts.mint.value = publicKey(
-      '2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ'
-    );
-  }
   if (!resolvedAccounts.tournamentTokenAccount.value) {
     resolvedAccounts.tournamentTokenAccount.value = findAssociatedTokenPda(
       context,
@@ -166,7 +155,7 @@ export function concludeTournament(
   );
 
   // Data.
-  const data = getConcludeTournamentInstructionDataSerializer().serialize({});
+  const data = getCloseTournamentInstructionDataSerializer().serialize({});
 
   // Bytes Created On Chain.
   const bytesCreatedOnChain = 0;

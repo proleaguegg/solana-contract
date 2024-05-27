@@ -18,7 +18,8 @@ pub struct Tournament {
     pub sponsor_amount: u64,
     pub is_sponsored: bool,
     pub is_paused: bool,
-    // pub tournament_concluded: bool,
+    pub mint: Pubkey,
+    // pub tournament_closed: bool,
     // pub is_closed: bool,
 }
 
@@ -36,7 +37,8 @@ impl Tournament {
     + 1 // is_sponsored
     + 1 // is_paused
     + 4 // tournament_id (length)
-    + 28; // Default string size for tournament_id (adjustable)
+    + 28 // Default string size for tournament_id (adjustable)
+    + 32; // mint pubkey
     /// Sets default values for a GuildKit.
     pub fn set_defaults(&mut self) {
         self.creator = Pubkey::default();
@@ -50,7 +52,7 @@ impl Tournament {
         self.is_published = false;
         self.is_paused = false;
         self.is_sponsored = false;
-        // self.tournament_concluded = false;
+        // self.tournament_closed = false;
         self.players = Vec::new();
         self.rounds = Vec::new();
         // self.is_closed = false;

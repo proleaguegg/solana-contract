@@ -2,6 +2,10 @@ pub mod tournament_instructions;
 
 pub use tournament_instructions::*;
 
+pub mod join_tournament;
+
+pub use join_tournament::*;
+
 pub mod winner_instructions;
 
 pub use winner_instructions::*;
@@ -10,6 +14,18 @@ pub mod prize_instructions;
 
 pub use prize_instructions::*;
 
+pub mod cancel_tournament;
+
+pub use cancel_tournament::*;
+
 pub mod destroy_tournament;
 
 pub use destroy_tournament::*;
+
+pub mod reallocate_tournament;
+
+pub use reallocate_tournament::*;
+
+pub mod transpose_tournament;
+
+pub use transpose_tournament::*;

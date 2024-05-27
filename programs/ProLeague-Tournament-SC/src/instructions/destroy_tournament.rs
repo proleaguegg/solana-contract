@@ -29,7 +29,7 @@ pub struct DestroyTournament<'info> {
     #[account(constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
-    #[account(constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account()]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
