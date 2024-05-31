@@ -1,6 +1,6 @@
 use crate::errors::TournamentError;
+use anchor_lang::prelude::*;
 use anchor_lang::prelude::{AccountInfo, Program, Rent, Result, System, Sysvar, ToAccountInfo};
-use anchor_lang::solana_program;
 
 #[track_caller]
 #[inline(always)]
@@ -75,4 +75,40 @@ pub fn reallocate_bytes<'info>(
             .realloc(usize::try_from(new_len).unwrap(), false)
             .map_err(Into::into)
     }
+}
+
+pub fn assert_program_authority(
+    program: AccountInfo,
+    program_data: AccountInfo,
+    signer_address: &Pubkey,
+) -> Result<()> {
+    let program = UpgradeableLoaderState::try_deserialize(&mut program.data.borrow().as_ref())?;
+    match program {
+        UpgradeableLoaderState::Program {
+            programdata_address,
+        } => {
+            if programdata_address.eq(program_data.key) {
+                let programdata = UpgradeableLoaderState::try_deserialize(
+                    &mut program_data.data.borrow().as_ref(),
+                )?;
+                match programdata {
+                    UpgradeableLoaderState::ProgramData {
+                        slot: _,
+                        upgrade_authority_address,
+                    } => {
+                        if upgrade_authority_address.is_none()
+                            || upgrade_authority_address.unwrap().ne(signer_address)
+                        {
+                            return Err(TournamentError::Unauthorized.into());
+                        }
+                    }
+                    _ => return Err(TournamentError::InvalidProgram.into()),
+                }
+            } else {
+                return Err(TournamentError::InvalidProgram.into());
+            }
+        }
+        _ => return Err(TournamentError::InvalidProgram.into()),
+    }
+    return Ok(());
 }

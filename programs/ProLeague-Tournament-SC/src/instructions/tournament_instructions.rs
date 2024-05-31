@@ -1,5 +1,7 @@
 use std::collections::HashMap;
 
+use anchor_lang::solana_program::program::invoke;
+use anchor_lang::solana_program::system_instruction::transfer;
 use anchor_spl::{
     associated_token::AssociatedToken,
     token::{Mint, Token, TokenAccount, Transfer, CloseAccount},
@@ -17,9 +19,17 @@ pub struct Initialize<'info> {
     pub driver: Signer<'info>,
 
     /// CHECK: We are checking it in the body
-    #[account()]
-    pub creator: AccountInfo<'info>,
+    #[account(constraint = creator.key().eq(&creator_info.key()) )]
+    pub creator: Option<Signer<'info>>,
 
+    /// CHECK: We are checking it in the body
+    #[account()]
+    pub creator_info: AccountInfo<'info>,
+
+    /// Public info account
+    #[account(seeds = [GLOBAL_TAG.as_ref(), crate::id().as_ref()],bump)]
+    pub global: Account<'info, Global>,
+  
     #[account(
         init,
         seeds = [TOURNAMENT_TAG.as_ref(), data.tournament_id.as_ref()],
@@ -52,15 +62,34 @@ pub struct ArgumentInitialize {
 pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<()> {
     msg!("Tournament Initialized with data: {:?}!", data);
     let tournament = &mut ctx.accounts.tournament;
-    let creator = &ctx.accounts.creator;
+    let global = &mut ctx.accounts.global;
+    let creator = &ctx.accounts.creator_info;
+    let driver = &ctx.accounts.driver;
     let mint = &ctx.accounts.mint;
     tournament.set_defaults();
 
-    if is_valid_mint(&mint.key()){
+    if global.whitelist_mint.is_empty() {
+        return Err(TournamentError::NoMintWhitelistFound.into());
+    }
+
+    if global.whitelist_mint.contains(&mint.key()){
         tournament.mint = mint.key();
     }else{
-        // Todo: Will Charge some sol for unknown mints and create tournament
-        return Err(TournamentError::MintNotWhiteListed.into());
+        require!(creator.is_signer, TournamentError::CreatorMustBeSigner);
+        // Instruction handler to perform the SOL transfer
+        let ix = transfer(
+            &creator.key(),
+            &driver.key(),
+            MINT_FEE,
+        );
+        invoke(
+            &ix,
+            &[
+                creator.to_account_info(),
+                driver.to_account_info(),
+                ctx.accounts.system_program.to_account_info(),
+            ],
+        )?;
     }
 
     // Update tournament details

@@ -15,6 +15,8 @@ declare_id!("matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR");
 #[program]
 mod tournament {
 
+    use utils::assert_program_authority;
+
     use super::*;
     pub fn initialize(ctx: Context<Initialize>, args: ArgumentInitialize) -> Result<()> {
         instructions::initialize(ctx, args)
@@ -101,5 +103,24 @@ mod tournament {
         args: ArgumentTransposeTournamentPlayer,
     ) -> Result<()> {
         instructions::transpose_tournament_player(ctx, args)
+    }
+
+    /// This function initializes the public information for the Mint.
+    pub fn init_global(ctx: Context<InitGlobal>, args: InitGlobalArgs) -> Result<()> {
+        assert_program_authority(
+            ctx.accounts.program.to_account_info(),
+            ctx.accounts.program_data.to_account_info(),
+            ctx.accounts.authority.key,
+        )?;
+        instructions::init_global(ctx, args)
+    }
+
+    pub fn update_global(ctx: Context<UpdateGlobal>, args: UpdateGlobalArgs) -> Result<()> {
+        assert_program_authority(
+            ctx.accounts.program.to_account_info(),
+            ctx.accounts.program_data.to_account_info(),
+            ctx.accounts.authority.key,
+        )?;
+        instructions::update_global(ctx, args)
     }
 }
