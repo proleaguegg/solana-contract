@@ -41,8 +41,7 @@ pub struct InitGlobalArgs {
 
 pub fn init_global(ctx: Context<InitGlobal>, args: InitGlobalArgs) -> Result<()> {
     let global = &mut ctx.accounts.global;
-    global.set_defaults();
-    global.bump = ctx.bumps.global;
+     global.bump = ctx.bumps.global;
     global.whitelist_mint = args.list;
     Ok(())
 }
@@ -51,7 +50,7 @@ pub fn init_global(ctx: Context<InitGlobal>, args: InitGlobalArgs) -> Result<()>
 #[instruction(args: UpdateGlobalArgs)]
 pub struct UpdateGlobal<'info> {
     /// Public info account
-   #[account(seeds = [GLOBAL_TAG.as_ref(), crate::id().as_ref()],bump)]
+   #[account(mut,seeds = [GLOBAL_TAG.as_ref(), crate::id().as_ref()],bump)]
     pub global: Account<'info, Global>,
 
     /// The update authority of the program
@@ -75,29 +74,32 @@ pub struct UpdateGlobal<'info> {
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq)]
-pub struct UpdateGlobalArgs {
-    list: Vec<Pubkey>,
+pub enum  UpdateGlobalArgs {
+    Add(Pubkey),
+    Remove(Pubkey),
 }
 
 pub fn update_global(ctx: Context<UpdateGlobal>, args: UpdateGlobalArgs) -> Result<()> {
     let global = &mut ctx.accounts.global;
     let authority = &mut ctx.accounts.authority;
 
-    // Calculate the new size required for the account
-    let new_size = Global::get_size(global.whitelist_mint.len() + args.list.len());
-
-    // Resize the account if necessary
-    if new_size > global.to_account_info().data_len() {
-        reallocate_bytes(
-            (new_size - global.to_account_info().data_len()) as isize,
-            global.to_account_info(),
-            authority.to_account_info(),
-            &ctx.accounts.rent_sysvar,
-            &ctx.accounts.system_program,
-        )?;
+    match args {
+        UpdateGlobalArgs::Add(pubkey) => {
+            // Resize the account if necessary
+            reallocate_bytes(
+                32 as isize, // Pubkey size
+                global.to_account_info(),
+                authority.to_account_info(),
+                &ctx.accounts.rent_sysvar,
+                &ctx.accounts.system_program,
+            )?;
+            // Add the new Pubkey to the whitelist_mint vector
+            global.whitelist_mint.push(pubkey);
+        },
+        UpdateGlobalArgs::Remove(pubkey) => {
+            global.whitelist_mint.retain(|&x| x != pubkey);
+        },
     }
 
-    // Add the new Pubkeys to the whitelist_mint vector
-    global.whitelist_mint.extend(args.list);
     Ok(())
 }

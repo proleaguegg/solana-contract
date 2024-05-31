@@ -12,12 +12,12 @@ impl Global {
         // size of bump (u8) + size of Vec<Pubkey>
         let size_of_pubkey = 32; // Each Pubkey is 32 bytes
         let size_of_vec = 4; // Vec length prefix is 4 bytes
-        1 + size_of_vec + (num_whitelist_mint * size_of_pubkey)
+        8 + 1 + size_of_vec + (num_whitelist_mint * size_of_pubkey)
     }
 
     // Function to set default values for the struct.
-    pub fn set_defaults(&mut self) {
-        self.bump = 0;
-        self.whitelist_mint = Vec::new();
-    }
+    // pub fn set_defaults(&mut self) {
+    //     self.bump = 0;
+    //     self.whitelist_mint = Vec::new();
+    // }
 }
