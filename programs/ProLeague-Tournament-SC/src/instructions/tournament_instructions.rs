@@ -19,12 +19,8 @@ pub struct Initialize<'info> {
     pub driver: Signer<'info>,
 
     /// CHECK: We are checking it in the body
-    #[account(constraint = creator.key().eq(&creator_info.key()) )]
-    pub creator: Option<Signer<'info>>,
-
-    /// CHECK: We are checking it in the body
     #[account()]
-    pub creator_info: AccountInfo<'info>,
+    pub creator: AccountInfo<'info>,
 
     /// Public info account
     #[account(seeds = [GLOBAL_TAG.as_ref(), crate::id().as_ref()],bump)]
@@ -63,14 +59,10 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     msg!("Tournament Initialized with data: {:?}!", data);
     let tournament = &mut ctx.accounts.tournament;
     let global = &mut ctx.accounts.global;
-    let creator = &ctx.accounts.creator_info;
+    let creator = &ctx.accounts.creator;
     let driver = &ctx.accounts.driver;
     let mint = &ctx.accounts.mint;
     tournament.set_defaults();
-
-    if global.whitelist_mint.is_empty() {
-        return Err(TournamentError::NoMintWhitelistFound.into());
-    }
 
     if global.whitelist_mint.contains(&mint.key()){
         tournament.mint = mint.key();
@@ -80,7 +72,7 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
         let ix = transfer(
             &creator.key(),
             &driver.key(),
-            MINT_FEE,
+            NON_WHITELISTED_CREATION_FEE,
         );
         invoke(
             &ix,

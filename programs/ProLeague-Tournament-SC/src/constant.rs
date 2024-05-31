@@ -9,7 +9,7 @@ pub const VAULT_TAG: &[u8] = b"VAULT";
 #[constant]
 pub const GLOBAL_TAG: &[u8] = b"GLOBAL";
 #[constant]
-pub const MINT_FEE: u64 = (0.1 * 1_000_000_000 as f64) as u64;
+pub const NON_WHITELISTED_CREATION_FEE: u64 = (0.1 * 1_000_000_000 as f64) as u64;
 
 #[cfg(feature = "prod")]
 const IS_PROD: bool = true;
