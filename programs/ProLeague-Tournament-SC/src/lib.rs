@@ -1,15 +1,11 @@
 use anchor_lang::prelude::*;
-// use std::collections::HashMap;
 
-// pub mod accountsInfo;
-// pub mod arguments;
 pub mod constant;
 pub mod errors;
 pub mod instructions;
 pub mod state;
 pub mod utils;
 
-// use crate::{accountsInfo::*, arguments::*, errors::*, state::*};
 use instructions::*;
 
 // This is your program's public key and it will update
@@ -24,8 +20,25 @@ mod tournament {
         instructions::initialize(ctx, args)
     }
 
+    pub fn sponsor_tournament(
+        ctx: Context<SponsorTournament>,
+        args: ArgumentSponsorTournament,
+    ) -> Result<()> {
+        instructions::sponsor_tournament(ctx, args)
+    }
+
     pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
         instructions::join_tournament(ctx)
+    }
+    pub fn leave_tournament(ctx: Context<LeaveTournament>) -> Result<()> {
+        instructions::leave_tournament(ctx)
+    }
+
+    pub fn publish_tournament(
+        ctx: Context<PublishTournament>,
+        args: ArgumentPublishTournament,
+    ) -> Result<()> {
+        instructions::publish_tournament(ctx, args)
     }
 
     pub fn add_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) -> Result<()> {
@@ -39,26 +52,12 @@ mod tournament {
         instructions::mark_winner_won_next_round(ctx, args)
     }
 
-    pub fn conclude_tournament(ctx: Context<ConcludeTournament>) -> Result<()> {
-        instructions::conclude_tournament(ctx)
-    }
-
     pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {
         instructions::send_prize(ctx, args)
     }
 
-    pub fn publish_tournament(
-        ctx: Context<PublishTournament>,
-        args: ArgumentPublishTournament,
-    ) -> Result<()> {
-        instructions::publish_tournament(ctx, args)
-    }
-
-    pub fn sponsor_tournament(
-        ctx: Context<SponsorTournament>,
-        args: ArgumentSponsorTournament,
-    ) -> Result<()> {
-        instructions::sponsor_tournament(ctx, args)
+    pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
+        instructions::close_tournament(ctx)
     }
 
     pub fn pause_tournament(ctx: Context<PauseTournament>) -> Result<()> {
@@ -73,10 +72,10 @@ mod tournament {
         instructions::refund_sponsor(ctx)
     }
 
-    pub fn refund_creator_and_close_tournament(
-        ctx: Context<RefundCreatorAndCloseTournament>,
+    pub fn refund_creator_and_cancel_tournament(
+        ctx: Context<RefundCreatorAndCancelTournament>,
     ) -> Result<()> {
-        instructions::refund_creator_and_close_tournament(ctx)
+        instructions::refund_creator_and_cancel_tournament(ctx)
     }
 
     pub fn destroy_tournament(

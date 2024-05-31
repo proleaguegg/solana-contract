@@ -7,15 +7,16 @@
  */
 
 export * from './addWinner';
-export * from './concludeTournament';
+export * from './closeTournament';
 export * from './destroyTournament';
 export * from './initialize';
 export * from './joinTournament';
+export * from './leaveTournament';
 export * from './markWinnerWonNextRound';
 export * from './pauseTournament';
 export * from './publishTournament';
 export * from './reallocateTournament';
-export * from './refundCreatorAndCloseTournament';
+export * from './refundCreatorAndCancelTournament';
 export * from './refundJoiningFees';
 export * from './refundSponsor';
 export * from './sendPrize';

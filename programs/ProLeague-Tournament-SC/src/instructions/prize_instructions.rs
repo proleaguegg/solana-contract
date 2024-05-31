@@ -5,14 +5,14 @@ use anchor_spl::{
 
 use crate::{constant::TOURNAMENT_TAG, errors::TournamentError};
 
-use {crate::constant::*, crate::state::*, anchor_lang::prelude::*};
+use {crate::state::*, anchor_lang::prelude::*};
 
 #[derive(Accounts)]
 pub struct SendPrize<'info> {
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
     /// CHECK: This is not unsafe
-    #[account(mut)]
+    #[account()]
     pub winner: AccountInfo<'info>,
     #[account(mut)]
     pub driver: Signer<'info>,
@@ -31,7 +31,7 @@ pub struct SendPrize<'info> {
     )]
     pub winner_token_account: Account<'info, TokenAccount>,
 
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account()]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -56,9 +56,9 @@ pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {
         .position(|address| address.eq(&winner))
         .unwrap() as u32;
 
-    // // Validate if the match has been concluded
-    // if !tournament.tournament_concluded {
-    //     return Err(TournamentError::TournamentNotConcluded.into());
+    // // Validate if the match has been closed
+    // if !tournament.tournament_closed {
+    //     return Err(TournamentError::TournamentNotClosed.into());
     // }
 
     // Check if winner exists in this round

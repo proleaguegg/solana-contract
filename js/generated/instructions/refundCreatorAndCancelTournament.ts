@@ -13,7 +13,6 @@ import {
   PublicKey,
   Signer,
   TransactionBuilder,
-  publicKey,
   transactionBuilder,
 } from '@metaplex-foundation/umi';
 import {
@@ -31,51 +30,51 @@ import {
 } from '../shared';
 
 // Accounts.
-export type RefundCreatorAndCloseTournamentInstructionAccounts = {
+export type RefundCreatorAndCancelTournamentInstructionAccounts = {
   tournament: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
   creatorTokenAccount: PublicKey | Pda;
   driver: Signer;
-  mint?: PublicKey | Pda;
+  mint: PublicKey | Pda;
   associatedTokenProgram?: PublicKey | Pda;
   tokenProgram?: PublicKey | Pda;
   systemProgram?: PublicKey | Pda;
 };
 
 // Data.
-export type RefundCreatorAndCloseTournamentInstructionData = {
+export type RefundCreatorAndCancelTournamentInstructionData = {
   discriminator: Array<number>;
 };
 
-export type RefundCreatorAndCloseTournamentInstructionDataArgs = {};
+export type RefundCreatorAndCancelTournamentInstructionDataArgs = {};
 
-export function getRefundCreatorAndCloseTournamentInstructionDataSerializer(): Serializer<
-  RefundCreatorAndCloseTournamentInstructionDataArgs,
-  RefundCreatorAndCloseTournamentInstructionData
+export function getRefundCreatorAndCancelTournamentInstructionDataSerializer(): Serializer<
+  RefundCreatorAndCancelTournamentInstructionDataArgs,
+  RefundCreatorAndCancelTournamentInstructionData
 > {
   return mapSerializer<
-    RefundCreatorAndCloseTournamentInstructionDataArgs,
+    RefundCreatorAndCancelTournamentInstructionDataArgs,
     any,
-    RefundCreatorAndCloseTournamentInstructionData
+    RefundCreatorAndCancelTournamentInstructionData
   >(
-    struct<RefundCreatorAndCloseTournamentInstructionData>(
+    struct<RefundCreatorAndCancelTournamentInstructionData>(
       [['discriminator', array(u8(), { size: 8 })]],
-      { description: 'RefundCreatorAndCloseTournamentInstructionData' }
+      { description: 'RefundCreatorAndCancelTournamentInstructionData' }
     ),
     (value) => ({
       ...value,
-      discriminator: [220, 74, 49, 166, 101, 225, 96, 242],
+      discriminator: [221, 154, 9, 34, 98, 224, 83, 153],
     })
   ) as Serializer<
-    RefundCreatorAndCloseTournamentInstructionDataArgs,
-    RefundCreatorAndCloseTournamentInstructionData
+    RefundCreatorAndCancelTournamentInstructionDataArgs,
+    RefundCreatorAndCancelTournamentInstructionData
   >;
 }
 
 // Instruction.
-export function refundCreatorAndCloseTournament(
+export function refundCreatorAndCancelTournament(
   context: Pick<Context, 'eddsa' | 'programs'>,
-  input: RefundCreatorAndCloseTournamentInstructionAccounts
+  input: RefundCreatorAndCancelTournamentInstructionAccounts
 ): TransactionBuilder {
   // Program ID.
   const programId = context.programs.getPublicKey(
@@ -97,7 +96,7 @@ export function refundCreatorAndCloseTournament(
       value: input.creatorTokenAccount ?? null,
     },
     driver: { index: 3, isWritable: false, value: input.driver ?? null },
-    mint: { index: 4, isWritable: true, value: input.mint ?? null },
+    mint: { index: 4, isWritable: false, value: input.mint ?? null },
     associatedTokenProgram: {
       index: 5,
       isWritable: false,
@@ -116,11 +115,6 @@ export function refundCreatorAndCloseTournament(
   } satisfies ResolvedAccountsWithIndices;
 
   // Default values.
-  if (!resolvedAccounts.mint.value) {
-    resolvedAccounts.mint.value = publicKey(
-      '2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ'
-    );
-  }
   if (!resolvedAccounts.tournamentTokenAccount.value) {
     resolvedAccounts.tournamentTokenAccount.value = findAssociatedTokenPda(
       context,
@@ -167,7 +161,9 @@ export function refundCreatorAndCloseTournament(
 
   // Data.
   const data =
-    getRefundCreatorAndCloseTournamentInstructionDataSerializer().serialize({});
+    getRefundCreatorAndCancelTournamentInstructionDataSerializer().serialize(
+      {}
+    );
 
   // Bytes Created On Chain.
   const bytesCreatedOnChain = 0;

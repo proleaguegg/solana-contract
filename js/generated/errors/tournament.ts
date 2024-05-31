@@ -54,18 +54,18 @@ export class RoundWinnerLimitReachedError extends ProgramError {
 codeToErrorMap.set(0x1772, RoundWinnerLimitReachedError);
 nameToErrorMap.set('RoundWinnerLimitReached', RoundWinnerLimitReachedError);
 
-/** TournamentNotConcluded: Tournament has not been concluded */
-export class TournamentNotConcludedError extends ProgramError {
-  override readonly name: string = 'TournamentNotConcluded';
+/** TournamentNotClosed: Tournament has not been closed */
+export class TournamentNotClosedError extends ProgramError {
+  override readonly name: string = 'TournamentNotClosed';
 
   readonly code: number = 0x1773; // 6003
 
   constructor(program: Program, cause?: Error) {
-    super('Tournament has not been concluded', program, cause);
+    super('Tournament has not been closed', program, cause);
   }
 }
-codeToErrorMap.set(0x1773, TournamentNotConcludedError);
-nameToErrorMap.set('TournamentNotConcluded', TournamentNotConcludedError);
+codeToErrorMap.set(0x1773, TournamentNotClosedError);
+nameToErrorMap.set('TournamentNotClosed', TournamentNotClosedError);
 
 /** TournamentIsFull: Tournament is full */
 export class TournamentIsFullError extends ProgramError {
@@ -378,6 +378,32 @@ export class PlayerNotExistError extends ProgramError {
 }
 codeToErrorMap.set(0x178a, PlayerNotExistError);
 nameToErrorMap.set('PlayerNotExist', PlayerNotExistError);
+
+/** MintNotWhiteListed: Mint Address Not White Listed */
+export class MintNotWhiteListedError extends ProgramError {
+  override readonly name: string = 'MintNotWhiteListed';
+
+  readonly code: number = 0x178b; // 6027
+
+  constructor(program: Program, cause?: Error) {
+    super('Mint Address Not White Listed', program, cause);
+  }
+}
+codeToErrorMap.set(0x178b, MintNotWhiteListedError);
+nameToErrorMap.set('MintNotWhiteListed', MintNotWhiteListedError);
+
+/** TournamentPublished: Tournament is published */
+export class TournamentPublishedError extends ProgramError {
+  override readonly name: string = 'TournamentPublished';
+
+  readonly code: number = 0x178c; // 6028
+
+  constructor(program: Program, cause?: Error) {
+    super('Tournament is published', program, cause);
+  }
+}
+codeToErrorMap.set(0x178c, TournamentPublishedError);
+nameToErrorMap.set('TournamentPublished', TournamentPublishedError);
 
 /**
  * Attempts to resolve a custom program error from the provided error code.

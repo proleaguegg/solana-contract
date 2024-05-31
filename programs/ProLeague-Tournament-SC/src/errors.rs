@@ -8,8 +8,8 @@ pub enum TournamentError {
     WinnerAlreadyExists,
     #[msg("The round has reached its limit for winners")]
     RoundWinnerLimitReached,
-    #[msg("Tournament has not been concluded")]
-    TournamentNotConcluded,
+    #[msg("Tournament has not been closed")]
+    TournamentNotClosed,
     #[msg("Tournament is full")]
     TournamentIsFull,
     #[msg("Winner not found in this round")]
@@ -56,4 +56,8 @@ pub enum TournamentError {
     WrongCreator,
     #[msg("Player not exist")]
     PlayerNotExist,
+    #[msg("Mint Address Not White Listed")]
+    MintNotWhiteListed,
+    #[msg("Tournament is published")]
+    TournamentPublished,
 }

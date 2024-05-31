@@ -75,9 +75,9 @@ export function pauseTournament(
 
   // Accounts.
   const resolvedAccounts = {
-    driver: { index: 0, isWritable: true, value: input.driver ?? null },
+    driver: { index: 0, isWritable: false, value: input.driver ?? null },
     tournament: { index: 1, isWritable: true, value: input.tournament ?? null },
-    creator: { index: 2, isWritable: true, value: input.creator ?? null },
+    creator: { index: 2, isWritable: false, value: input.creator ?? null },
   } satisfies ResolvedAccountsWithIndices;
 
   // Accounts in order.

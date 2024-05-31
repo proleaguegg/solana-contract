@@ -4,7 +4,6 @@ use anchor_spl::{
     associated_token::AssociatedToken,
     token::{Mint, Token, TokenAccount, Transfer, CloseAccount},
 };
-use crate::utils::reallocate_bytes;
 
 use {
     crate::{constant::*, errors::TournamentError, state::*},
@@ -18,7 +17,7 @@ pub struct Initialize<'info> {
     pub driver: Signer<'info>,
 
     /// CHECK: We are checking it in the body
-    #[account(mut)]
+    #[account()]
     pub creator: AccountInfo<'info>,
 
     #[account(
@@ -36,7 +35,7 @@ pub struct Initialize<'info> {
         associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account()]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -53,8 +52,16 @@ pub struct ArgumentInitialize {
 pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<()> {
     msg!("Tournament Initialized with data: {:?}!", data);
     let tournament = &mut ctx.accounts.tournament;
-    let creator = &mut ctx.accounts.creator;
+    let creator = &ctx.accounts.creator;
+    let mint = &ctx.accounts.mint;
     tournament.set_defaults();
+
+    if is_valid_mint(&mint.key()){
+        tournament.mint = mint.key();
+    }else{
+        // Todo: Will Charge some sol for unknown mints and create tournament
+        return Err(TournamentError::MintNotWhiteListed.into());
+    }
 
     // Update tournament details
     tournament.bump = ctx.bumps.tournament;
@@ -62,7 +69,7 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     tournament.tournament_id = data.tournament_id;
     tournament.joining_fees = data.joining_fees;
     tournament.total_players = data.total_players;
-    // tournament.tournament_concluded = false;
+    // tournament.tournament_closed = false;
     tournament.is_published = false;
     // tournament.is_closed = false;
     // tournament.is_sponsored = false;
@@ -75,7 +82,7 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
 #[derive(Accounts)]
 #[instruction(data: ArgumentPublishTournament)]
 pub struct PublishTournament<'info> {
-    #[account(mut)]
+    #[account()]
     pub creator: Signer<'info>,
 
     #[account(mut)]
@@ -90,7 +97,7 @@ pub struct PublishTournament<'info> {
        constraint = creator_token_account.mint == mint.key() && creator_token_account.owner == creator.key(),
     )]
     pub creator_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account()]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -108,12 +115,12 @@ pub fn publish_tournament(
 ) -> Result<()> {
     msg!("Pulbish Tournament with data: {:?}!", data);
     let tournament = &mut ctx.accounts.tournament;
-    let creator = &mut ctx.accounts.creator;
+    let creator = &ctx.accounts.creator;
     let creator_token_account = &mut ctx.accounts.creator_token_account;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
 
     // // Validate if the match has been closed
-    // if tournament.tournament_concluded {
+    // if tournament.tournament_closed {
     //     return Err(TournamentError::TournamentIsClosed.into());
     // }
 
@@ -174,7 +181,7 @@ pub fn publish_tournament(
 #[derive(Accounts)]
 #[instruction(data: ArgumentSponsorTournament)]
 pub struct SponsorTournament<'info> {
-    #[account(mut)]
+    #[account()]
     pub sponsor: Signer<'info>,
 
     #[account(mut)]
@@ -189,7 +196,7 @@ pub struct SponsorTournament<'info> {
        constraint = sponsor_token_account.mint == mint.key() && sponsor_token_account.owner == sponsor.key(),
     )]
     pub sponsor_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account()]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -206,13 +213,13 @@ pub fn sponsor_tournament(
 ) -> Result<()> {
     msg!("Sponsor Tournament with data: {:?}!", data);
     let tournament = &mut ctx.accounts.tournament;
-    let sponsor = &mut ctx.accounts.sponsor;
+    let sponsor = &ctx.accounts.sponsor;
     let sponsor_token_account = &mut ctx.accounts.sponsor_token_account;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
     let sponsor_amount = data.sponsor_amount;
 
     // // Validate if the match has been closed
-    // if tournament.tournament_concluded {
+    // if tournament.tournament_closed {
     //     return Err(TournamentError::TournamentIsClosed.into());
     // }
 
@@ -243,7 +250,7 @@ pub fn sponsor_tournament(
 }
 
 #[derive(Accounts)]
-pub struct ConcludeTournament<'info> {
+pub struct CloseTournament<'info> {
     #[account(mut, close = driver)]
     pub tournament: Account<'info, Tournament>,
 
@@ -262,17 +269,17 @@ pub struct ConcludeTournament<'info> {
     #[account(constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
+    #[account()]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
 }
 
-pub fn conclude_tournament(ctx: Context<ConcludeTournament>) -> Result<()> {
+pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
     let creator_token_account = &mut ctx.accounts.creator_token_account;
-    let driver = &mut ctx.accounts.driver;
+    let driver = &ctx.accounts.driver;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
     
     // Loop through each round
@@ -332,473 +339,7 @@ pub fn conclude_tournament(ctx: Context<ConcludeTournament>) -> Result<()> {
     );
     anchor_spl::token::close_account(cpi_ctx)?;
 
-    msg!("Match has been marked as concluded & closed.");
+    msg!("Match has been marked as closed & closed.");
 
-    Ok(())
-}
-
-#[derive(Accounts)]
-pub struct JoinTournament<'info> {
-    #[account(mut, constraint = driver.key().eq(&DRIVER))]
-    pub driver: Signer<'info>,
-
-    /// CHECK: We are checking it in the body
-    #[account(mut,constraint = player.key().eq(&player_info.key()) )]
-    pub player: Option<Signer<'info>>,
-
-    /// CHECK: We are checking it in the body
-    #[account(mut)]
-    pub player_info: AccountInfo<'info>,
-
-    #[account(
-        init_if_needed,
-        payer = driver,
-        associated_token::mint = mint,
-        associated_token::authority = player,
-    )]
-    pub player_token_account: Option<Account<'info, TokenAccount>>,
-
-    #[account(mut)]
-    pub tournament: Account<'info, Tournament>,
-
-    #[account(mut)]
-    pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
-    pub mint: Account<'info, Mint>,
-
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
-}
-
-pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
-    let tournament = &mut ctx.accounts.tournament;
-    let player = &ctx.accounts.player_info;
-    let tournament_token_account = &ctx.accounts.tournament_token_account;
-
-    // // Check if the tournament is already concluded
-    // if tournament.tournament_concluded {
-    //     return Err(TournamentError::TournamentNotConcluded.into());
-    // }
-    if tournament.players.len() >= tournament.total_players as usize  {
-        return Err(TournamentError::TournamentIsFull.into());
-    }
-
-    // Check if the player has already joined
-    if tournament.players.contains(&player.key()) {
-        return Err(TournamentError::PlayerAlreadyJoined.into());
-    }
-
-    // Only transfer the joining fee if it is greater than zero
-    if tournament.joining_fees > 0 {
-        let player_token_account = ctx.accounts.player_token_account.as_ref().unwrap();
-        // Ensure that the player is a signer if joining fees are required
-        require!(player.is_signer, TournamentError::PlayerMustBeSigner);
-
-        let cpi_ctx = CpiContext::new(
-            ctx.accounts.token_program.to_account_info().clone(),
-            Transfer {
-                from: player_token_account.to_account_info(),
-                to: tournament_token_account.to_account_info().clone(),
-                authority: player.to_account_info().clone(),
-            },
-        );
-        anchor_spl::token::transfer(cpi_ctx, tournament.joining_fees)?;
-    }
-
-    // Add the player to the tournament's list of players
-    tournament.players.push(player.key());
-
-    msg!("Player {:?} has joined the tournament!", player.key());
-
-    Ok(())
-}
-
-
-#[derive(Accounts)]
-pub struct PauseTournament<'info> {
-    #[account(mut, constraint = driver.key().eq(&DRIVER))]
-    pub driver: Signer<'info>,
-    
-    #[account(mut)]
-    pub tournament: Account<'info, Tournament>,
-
-    // #[account(mut, constraint = tournament.creator.key() == creator.key())]
-    #[account(mut)]
-    pub creator: Signer<'info>,
-
-}
-
-pub fn pause_tournament(
-    ctx: Context<PauseTournament>
-) -> Result<()> {
-    let tournament = &mut ctx.accounts.tournament;
-    let creator = &mut ctx.accounts.creator;
-  
-    if tournament.creator.key() != creator.key(){
-        return Err(TournamentError::OnlyCreatorCanPause.into());
-    }
- 
-    tournament.is_paused = true;
-    
-    Ok(())
-}
-
-
-#[derive(Accounts)]
-pub struct RefundJoiningFees<'info> {
-    #[account(mut, constraint = driver.key().eq(&DRIVER))]
-    pub driver: Signer<'info>,
-
-    /// CHECK: We are checking it in the body
-    #[account(mut)]
-    pub player: AccountInfo<'info>,
-
-    #[account(
-        init_if_needed,
-        payer = driver,
-        associated_token::mint = mint,
-        associated_token::authority = player,
-    )]
-    pub player_token_account: Account<'info, TokenAccount>,
-
-    #[account(mut)]
-    pub tournament: Account<'info, Tournament>,
-
-    #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),        
-    )]
-    pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
-    pub mint: Account<'info, Mint>,
-
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
-}
-
-pub fn refund_joining_fees(ctx: Context<RefundJoiningFees>) -> Result<()> {
-    let tournament = &mut ctx.accounts.tournament;
-    let player = &ctx.accounts.player;
-    let tournament_token_account = &ctx.accounts.tournament_token_account;
-
-
-    // Check joining fees
-    if tournament.joining_fees <= 0 {
-        return Err(TournamentError::NoJoiningFeeFound.into());
-    }
-    // Check the player is present in the  list
-    if !tournament.players.contains(&player.key()) {
-        return Err(TournamentError::PlayerNotFound.into());
-    }
-
-    // Only transfer the joining fee if it is greater than zero
-    if tournament.joining_fees > 0 {
-        let staker_seeds = &[
-            TOURNAMENT_TAG.as_ref(),
-            &tournament.tournament_id.as_ref(),
-            &[tournament.bump],
-        ];
-        let cpi_signer = &[&staker_seeds[..]];
-     
-        let player_token_account = ctx.accounts.player_token_account.to_account_info().clone();
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info().clone(),
-            Transfer {
-                from: tournament_token_account.to_account_info(),
-                to: player_token_account.to_account_info(),
-                authority: tournament.to_account_info(),
-            },
-            cpi_signer
-        );
-        anchor_spl::token::transfer(cpi_ctx, tournament.joining_fees)?;
-    }
-
-   // Remove player from the list
-    let index = tournament.players.iter().position(|x| *x == player.key()).unwrap();
-    tournament.players.remove(index);
-
-    Ok(())
-}
-
-
-
-
-#[derive(Accounts)]
-pub struct RefundSponsor<'info> {
-    #[account(mut, constraint = driver.key().eq(&DRIVER))]
-    pub driver: Signer<'info>,
-    
-    /// CHECK: We are checking it in the body
-    #[account(mut)]
-    pub sponsor: AccountInfo<'info>,
-
-    #[account(
-        init_if_needed,
-        payer = driver,
-        associated_token::mint = mint,
-        associated_token::authority = sponsor,
-    )]
-    pub sponsor_token_account: Account<'info, TokenAccount>,
-
-    #[account(mut)]
-    pub tournament: Account<'info, Tournament>,
-
-    #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),        
-    )]
-    pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
-    pub mint: Account<'info, Mint>,
-
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
-}
-
-pub fn refund_sponsor(ctx: Context<RefundSponsor>) -> Result<()> {
-    let tournament = &mut ctx.accounts.tournament;
-    let sponsor = &ctx.accounts.sponsor;
-    let tournament_token_account = &ctx.accounts.tournament_token_account;
-
-
-    // Check sponsor
-    if !tournament.is_sponsored {
-        return Err(TournamentError::TournamentNotSponsored.into());
-    }
-    // Check already refunded sponsor amount
-    if tournament.sponsor_amount <= 0 && tournament.is_sponsored   {
-        return Err(TournamentError::AlreadyRefundedSponsorAmount.into());
-    }
-    // Check the sponsor is the sponsor one
-    if tournament.sponsor.key() != sponsor.key() {
-        return Err(TournamentError::InvalidSponsorProvided.into());
-    }
-
-    // Only transfer the sponsor amount if it is greater than zero
-    if tournament.sponsor_amount > 0 {
-        let staker_seeds = &[
-            TOURNAMENT_TAG.as_ref(),
-            &tournament.tournament_id.as_ref(),
-            &[tournament.bump],
-        ];
-        let cpi_signer = &[&staker_seeds[..]];
-     
-        let sponsor_token_account = ctx.accounts.sponsor_token_account.to_account_info().clone();
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info().clone(),
-            Transfer {
-                from: tournament_token_account.to_account_info(),
-                to: sponsor_token_account.to_account_info(),
-                authority: tournament.to_account_info(),
-            },
-        cpi_signer,
-        );
-        anchor_spl::token::transfer(cpi_ctx, tournament.sponsor_amount)?;
-    }
-
-   // Reset sponsor amount
-   tournament.sponsor_amount = 0;
-
-    Ok(())
-}
-
-
-#[derive(Accounts)]
-pub struct RefundCreatorAndCloseTournament<'info> {
-    #[account(mut, close = driver)]
-    pub tournament: Account<'info, Tournament>,
-
-    #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),        
-    )]
-    pub tournament_token_account: Account<'info, TokenAccount>,
-
-
-    #[account(mut,
-        constraint = creator_token_account.mint == mint.key() && creator_token_account.owner == tournament.creator.key(),
-     )]
-     pub creator_token_account: Account<'info, TokenAccount>,
-
-
-    #[account(constraint = driver.key().eq(&DRIVER))]
-    pub driver: Signer<'info>,
-
-    #[account(mut, constraint = mint.key().eq(&CURRENCY_MINT))]
-    pub mint: Account<'info, Mint>,
-    pub associated_token_program: Program<'info, AssociatedToken>,
-    pub token_program: Program<'info, Token>,
-    pub system_program: Program<'info, System>,
-}
-
-pub fn refund_creator_and_close_tournament(ctx: Context<RefundCreatorAndCloseTournament>) -> Result<()> {
-    let tournament = &mut ctx.accounts.tournament;
-    let creator_token_account = &mut ctx.accounts.creator_token_account;
-    let driver = &mut ctx.accounts.driver;
-    let tournament_token_account = &mut ctx.accounts.tournament_token_account;
-    
-     // Check tournament should be paused
-    if !tournament.is_paused   {
-        return Err(TournamentError::TournamentNotPaused.into());
-    }
-     // Check sponsor_amount should be equal to zero
-    if tournament.sponsor_amount != 0   {
-        return Err(TournamentError::SponsorAmountNotRefunded.into());
-    }
-    // Check player array should be empty
-    if tournament.joining_fees > 0 && tournament.players.len() != 0 {
-        return Err(TournamentError::PlayersJoiningFeeNotRefunded.into());
-    }
-    // Send remaining tokens to the specific address
-    let remaining_balance = tournament_token_account.amount;
-    let tournament_seed = &[
-        TOURNAMENT_TAG.as_ref(),
-        &tournament.tournament_id.as_ref(),
-        &[tournament.bump],
-    ];
-    let cpi_signer = &[&tournament_seed[..]];
-
-    if remaining_balance > 0 {
-       
-        // Transfer the escrow balance from the tournament to the creator (vault)
-        let cpi_ctx = CpiContext::new_with_signer(
-            ctx.accounts.token_program.to_account_info().clone(),
-            Transfer {
-                from: tournament_token_account.to_account_info(),
-                to: creator_token_account.to_account_info(),
-                authority: tournament.to_account_info(),
-            },
-            cpi_signer
-        );
-        anchor_spl::token::transfer(cpi_ctx, remaining_balance)?;
-
-    }
-    // Close Tournament Token Account
-    let cpi_ctx = CpiContext::new_with_signer(
-        ctx.accounts.token_program.to_account_info().clone(),
-        CloseAccount {
-            account:tournament_token_account.to_account_info(),
-            destination: driver.to_account_info(),
-            authority: tournament.to_account_info(), 
-        },
-        cpi_signer
-    );
-    anchor_spl::token::close_account(cpi_ctx)?;
-
-    msg!("Refund to Creator and tournament close Successfully");
-
-    Ok(())
-}
-
-
-#[derive(Accounts)]
-pub struct ReallocateTournament<'info> {
-    
-    #[account(constraint = driver.key().eq(&DRIVER))]
-    pub driver: Signer<'info>,
-
-    #[account(mut)]
-    pub tournament: Account<'info, Tournament>,
-
-    // #[account(mut)]
-    pub rent_sysvar: Sysvar<'info, Rent>,
-    pub system_program: Program<'info, System>,
-}
-
-pub fn reallocate_tournament(ctx: Context<ReallocateTournament>) -> Result<()> {
-    let tournament = &mut ctx.accounts.tournament;
-    // let tournament_info: &mut _ = &mut ctx.accounts.tournament_info;
-    let driver = &mut ctx.accounts.driver;
-    
-    let existing_size = tournament.to_account_info().data_len();
-    let required_size = Tournament::calculate_size(tournament.total_players, (tournament.total_players as f32).log2() as u16);
-
-    msg!("Existing and Required Size: {:?}! {:?}!", existing_size, required_size);
-    
-    if required_size > existing_size  {        
-        // Reallocate the switch account with the new length.
-        reallocate_bytes(
-            (required_size - existing_size) as isize,
-            tournament.to_account_info(),
-            driver.to_account_info(),
-            &ctx.accounts.rent_sysvar,
-            &ctx.accounts.system_program,
-        )?;
-        msg!("Account realocate success");
-    } else{
-        msg!("No Need to allocate space");
-    }
-    Ok(())
-}
-
-
-
-#[derive(Accounts)]
-pub struct TransposeTournamentCreator<'info> {
-    #[account(mut, constraint = driver.key().eq(&DRIVER))]
-    pub driver: Signer<'info>,
-
-    /// CHECK: We are checking it in the body
-    #[account(mut)]
-    pub creator: AccountInfo<'info>,
-
-    #[account(mut)]
-    pub tournament: Account<'info, Tournament>,
-
-}
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
-pub struct ArgumentTransposeTournamentCreator {
-    pub new_creator:  Pubkey
-}
-
-pub fn transpose_tournament_creator(ctx: Context<TransposeTournamentCreator>,data:ArgumentTransposeTournamentCreator ) -> Result<()> {
-    let tournament = &mut ctx.accounts.tournament;
-    let creator =  &mut ctx.accounts.creator;
-    let new_creator =  data.new_creator;
-  
-    if tournament.creator.key() != creator.key(){
-        return Err(TournamentError::WrongCreator.into());
-    }
- 
-    msg!("Tournament ceator changed from to: {:?}! {:?}!", tournament.creator.key(), new_creator);
-    tournament.creator = new_creator;
-    
-    Ok(())
-}
-
-#[derive(Accounts)]
-pub struct TransposeTournamentPlayer<'info> {
-    #[account(mut, constraint = driver.key().eq(&DRIVER))]
-    pub driver: Signer<'info>,
-
-    /// CHECK: We are checking it in the body
-    #[account(mut)]
-    pub player: AccountInfo<'info>,
-
-    #[account(mut)]
-    pub tournament: Account<'info, Tournament>,
-
-}
-#[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug)]
-pub struct ArgumentTransposeTournamentPlayer {
-    pub new_player: Pubkey
-}
-
-pub fn transpose_tournament_player(ctx: Context<TransposeTournamentPlayer>,data:ArgumentTransposeTournamentPlayer ) -> Result<()> {
-    let tournament = &mut ctx.accounts.tournament;
-    let player =  &mut ctx.accounts.player;
-    let new_player =  data.new_player;
-  
-     // Check the player exist or not
-     if !tournament.players.contains(&player.key()) {
-        return Err(TournamentError::PlayerNotExist.into());
-    }
- 
-    let index: usize = tournament.players.iter().position(|x| *x == player.key()).unwrap();
-    
-    msg!("Join player modified from to: {:?}! {:?}!", player.key(), new_player);
-
-    tournament.players[index as usize] = new_player;
-    
     Ok(())
 }

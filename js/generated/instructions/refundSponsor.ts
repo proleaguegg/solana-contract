@@ -13,7 +13,6 @@ import {
   PublicKey,
   Signer,
   TransactionBuilder,
-  publicKey,
   transactionBuilder,
 } from '@metaplex-foundation/umi';
 import {
@@ -37,7 +36,7 @@ export type RefundSponsorInstructionAccounts = {
   sponsorTokenAccount: PublicKey | Pda;
   tournament: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
-  mint?: PublicKey | Pda;
+  mint: PublicKey | Pda;
   associatedTokenProgram?: PublicKey | Pda;
   tokenProgram?: PublicKey | Pda;
   systemProgram?: PublicKey | Pda;
@@ -85,7 +84,7 @@ export function refundSponsor(
   // Accounts.
   const resolvedAccounts = {
     driver: { index: 0, isWritable: true, value: input.driver ?? null },
-    sponsor: { index: 1, isWritable: true, value: input.sponsor ?? null },
+    sponsor: { index: 1, isWritable: false, value: input.sponsor ?? null },
     sponsorTokenAccount: {
       index: 2,
       isWritable: true,
@@ -97,7 +96,7 @@ export function refundSponsor(
       isWritable: true,
       value: input.tournamentTokenAccount ?? null,
     },
-    mint: { index: 5, isWritable: true, value: input.mint ?? null },
+    mint: { index: 5, isWritable: false, value: input.mint ?? null },
     associatedTokenProgram: {
       index: 6,
       isWritable: false,
@@ -116,11 +115,6 @@ export function refundSponsor(
   } satisfies ResolvedAccountsWithIndices;
 
   // Default values.
-  if (!resolvedAccounts.mint.value) {
-    resolvedAccounts.mint.value = publicKey(
-      '2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ'
-    );
-  }
   if (!resolvedAccounts.tournamentTokenAccount.value) {
     resolvedAccounts.tournamentTokenAccount.value = findAssociatedTokenPda(
       context,

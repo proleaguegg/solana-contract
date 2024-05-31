@@ -13,7 +13,7 @@ import {
 } from "@solana/web3.js";
 import base58 from "bs58";
 import dotenv from "dotenv";
-import { solanaRpc } from "./test_contant";
+import { solanaRpc } from "./contant";
 dotenv.config();
 
 const connection = new Connection(solanaRpc, "confirmed");

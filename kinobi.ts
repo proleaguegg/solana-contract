@@ -116,11 +116,6 @@ kinobi.update(
         ASSOCIATED_TOKEN_PROGRAM_ID.toString()
       ),
     },
-    {
-      account: "mint",
-      ignoreIfOptional: true,
-      ...k.publicKeyDefault("2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ"),
-    },
   ])
 );
 // {

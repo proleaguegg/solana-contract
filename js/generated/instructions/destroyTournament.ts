@@ -13,7 +13,6 @@ import {
   PublicKey,
   Signer,
   TransactionBuilder,
-  publicKey,
   transactionBuilder,
 } from '@metaplex-foundation/umi';
 import {
@@ -40,7 +39,7 @@ export type DestroyTournamentInstructionAccounts = {
   creator: PublicKey | Pda;
   creatorTokenAccount?: PublicKey | Pda;
   driver: Signer;
-  mint?: PublicKey | Pda;
+  mint: PublicKey | Pda;
   associatedTokenProgram?: PublicKey | Pda;
   tokenProgram?: PublicKey | Pda;
   systemProgram?: PublicKey | Pda;
@@ -108,14 +107,14 @@ export function destroyTournament(
       isWritable: true,
       value: input.tournamentTokenAccount ?? null,
     },
-    creator: { index: 2, isWritable: true, value: input.creator ?? null },
+    creator: { index: 2, isWritable: false, value: input.creator ?? null },
     creatorTokenAccount: {
       index: 3,
       isWritable: true,
       value: input.creatorTokenAccount ?? null,
     },
     driver: { index: 4, isWritable: false, value: input.driver ?? null },
-    mint: { index: 5, isWritable: true, value: input.mint ?? null },
+    mint: { index: 5, isWritable: false, value: input.mint ?? null },
     associatedTokenProgram: {
       index: 6,
       isWritable: false,
@@ -141,11 +140,6 @@ export function destroyTournament(
     resolvedAccounts.tournament.value = findTournamentPda(context, {
       tournamentId: expectSome(resolvedArgs.tournamentId),
     });
-  }
-  if (!resolvedAccounts.mint.value) {
-    resolvedAccounts.mint.value = publicKey(
-      '2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ'
-    );
   }
   if (!resolvedAccounts.tournamentTokenAccount.value) {
     resolvedAccounts.tournamentTokenAccount.value = findAssociatedTokenPda(

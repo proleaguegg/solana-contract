@@ -9,7 +9,7 @@ import {
 import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
 import base58 from "bs58";
 import dotenv from "dotenv";
-import { solanaRpc } from "./test_contant";
+import { solanaRpc } from "./contant";
 dotenv.config();
 
 const connection = new Connection(solanaRpc, "confirmed");
@@ -70,7 +70,7 @@ const trnasferTokens = async (
       mint,
       tokenAccount.address,
       mintAuthority,
-      1000 * LAMPORTS_PER_SOL // because decimals for the mint are set to 9
+      1000000000 * LAMPORTS_PER_SOL // because decimals for the mint are set to 9
     );
     console.log(
       "\x1b[32m", //Green Text

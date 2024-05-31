@@ -13,7 +13,6 @@ import {
   PublicKey,
   Signer,
   TransactionBuilder,
-  publicKey,
   transactionBuilder,
 } from '@metaplex-foundation/umi';
 import {
@@ -38,7 +37,7 @@ export type JoinTournamentInstructionAccounts = {
   playerTokenAccount?: PublicKey | Pda;
   tournament: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
-  mint?: PublicKey | Pda;
+  mint: PublicKey | Pda;
   associatedTokenProgram?: PublicKey | Pda;
   tokenProgram?: PublicKey | Pda;
   systemProgram?: PublicKey | Pda;
@@ -86,8 +85,12 @@ export function joinTournament(
   // Accounts.
   const resolvedAccounts = {
     driver: { index: 0, isWritable: true, value: input.driver ?? null },
-    player: { index: 1, isWritable: true, value: input.player ?? null },
-    playerInfo: { index: 2, isWritable: true, value: input.playerInfo ?? null },
+    player: { index: 1, isWritable: false, value: input.player ?? null },
+    playerInfo: {
+      index: 2,
+      isWritable: false,
+      value: input.playerInfo ?? null,
+    },
     playerTokenAccount: {
       index: 3,
       isWritable: true,
@@ -99,7 +102,7 @@ export function joinTournament(
       isWritable: true,
       value: input.tournamentTokenAccount ?? null,
     },
-    mint: { index: 6, isWritable: true, value: input.mint ?? null },
+    mint: { index: 6, isWritable: false, value: input.mint ?? null },
     associatedTokenProgram: {
       index: 7,
       isWritable: false,
@@ -118,11 +121,6 @@ export function joinTournament(
   } satisfies ResolvedAccountsWithIndices;
 
   // Default values.
-  if (!resolvedAccounts.mint.value) {
-    resolvedAccounts.mint.value = publicKey(
-      '2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ'
-    );
-  }
   if (!resolvedAccounts.tournamentTokenAccount.value) {
     resolvedAccounts.tournamentTokenAccount.value = findAssociatedTokenPda(
       context,
