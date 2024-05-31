@@ -30,6 +30,7 @@ pub fn prod_mint_func() -> Vec<Pubkey> {
 pub fn dev_mint_func() -> Vec<Pubkey> {
     vec![
         pubkey!("2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ"), // Dev-net Dev Coin
+        pubkey!("8j7eMMBwJRjuCKXBp7KyhJ3Kk3wRKgQshJcbx9rifPDB"), // Dev-net BONK
     ]
 }
 

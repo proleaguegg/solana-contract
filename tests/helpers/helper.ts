@@ -1,7 +1,30 @@
-import { Context, Pda } from "@metaplex-foundation/umi";
+import base58 from "bs58";
+import {
+  Commitment,
+  Context,
+  KeypairSigner,
+  Pda,
+  PublicKey,
+  RpcConfirmTransactionResult,
+  Signer,
+  TransactionBuilder,
+  TransactionSignature,
+  Umi,
+} from "@metaplex-foundation/umi";
 import fs from "fs";
-import { setComputeUnitLimit } from "@metaplex-foundation/mpl-toolbox";
+import {
+  setComputeUnitLimit,
+  setComputeUnitPrice,
+  createAssociatedToken,
+} from "@metaplex-foundation/mpl-toolbox";
 import { string } from "@metaplex-foundation/umi/serializers";
+import {
+  clusterUrl,
+  computeUnitLimit,
+  priorityRate,
+  solanaUrl,
+} from "./contant";
+
 export function appendToJsonFile(filePath, newData) {
   fs.readFile(filePath, "utf8", (err, data) => {
     if (err) {
@@ -53,15 +76,6 @@ export function appendToJsonFile(filePath, newData) {
   });
 }
 
-// // Example usage
-// const newString = "This is the new string to add.";
-// appendToJsonFile("your_json_file.json", newString);
-
-export const setComputeUnitsFunc = (umiInstance: Context, limit = 250000) =>
-  setComputeUnitLimit(umiInstance, {
-    units: limit,
-  });
-
 export function findTempTournamentPda(
   context: Pick<Context, "eddsa" | "programs">,
   seeds: {
@@ -79,3 +93,135 @@ export function findTempTournamentPda(
     string({ size: "variable" }).serialize(seeds.tournamentId),
   ]);
 }
+
+export const priorityFeeIX = (umiInstance: Context, rate = priorityRate) =>
+  setComputeUnitPrice(umiInstance, {
+    microLamports: rate, // computeUnits (Default(400_000 or 200_000)) * priorityFee (1000) / 100_000 / 1_000_000_000 => 0.000004 lamports
+  });
+
+export const setComputeUnitsFunc = (umiInstance: Context, limit = 250000) =>
+  setComputeUnitLimit(umiInstance, {
+    units: limit,
+  });
+
+export const sendConfirmBuilder = async (
+  umi: Umi,
+  driverSigner: KeypairSigner,
+  builder: TransactionBuilder,
+  action: string,
+  cmtment: Commitment = "processed", // Default value for commitment
+  computeUnit = computeUnitLimit
+  // Default value for commitment
+): Promise<{
+  signature: TransactionSignature;
+  result: RpcConfirmTransactionResult;
+}> => {
+  try {
+    const getRecentBlockHashObj = await umi.rpc.getLatestBlockhash({
+      commitment: "processed",
+    });
+    // console.log({ getRecentBlockHashObj });
+    const tx = await builder
+      .setBlockhash(getRecentBlockHashObj)
+      .prepend(priorityFeeIX(umi))
+      .prepend(setComputeUnitsFunc(umi, computeUnit))
+      .setFeePayer(driverSigner)
+      .sendAndConfirm(umi, {
+        send: {
+          preflightCommitment: "processed",
+        },
+        confirm: {
+          commitment: cmtment,
+          strategy: {
+            type: "blockhash",
+            ...getRecentBlockHashObj,
+          },
+        },
+      });
+    console.log(
+      `Transaction Signature for ${action} Success!🎉 https://${solanaUrl}/tx/${base58.encode(
+        tx.signature
+      )}?cluster=${clusterUrl}`
+    );
+    return tx;
+  } catch (error: any) {
+    // console.log("sendConfirmBuilder error", error);
+    throw new Error(error);
+  }
+};
+
+export const sendConfirmBuilderArr = async (
+  umi: Umi,
+  driverSigner: KeypairSigner,
+  builders: TransactionBuilder[],
+  cmtment: Commitment = "processed", // Default value for commitment
+  computeUnit = computeUnitLimit
+): Promise<
+  {
+    signature: TransactionSignature;
+    result: RpcConfirmTransactionResult;
+  }[]
+> => {
+  try {
+    const getRecentBlockHashObj = await umi.rpc.getLatestBlockhash({
+      commitment: "confirmed",
+    });
+    // console.log({ getRecentBlockHashObj });
+
+    const transactions = builders.map(async (builder) => {
+      const tx = builder
+        .setBlockhash(getRecentBlockHashObj)
+        .prepend(priorityFeeIX(umi))
+        .prepend(setComputeUnitsFunc(umi, computeUnit))
+        .setFeePayer(driverSigner)
+        .sendAndConfirm(umi, {
+          send: {
+            preflightCommitment: "processed",
+            // skipPreflight: true,
+          },
+          confirm: {
+            commitment: cmtment,
+            strategy: {
+              type: "blockhash",
+              ...getRecentBlockHashObj,
+            },
+          },
+        });
+      return tx;
+    });
+
+    return Promise.all(transactions);
+  } catch (error: any) {
+    // console.log("sendConfirmBuilderArr error", error);
+    throw new Error(error);
+  }
+};
+
+// Utility function to create a Keypair from a secret key
+export const createKeypairFromSecret = (secret) => {
+  return new Uint8Array(base58.decode(secret));
+};
+
+export const createTokenAccount = async (
+  umi: Umi,
+  mint: PublicKey,
+  driver: KeypairSigner,
+  user: PublicKey
+) => {
+  try {
+    const txFunc = createAssociatedToken(umi, {
+      mint: mint,
+      owner: user,
+      payer: driver,
+    });
+    const tx = await sendConfirmBuilder(
+      umi,
+      driver,
+      txFunc,
+      "Creating Token Account",
+      "finalized"
+    );
+  } catch (error) {
+    // console.log("Already account created =>", error);
+  }
+};

@@ -91,12 +91,8 @@ pub struct LeaveTournament<'info> {
     pub driver: Signer<'info>,
 
     /// CHECK: We are checking it in the body
-    #[account(constraint = player.key().eq(&player_info.key()) )]
-    pub player: Option<Signer<'info>>,
-
-    /// CHECK: We are checking it in the body
     #[account()]
-    pub player_info: AccountInfo<'info>,
+    pub player: AccountInfo<'info>,
 
     #[account(
         init_if_needed,
@@ -104,12 +100,14 @@ pub struct LeaveTournament<'info> {
         associated_token::mint = mint,
         associated_token::authority = player,
     )]
-    pub player_token_account: Option<Account<'info, TokenAccount>>,
+    pub player_token_account: Account<'info, TokenAccount>,
 
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
-
-    #[account(mut)]
+    
+    #[account(mut,
+        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),        
+    )]
     pub tournament_token_account: Account<'info, TokenAccount>,
     #[account()]
     pub mint: Account<'info, Mint>,
@@ -121,13 +119,8 @@ pub struct LeaveTournament<'info> {
 
 pub fn leave_tournament(ctx: Context<LeaveTournament>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
-    let player = &ctx.accounts.player_info;
+    let player = &ctx.accounts.player;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
-
-    // Check if the tournament is published
-    if tournament.is_published {
-        return Err(TournamentError::TournamentPublished.into());
-    }
 
     // Check the player exist in the players
     if !tournament.players.contains(&player.key()) {
@@ -136,17 +129,22 @@ pub fn leave_tournament(ctx: Context<LeaveTournament>) -> Result<()> {
 
     // Only transfer the joining fee if it is greater than zero
     if tournament.joining_fees > 0 {
-        let player_token_account = ctx.accounts.player_token_account.as_ref().unwrap();
-        // Ensure that the player is a signer if joining fees are required
-        require!(player.is_signer, TournamentError::PlayerMustBeSigner);
 
-        let cpi_ctx = CpiContext::new(
+        let staker_seeds = &[
+            TOURNAMENT_TAG.as_ref(),
+            &tournament.tournament_id.as_ref(),
+            &[tournament.bump],
+        ];
+        let cpi_signer = &[&staker_seeds[..]];
+        let player_token_account = ctx.accounts.player_token_account.to_account_info().clone();
+        let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info().clone(),
             Transfer {
-                from: tournament_token_account.to_account_info().clone(),
+                from: tournament_token_account.to_account_info(),
                 to: player_token_account.to_account_info(),
-                authority: player.to_account_info().clone(),
+                authority: tournament.to_account_info(),
             },
+            cpi_signer
         );
         anchor_spl::token::transfer(cpi_ctx, tournament.joining_fees)?;
     }

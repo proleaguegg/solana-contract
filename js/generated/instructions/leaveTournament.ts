@@ -32,8 +32,7 @@ import {
 // Accounts.
 export type LeaveTournamentInstructionAccounts = {
   driver: Signer;
-  player?: Signer;
-  playerInfo: PublicKey | Pda;
+  player: PublicKey | Pda;
   playerTokenAccount?: PublicKey | Pda;
   tournament: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
@@ -86,41 +85,45 @@ export function leaveTournament(
   const resolvedAccounts = {
     driver: { index: 0, isWritable: true, value: input.driver ?? null },
     player: { index: 1, isWritable: false, value: input.player ?? null },
-    playerInfo: {
-      index: 2,
-      isWritable: false,
-      value: input.playerInfo ?? null,
-    },
     playerTokenAccount: {
-      index: 3,
+      index: 2,
       isWritable: true,
       value: input.playerTokenAccount ?? null,
     },
-    tournament: { index: 4, isWritable: true, value: input.tournament ?? null },
+    tournament: { index: 3, isWritable: true, value: input.tournament ?? null },
     tournamentTokenAccount: {
-      index: 5,
+      index: 4,
       isWritable: true,
       value: input.tournamentTokenAccount ?? null,
     },
-    mint: { index: 6, isWritable: false, value: input.mint ?? null },
+    mint: { index: 5, isWritable: false, value: input.mint ?? null },
     associatedTokenProgram: {
-      index: 7,
+      index: 6,
       isWritable: false,
       value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
-      index: 8,
+      index: 7,
       isWritable: false,
       value: input.tokenProgram ?? null,
     },
     systemProgram: {
-      index: 9,
+      index: 8,
       isWritable: false,
       value: input.systemProgram ?? null,
     },
   } satisfies ResolvedAccountsWithIndices;
 
   // Default values.
+  if (!resolvedAccounts.playerTokenAccount.value) {
+    resolvedAccounts.playerTokenAccount.value = findAssociatedTokenPda(
+      context,
+      {
+        mint: expectPublicKey(resolvedAccounts.mint.value),
+        owner: expectPublicKey(resolvedAccounts.player.value),
+      }
+    );
+  }
   if (!resolvedAccounts.tournamentTokenAccount.value) {
     resolvedAccounts.tournamentTokenAccount.value = findAssociatedTokenPda(
       context,
