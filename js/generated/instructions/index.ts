@@ -9,6 +9,7 @@
 export * from './addWinner';
 export * from './closeTournament';
 export * from './destroyTournament';
+export * from './initGlobal';
 export * from './initialize';
 export * from './joinTournament';
 export * from './leaveTournament';
@@ -23,3 +24,4 @@ export * from './sendPrize';
 export * from './sponsorTournament';
 export * from './transposeTournamentCreator';
 export * from './transposeTournamentPlayer';
+export * from './updateGlobal';

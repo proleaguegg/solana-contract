@@ -60,4 +60,16 @@ pub enum TournamentError {
     MintNotWhiteListed,
     #[msg("Tournament is published")]
     TournamentPublished,
+    #[msg("The signer is not authorized to perform this action.")]
+    Unauthorized,
+    #[msg("Invalid Program")]
+    InvalidProgram,
+    #[msg("No Mint Whitelist found")]
+    NoMintWhitelistFound,
+    #[msg("Creator must be Signer")]
+    CreatorMustBeSigner,
+    #[msg("Pubkey already exist")]
+    PubkeyAlreadyExists,
+    #[msg("Pubkey not found")]
+    PubkeyNotFound,
 }

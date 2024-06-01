@@ -405,6 +405,88 @@ export class TournamentPublishedError extends ProgramError {
 codeToErrorMap.set(0x178c, TournamentPublishedError);
 nameToErrorMap.set('TournamentPublished', TournamentPublishedError);
 
+/** Unauthorized: The signer is not authorized to perform this action. */
+export class UnauthorizedError extends ProgramError {
+  override readonly name: string = 'Unauthorized';
+
+  readonly code: number = 0x178d; // 6029
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'The signer is not authorized to perform this action.',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x178d, UnauthorizedError);
+nameToErrorMap.set('Unauthorized', UnauthorizedError);
+
+/** InvalidProgram: Invalid Program */
+export class InvalidProgramError extends ProgramError {
+  override readonly name: string = 'InvalidProgram';
+
+  readonly code: number = 0x178e; // 6030
+
+  constructor(program: Program, cause?: Error) {
+    super('Invalid Program', program, cause);
+  }
+}
+codeToErrorMap.set(0x178e, InvalidProgramError);
+nameToErrorMap.set('InvalidProgram', InvalidProgramError);
+
+/** NoMintWhitelistFound: No Mint Whitelist found */
+export class NoMintWhitelistFoundError extends ProgramError {
+  override readonly name: string = 'NoMintWhitelistFound';
+
+  readonly code: number = 0x178f; // 6031
+
+  constructor(program: Program, cause?: Error) {
+    super('No Mint Whitelist found', program, cause);
+  }
+}
+codeToErrorMap.set(0x178f, NoMintWhitelistFoundError);
+nameToErrorMap.set('NoMintWhitelistFound', NoMintWhitelistFoundError);
+
+/** CreatorMustBeSigner: Creator must be Signer */
+export class CreatorMustBeSignerError extends ProgramError {
+  override readonly name: string = 'CreatorMustBeSigner';
+
+  readonly code: number = 0x1790; // 6032
+
+  constructor(program: Program, cause?: Error) {
+    super('Creator must be Signer', program, cause);
+  }
+}
+codeToErrorMap.set(0x1790, CreatorMustBeSignerError);
+nameToErrorMap.set('CreatorMustBeSigner', CreatorMustBeSignerError);
+
+/** PubkeyAlreadyExists: Pubkey already exist */
+export class PubkeyAlreadyExistsError extends ProgramError {
+  override readonly name: string = 'PubkeyAlreadyExists';
+
+  readonly code: number = 0x1791; // 6033
+
+  constructor(program: Program, cause?: Error) {
+    super('Pubkey already exist', program, cause);
+  }
+}
+codeToErrorMap.set(0x1791, PubkeyAlreadyExistsError);
+nameToErrorMap.set('PubkeyAlreadyExists', PubkeyAlreadyExistsError);
+
+/** PubkeyNotFound: Pubkey not found */
+export class PubkeyNotFoundError extends ProgramError {
+  override readonly name: string = 'PubkeyNotFound';
+
+  readonly code: number = 0x1792; // 6034
+
+  constructor(program: Program, cause?: Error) {
+    super('Pubkey not found', program, cause);
+  }
+}
+codeToErrorMap.set(0x1792, PubkeyNotFoundError);
+nameToErrorMap.set('PubkeyNotFound', PubkeyNotFoundError);
+
 /**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors

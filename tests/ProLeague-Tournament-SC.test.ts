@@ -28,9 +28,8 @@ import {
   refundJoiningFees,
   refundSponsor,
   refundCreatorAndCancelTournament,
-  transposeTournamentCreator,
-  transposeTournamentPlayer,
   leaveTournament,
+  findGlobalPda,
 } from "../js";
 import {
   findAssociatedTokenPda,
@@ -61,7 +60,7 @@ dotenv.config();
 // Describe the Tournament Test Suite
 describe("ProLeague-Tournament-SC", async function () {
   // Pre - Check
-  let isSponsored: boolean = false;
+  let isSponsored: boolean = true;
   // Constant
   let umi: Umi;
   let tournamentId: string;
@@ -70,17 +69,18 @@ describe("ProLeague-Tournament-SC", async function () {
   let creator: KeypairSigner;
   let driver: KeypairSigner;
   let sponsor: KeypairSigner;
-  // let joiningFees: number = 10 * LAMPORTS_PER_SOL;
-  let joiningFees: number = 0;
-  let totalPlayers: number = 128;
+  let joiningFees: number = 10 * LAMPORTS_PER_SOL;
+  // let joiningFees: number = 0;
+  let totalPlayers: number = 8;
   const roundPrizes: number[] = [
     40 * LAMPORTS_PER_SOL,
     30 * LAMPORTS_PER_SOL,
-    20 * LAMPORTS_PER_SOL,
-    10 * LAMPORTS_PER_SOL,
+    // 20 * LAMPORTS_PER_SOL,
+    // 10 * LAMPORTS_PER_SOL,
   ];
   let sponsorAmount: number = 20 * LAMPORTS_PER_SOL;
   const players: KeypairSigner[] = [];
+  let global: Pda;
 
   this.beforeAll((done) => {
     if (!tokenMint) {
@@ -115,6 +115,7 @@ describe("ProLeague-Tournament-SC", async function () {
       .use(tournamentProgram())
       .use(web3JsRpc(solanaRpc));
     tournament = findTournamentPda(umi, { tournamentId });
+    global = findGlobalPda(umi);
     creator = createSignerFromKeypair(
       umi,
       umi.eddsa.createKeypairFromSecretKey(
@@ -160,12 +161,14 @@ describe("ProLeague-Tournament-SC", async function () {
     umi.use(keypairIdentity(driver));
     const sdkFunc = initialize(umi, {
       driver: driver,
-      creator: creator.publicKey,
+      creatorInfo: creator.publicKey,
       tournamentId,
       joiningFees,
       totalPlayers,
       winningRounds: roundPrizes.length,
       mint,
+      global,
+      creator,
     });
 
     const sdkFuncTx = await sendConfirmBuilder(
@@ -175,6 +178,7 @@ describe("ProLeague-Tournament-SC", async function () {
       "Initialization",
       "finalized"
     );
+    return sdkFuncTx;
   });
 
   it("Initial Fetch Tournament", async function () {
@@ -633,94 +637,6 @@ describe("ProLeague-Tournament-SC", async function () {
     );
     return sdkFuncTx;
   });
-
-  it.skip("Pause Tournament", async function (done) {
-    umi.use(keypairIdentity(driver));
-    const tx = await pauseTournament(umi, {
-      creator: creator,
-      driver: driver,
-      tournament,
-    })
-      .setFeePayer(driver)
-      .sendAndConfirm(umi, {
-        send: { preflightCommitment: "processed" },
-        confirm: { commitment: "processed" },
-      });
-    console.log(
-      `Transaction Signature for pause tournament Success!🎉 \n    https://${solanaUrl}/tx/${base58.encode(
-        tx.signature
-      )}?cluster=${clusterUrl}`
-    );
-  });
-
-  it.skip("Refund Joining Fees", async function (done) {
-    umi.use(keypairIdentity(driver));
-    const tx = await refundJoiningFees(umi, {
-      driver: driver,
-      player: publicKey("dsdasda"),
-      tournament,
-      mint,
-    })
-      .setFeePayer(driver)
-      .sendAndConfirm(umi, {
-        send: { preflightCommitment: "processed" },
-        confirm: { commitment: "processed" },
-      });
-    console.log(
-      `Transaction Signature for Refund Joining Fees Success!🎉 \n    https://${solanaUrl}/tx/${base58.encode(
-        tx.signature
-      )}?cluster=${clusterUrl}`
-    );
-  });
-
-  it.skip("Refund Sponsor", async function (done) {
-    const sponsorTokenAccount = findAssociatedTokenPda(umi, {
-      mint,
-      owner: sponsor.publicKey,
-    });
-    umi.use(keypairIdentity(driver));
-    const tx = await refundSponsor(umi, {
-      driver: driver,
-      sponsor: sponsor.publicKey,
-      sponsorTokenAccount,
-      tournament,
-      mint,
-    })
-      .setFeePayer(driver)
-      .sendAndConfirm(umi, {
-        send: { preflightCommitment: "processed" },
-        confirm: { commitment: "processed" },
-      });
-    console.log(
-      `Transaction Signature for Refund Sponsor Success!🎉 \n    https://${solanaUrl}/tx/${base58.encode(
-        tx.signature
-      )}?cluster=${clusterUrl}`
-    );
-  });
-
-  it.skip("Refund Creator & Cancel Tournament", async function (done) {
-    const creatorTokenAccount = findAssociatedTokenPda(umi, {
-      mint,
-      owner: creator.publicKey,
-    });
-    umi.use(keypairIdentity(driver));
-    const tx = await refundCreatorAndCancelTournament(umi, {
-      creatorTokenAccount,
-      driver: driver,
-      tournament,
-      mint,
-    })
-      .setFeePayer(driver)
-      .sendAndConfirm(umi, {
-        send: { preflightCommitment: "processed" },
-        confirm: { commitment: "processed" },
-      });
-    console.log(
-      `Transaction Signature for Refund Creator And Close Tournament Success!🎉 \n    https://${solanaUrl}/tx/${base58.encode(
-        tx.signature
-      )}?cluster=${clusterUrl}`
-    );
-  });
 });
 
 // Cancel Tournament Test Suite
@@ -746,6 +662,7 @@ describe.skip("Cancel Tournament", async function () {
   ];
   let sponsorAmount: number = 20 * LAMPORTS_PER_SOL;
   const players: KeypairSigner[] = [];
+  let global: Pda;
 
   this.beforeAll((done) => {
     if (!tokenMint) {
@@ -780,6 +697,7 @@ describe.skip("Cancel Tournament", async function () {
       .use(tournamentProgram())
       .use(web3JsRpc(solanaRpc));
     tournament = findTournamentPda(umi, { tournamentId });
+    global = findGlobalPda(umi);
     creator = createSignerFromKeypair(
       umi,
       umi.eddsa.createKeypairFromSecretKey(
@@ -825,12 +743,13 @@ describe.skip("Cancel Tournament", async function () {
     umi.use(keypairIdentity(driver));
     const sdkFunc = initialize(umi, {
       driver: driver,
-      creator: creator.publicKey,
+      creatorInfo: creator.publicKey,
       tournamentId,
       joiningFees,
       totalPlayers,
       winningRounds: roundPrizes.length,
       mint,
+      global,
     });
 
     const sdkFuncTx = await sendConfirmBuilder(

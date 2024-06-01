@@ -8,6 +8,7 @@ import {
   createNoopSigner,
   PublicKey,
   Keypair,
+  Pda,
 } from "@metaplex-foundation/umi";
 import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
 import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
@@ -31,6 +32,7 @@ import {
   reallocateTournament,
   transposeTournamentCreator,
   transposeTournamentPlayer,
+  findGlobalPda,
 } from "../js";
 import { readFileSync, writeFile, writeFileSync } from "fs";
 import {
@@ -67,7 +69,7 @@ describe("ProLeague-Tournament-SC", async function () {
 
   // Constant
   const mint = publicKey(process.env.TOKEN_MINT || "");
-
+  let global = findGlobalPda(umi);
   // Accounts
   // Creator
   const creator = umi.eddsa.createKeypairFromSecretKey(
@@ -202,12 +204,13 @@ describe("ProLeague-Tournament-SC", async function () {
 
     const tx = await initialize(umi, {
       driver: driverSigner,
-      creator: creatorSigner.publicKey,
+      creatorInfo: creatorSigner.publicKey,
       tournamentId,
       joiningFees: 0, // 8 * 10 ** 9,
       totalPlayers: 4,
       winningRounds: [20 * 10 ** 9, 10 * 10 ** 9, 5 * 10 ** 9].length,
       mint,
+      global,
     })
       .setFeePayer(driverSigner)
       .sendAndConfirm(umi, {
