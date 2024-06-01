@@ -68,4 +68,8 @@ pub enum TournamentError {
     NoMintWhitelistFound,
     #[msg("Creator must be Signer")]
     CreatorMustBeSigner,
+    #[msg("Pubkey already exist")]
+    PubkeyAlreadyExists,
+    #[msg("Pubkey not found")]
+    PubkeyNotFound,
 }

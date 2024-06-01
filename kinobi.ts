@@ -5,19 +5,20 @@ import { ASSOCIATED_TOKEN_PROGRAM_ID } from "@solana/spl-token";
 
 const idlModifier = (idl) => {
   idl.types = idl.types.map((account) => {
-    account.type.fields = account.type.fields.map((field) => {
-      if (field.type.defined?.includes("HashMap")) {
-        let [key, val] = field.type.defined.split(",");
-        val = val.slice(0, -1);
-        key = key.slice(key.indexOf("<") + 1);
-        field.type = {
-          hashMap: [key, { defined: val }],
-        };
-      }
+    if (account.type.fields) {
+      account.type.fields = account.type.fields.map((field) => {
+        if (field.type.defined?.includes("HashMap")) {
+          let [key, val] = field.type.defined.split(",");
+          val = val.slice(0, -1);
+          key = key.slice(key.indexOf("<") + 1);
+          field.type = {
+            hashMap: [key, { defined: val }],
+          };
+        }
 
-      return field;
-    });
-
+        return field;
+      });
+    }
     return account;
   });
   return idl;
@@ -53,6 +54,10 @@ kinobi.update(
           "Random Tournament id"
         ),
       ],
+    },
+    global: {
+      size: null,
+      seeds: [k.stringConstantSeed("GLOBAL"), k.programSeed()],
     },
   })
 );

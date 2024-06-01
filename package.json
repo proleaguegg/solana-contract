@@ -5,6 +5,7 @@
     "generateSplToken": "ts-node tests/create-spl-token.ts",
     "test": "ts-mocha --bail --timeout 2000000 tests/ProLeague-Tournament-SC.test.ts",
     "128-test": "ts-mocha --bail --timeout 2000000 tests/128-Tournament-SC.test.ts",
+    "test:global": "ts-mocha --bail --timeout 2000000 tests/global.test.ts",
     "compile": "tsc",
     "generate:clients": "ts-node ./kinobi.ts",
     "build": "yarn generate:clients && yarn compile",

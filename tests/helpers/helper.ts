@@ -129,6 +129,7 @@ export const sendConfirmBuilder = async (
       .sendAndConfirm(umi, {
         send: {
           preflightCommitment: "processed",
+          // skipPreflight: true,
         },
         confirm: {
           commitment: cmtment,

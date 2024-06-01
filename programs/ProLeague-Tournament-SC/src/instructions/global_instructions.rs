@@ -1,5 +1,5 @@
 use {
-    crate::{constant::*, state::*, utils::reallocate_bytes},
+    crate::{constant::*, errors::TournamentError, state::*, utils::reallocate_bytes},
     anchor_lang::prelude::*,
 };
 
@@ -83,22 +83,30 @@ pub fn update_global(ctx: Context<UpdateGlobal>, args: UpdateGlobalArgs) -> Resu
     let global = &mut ctx.accounts.global;
     let authority = &mut ctx.accounts.authority;
     let pre_size = global.whitelist_mint.len() as isize;
-
+    
     match args {
         UpdateGlobalArgs::Add(pubkey) => {
-            // Add the new Pubkey to the whitelist_mint vector
+            // Add the new Pubkey to the whitelist_mint vector if it does not already exist
+            if !global.whitelist_mint.contains(&pubkey) {
             global.whitelist_mint.push(pubkey);
+            } else {
+                return Err(TournamentError::PubkeyAlreadyExists.into());
+            }
         },
         UpdateGlobalArgs::Remove(pubkey) => {
-            global.whitelist_mint.retain(|&x| x != pubkey);
-
+            // Remove the Pubkey from the whitelist_mint vector if it exists
+            if global.whitelist_mint.contains(&pubkey) {
+                global.whitelist_mint.retain(|&x| x != pubkey);
+            } else {
+                return Err(TournamentError::PubkeyNotFound.into());
+            }   
         },
     }
     let new_size = global.whitelist_mint.len() as isize;
-
+    
     if  pre_size != new_size {
         reallocate_bytes(
-            new_size - pre_size * 32, // Pubkey size
+            (new_size - pre_size) * 32, // Pubkey size
             global.to_account_info(),
             authority.to_account_info(),
             &ctx.accounts.rent_sysvar,

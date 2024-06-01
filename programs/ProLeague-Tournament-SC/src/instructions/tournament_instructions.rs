@@ -19,8 +19,12 @@ pub struct Initialize<'info> {
     pub driver: Signer<'info>,
 
     /// CHECK: We are checking it in the body
-    #[account()]
-    pub creator: AccountInfo<'info>,
+    #[account(mut,constraint = creator.key().eq(&creator_info.key()) )]
+    pub creator: Option<Signer<'info>>,
+
+    /// CHECK: We are checking it in the body
+    #[account(mut)]
+    pub creator_info: AccountInfo<'info>,
 
     /// Public info account
     #[account(seeds = [GLOBAL_TAG.as_ref(), crate::id().as_ref()],bump)]
@@ -59,14 +63,12 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     msg!("Tournament Initialized with data: {:?}!", data);
     let tournament = &mut ctx.accounts.tournament;
     let global = &mut ctx.accounts.global;
-    let creator = &ctx.accounts.creator;
+    let creator = &ctx.accounts.creator_info;
     let driver = &ctx.accounts.driver;
     let mint = &ctx.accounts.mint;
     tournament.set_defaults();
 
-    if global.whitelist_mint.contains(&mint.key()){
-        tournament.mint = mint.key();
-    }else{
+    if !global.whitelist_mint.contains(&mint.key()){
         require!(creator.is_signer, TournamentError::CreatorMustBeSigner);
         // Instruction handler to perform the SOL transfer
         let ix = transfer(
@@ -80,10 +82,11 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
                 creator.to_account_info(),
                 driver.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
-            ],
+                ],
         )?;
     }
-
+        
+    tournament.mint = mint.key();
     // Update tournament details
     tournament.bump = ctx.bumps.tournament;
     tournament.creator = creator.key();

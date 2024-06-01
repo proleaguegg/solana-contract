@@ -37,7 +37,10 @@ import {
 // Accounts.
 export type InitializeInstructionAccounts = {
   driver: Signer;
-  creator: PublicKey | Pda;
+  creator?: Signer;
+  creatorInfo: PublicKey | Pda;
+  /** Public info account */
+  global: PublicKey | Pda;
   tournament?: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
   mint: PublicKey | Pda;
@@ -105,26 +108,32 @@ export function initialize(
   // Accounts.
   const resolvedAccounts = {
     driver: { index: 0, isWritable: true, value: input.driver ?? null },
-    creator: { index: 1, isWritable: false, value: input.creator ?? null },
-    tournament: { index: 2, isWritable: true, value: input.tournament ?? null },
+    creator: { index: 1, isWritable: true, value: input.creator ?? null },
+    creatorInfo: {
+      index: 2,
+      isWritable: true,
+      value: input.creatorInfo ?? null,
+    },
+    global: { index: 3, isWritable: false, value: input.global ?? null },
+    tournament: { index: 4, isWritable: true, value: input.tournament ?? null },
     tournamentTokenAccount: {
-      index: 3,
+      index: 5,
       isWritable: true,
       value: input.tournamentTokenAccount ?? null,
     },
-    mint: { index: 4, isWritable: false, value: input.mint ?? null },
+    mint: { index: 6, isWritable: false, value: input.mint ?? null },
     associatedTokenProgram: {
-      index: 5,
+      index: 7,
       isWritable: false,
       value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
-      index: 6,
+      index: 8,
       isWritable: false,
       value: input.tokenProgram ?? null,
     },
     systemProgram: {
-      index: 7,
+      index: 9,
       isWritable: false,
       value: input.systemProgram ?? null,
     },
