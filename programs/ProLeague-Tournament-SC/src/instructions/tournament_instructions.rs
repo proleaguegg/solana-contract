@@ -309,20 +309,22 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
     // Loop through each round
     for round in tournament.rounds.iter() {
         // Check each winner's claimed status
-        let expected_length = if round.reverse_index > 0 {
+        if round.winning_price > 0 {
+            let expected_length = if round.reverse_index > 0 {
             2u32.pow((round.reverse_index)as u32) as usize
-        }else{
+            } else {
             1
-        };
-        msg!("expected_length: {}",expected_length);
-        msg!("winners_and_collected_status.len: {}",round.winners_and_collected_status.len());
-        if expected_length != round.winners_and_collected_status.len() {
-            return Err(TournamentError::ExpectedWinnerLength.into()); // Define YourError as needed
-        }
-        for winner_status in round.winners_and_collected_status.values() {
-            if !winner_status.claimed && !winner_status.won_next_round && round.winning_price > 0 {
-                // If any winner has not claimed their prize, throw an error
-                return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
+            };
+            msg!("expected_length: {}",expected_length);
+            msg!("winners_and_collected_status.len: {}",round.winners_and_collected_status.len());
+            if expected_length != round.winners_and_collected_status.len() {
+                return Err(TournamentError::ExpectedWinnerLength.into()); // Define YourError as needed
+            }
+            for winner_status in round.winners_and_collected_status.values() {
+                if !winner_status.claimed && !winner_status.won_next_round && round.winning_price > 0 {
+                    // If any winner has not claimed their prize, throw an error
+                    return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
+                }
             }
         }
     }
