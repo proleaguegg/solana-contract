@@ -321,7 +321,8 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
                 return Err(TournamentError::ExpectedWinnerLength.into()); // Define YourError as needed
             }
             for winner_status in round.winners_and_collected_status.values() {
-                if !winner_status.claimed && !winner_status.won_next_round && round.winning_price > 0 {
+                // if !winner_status.claimed && !winner_status.won_next_round && round.winning_price > 0 { // risky but have to do it becuase of job ruing concurrently
+                if !winner_status.claimed && round.winning_price > 0 {
                     // If any winner has not claimed their prize, throw an error
                     return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
                 }
