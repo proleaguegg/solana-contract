@@ -487,6 +487,23 @@ export class PubkeyNotFoundError extends ProgramError {
 codeToErrorMap.set(0x1792, PubkeyNotFoundError);
 nameToErrorMap.set('PubkeyNotFound', PubkeyNotFoundError);
 
+/** BracketsIsAnnounced: Brackets has been announced. You Can't leave tournament */
+export class BracketsIsAnnouncedError extends ProgramError {
+  override readonly name: string = 'BracketsIsAnnounced';
+
+  readonly code: number = 0x1793; // 6035
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      "Brackets has been announced. You Can't leave tournament",
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x1793, BracketsIsAnnouncedError);
+nameToErrorMap.set('BracketsIsAnnounced', BracketsIsAnnouncedError);
+
 /**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors

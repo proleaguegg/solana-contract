@@ -72,4 +72,6 @@ pub enum TournamentError {
     PubkeyAlreadyExists,
     #[msg("Pubkey not found")]
     PubkeyNotFound,
+    #[msg("Brackets has been announced. You Can't leave tournament")]
+    BracketsIsAnnounced,
 }

@@ -95,6 +95,7 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     tournament.total_players = data.total_players;
     // tournament.tournament_closed = false;
     tournament.is_published = false;
+    tournament.is_announced = false;
     // tournament.is_closed = false;
     // tournament.is_sponsored = false;
 
@@ -381,5 +382,24 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
 
     msg!("Match has been marked as closed & closed.");
 
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct AnnounceTournament<'info> {
+    #[account(constraint = driver.key().eq(&DRIVER))]
+    pub driver: Signer<'info>,
+    
+    #[account(mut)]
+    pub tournament: Account<'info, Tournament>,
+}
+
+pub fn announce_tournament(
+    ctx: Context<AnnounceTournament>
+) -> Result<()> {
+    let tournament = &mut ctx.accounts.tournament;
+ 
+    tournament.is_announced = true;
+    msg!("Tournament has been announced");    
     Ok(())
 }
