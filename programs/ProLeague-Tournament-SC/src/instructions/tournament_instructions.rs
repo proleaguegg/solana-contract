@@ -320,13 +320,26 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
             if expected_length != round.winners_and_collected_status.len() {
                 return Err(TournamentError::ExpectedWinnerLength.into()); // Define YourError as needed
             }
+            let mut claimed_count = 0;
             for winner_status in round.winners_and_collected_status.values() {
-                // if !winner_status.claimed && !winner_status.won_next_round && round.winning_price > 0 { // risky but have to do it becuase of job ruing concurrently
-                if !winner_status.claimed && round.winning_price > 0 {
-                    // If any winner has not claimed their prize, throw an error
-                    return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
+                if winner_status.claimed {
+                    claimed_count += 1;
                 }
             }
+    
+            let half_players = expected_length / 2; // calculate half (integer division)
+    
+            // If the number of claimed prizes is not exactly half, throw an error
+            if claimed_count != half_players {
+                return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
+            }
+            // for winner_status in round.winners_and_collected_status.values() {
+            //     // if !winner_status.claimed && !winner_status.won_next_round && round.winning_price > 0 { // risky but have to do it becuase of job ruing concurrently
+            //     if !winner_status.claimed && round.winning_price > 0 {
+            //         // If any winner has not claimed their prize, throw an error
+            //         return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
+            //     }
+            // }
         }
     }
 
