@@ -330,7 +330,7 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
             let half_players = expected_length / 2; // calculate half (integer division)
     
             // If the number of claimed prizes is not exactly half, throw an error
-            if claimed_count != half_players {
+            if claimed_count != half_players && expected_length != 1 && claimed_count != 1 {
                 return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
             }
             // for winner_status in round.winners_and_collected_status.values() {
