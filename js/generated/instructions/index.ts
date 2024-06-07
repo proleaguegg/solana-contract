@@ -7,6 +7,7 @@
  */
 
 export * from './addWinner';
+export * from './announceTournament';
 export * from './closeTournament';
 export * from './destroyTournament';
 export * from './initGlobal';

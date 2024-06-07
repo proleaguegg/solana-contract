@@ -653,7 +653,7 @@ describe.skip("Cancel Tournament", async function () {
   let sponsor: KeypairSigner;
   let joiningFees: number = 10 * LAMPORTS_PER_SOL;
   // let joiningFees: number = 0;
-  let totalPlayers: number = 128;
+  let totalPlayers: number = 64;
   const roundPrizes: number[] = [
     40 * LAMPORTS_PER_SOL,
     30 * LAMPORTS_PER_SOL,
@@ -1035,5 +1035,169 @@ describe.skip("Cancel Tournament", async function () {
       "Refund Creator And Close Tournament"
     );
     return sdkFuncTx;
+  });
+});
+// Join Tournament Test Suite
+describe.skip("Join Tournament Manual", async function () {
+  // Constant
+  let umi: Umi;
+  let tournamentId: string;
+  let tournament: Pda;
+  let mint: PublicKey;
+  let driver: KeypairSigner;
+  // let joiningFees: number = 10 * LAMPORTS_PER_SOL;
+  let joiningFees: number = 0;
+  let totalPlayers: number = 16;
+
+  const players: string[] = [];
+  this.beforeAll((done) => {
+    if (!tokenMint) {
+      return done("No Mint provided");
+    } else {
+      mint = publicKey(tokenMint);
+    }
+    if (!driverAccount) {
+      return done("No Driver provided");
+    }
+    if (!creatorAccount) {
+      return done("No Creator provided");
+    }
+    if (!solanaRpc.length) {
+      return done("No RPC provided");
+    }
+    if (!clusterUrl.length) {
+      return done("No Cluster URL provided");
+    }
+    if (!solanaUrl.length) {
+      return done("No Solana URL provided");
+    }
+    if (tourId) {
+      tournamentId = tourId;
+    } else {
+      tournamentId = randomStringGenerator.getRandomString();
+      console.log("Random String assigned to Tournament ID =>", tournamentId);
+    }
+
+    // Initializing values
+    umi = BaseCreateUmi(solanaRpc, "finalized")
+      .use(tournamentProgram())
+      .use(web3JsRpc(solanaRpc));
+    tournament = findTournamentPda(umi, { tournamentId });
+    driver = createSignerFromKeypair(
+      umi,
+      umi.eddsa.createKeypairFromSecretKey(
+        createKeypairFromSecret(driverAccount)
+      )
+    );
+
+    // // Looping to create Players Account with Signer
+    // for (let i = 0; i < totalPlayers; i++) {
+    //   const player: KeypairSigner = createSignerFromKeypair(
+    //     umi,
+    //     umi.eddsa.generateKeypair()
+    //   );
+    //   players.push(player);
+    // }
+    // writeFileSync(
+    //   `./test-result/${tournamentId}-palyers.json`,
+    //   JSON.stringify(players),
+    //   "utf8"
+    // );
+    done();
+  });
+
+  it("Initial Fetch Tournament", async function () {
+    const tournamentObj = await safeFetchTournament(umi, tournament);
+    console.dir(tournamentObj, { depth: null });
+    console.log(tournamentObj?.players.length);
+    console.log(tournamentObj?.rounds[6]?.winnersAndCollectedStatus);
+    return tournamentObj;
+  });
+
+  it.skip("Join Tournament", async function () {
+    const driverTokenAccount = findAssociatedTokenPda(umi, {
+      mint,
+      owner: driver.publicKey,
+    });
+
+    umi.use(keypairIdentity(driver));
+    if (joiningFees) {
+      const JoinTournamentBuilder: TransactionBuilder[] = [];
+      for (let i = 0; i < totalPlayers; i++) {
+        const player = players[i];
+        const playerTokenAccount = findAssociatedTokenPda(umi, {
+          mint,
+          owner: publicKey(player),
+        });
+        let txBuilder = new TransactionBuilder();
+        txBuilder = txBuilder.prepend(
+          createAssociatedToken(umi, {
+            payer: driver,
+            owner: publicKey(player),
+            mint,
+            ata: playerTokenAccount,
+          })
+        );
+
+        txBuilder = txBuilder.add(
+          transferTokens(umi, {
+            source: driverTokenAccount,
+            destination: playerTokenAccount,
+            amount: joiningFees,
+            authority: driver,
+          })
+        );
+        txBuilder = txBuilder.add(
+          joinTournament(umi, {
+            playerInfo: publicKey(player),
+            driver: driver,
+            tournament,
+            mint,
+            // player: player,
+            playerTokenAccount,
+          })
+        );
+
+        JoinTournamentBuilder.push(txBuilder);
+      }
+      const JoinTournamentBuilderTx = await sendConfirmBuilderArr(
+        umi,
+        driver,
+        JoinTournamentBuilder
+      );
+      JoinTournamentBuilderTx.map((t) => {
+        console.log(
+          `Transaction for Joining Player Success 🎉: https://${solanaUrl}/tx/${base58.encode(
+            t.signature
+          )}?cluster=${clusterUrl}`
+        );
+      });
+      return JoinTournamentBuilderTx;
+    } else {
+      const joinPlayersTransactionBuilder: TransactionBuilder[] = [];
+      for (let i = 0; i < totalPlayers; i++) {
+        joinPlayersTransactionBuilder.push(
+          joinTournament(umi, {
+            playerInfo: publicKey(players[i]),
+            driver: driver,
+            tournament,
+            mint,
+          })
+        );
+      }
+      const sdkFuncTx = await sendConfirmBuilderArr(
+        umi,
+        driver,
+        joinPlayersTransactionBuilder
+      );
+      sdkFuncTx.map((t) => {
+        console.log(
+          `Transaction for Joining Player without fees Success 🎉: https://${solanaUrl}/tx/${base58.encode(
+            t.signature
+          )}?cluster=${clusterUrl}`
+        );
+      });
+      return sdkFuncTx;
+    }
   });
 });

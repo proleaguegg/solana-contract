@@ -95,6 +95,7 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     tournament.total_players = data.total_players;
     // tournament.tournament_closed = false;
     tournament.is_published = false;
+    tournament.is_announced = false;
     // tournament.is_closed = false;
     // tournament.is_sponsored = false;
 
@@ -320,12 +321,26 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
             if expected_length != round.winners_and_collected_status.len() {
                 return Err(TournamentError::ExpectedWinnerLength.into()); // Define YourError as needed
             }
+            let mut claimed_count = 0;
             for winner_status in round.winners_and_collected_status.values() {
-                if !winner_status.claimed && !winner_status.won_next_round && round.winning_price > 0 {
-                    // If any winner has not claimed their prize, throw an error
-                    return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
+                if winner_status.claimed {
+                    claimed_count += 1;
                 }
             }
+    
+            let half_players = expected_length / 2; // calculate half (integer division)
+    
+            // If the number of claimed prizes is not exactly half, throw an error
+            if claimed_count != half_players && expected_length != 1 && claimed_count != 1 {
+                return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
+            }
+            // for winner_status in round.winners_and_collected_status.values() {
+            //     // if !winner_status.claimed && !winner_status.won_next_round && round.winning_price > 0 { // risky but have to do it becuase of job ruing concurrently
+            //     if !winner_status.claimed && round.winning_price > 0 {
+            //         // If any winner has not claimed their prize, throw an error
+            //         return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
+            //     }
+            // }
         }
     }
 
@@ -367,5 +382,24 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
 
     msg!("Match has been marked as closed & closed.");
 
+    Ok(())
+}
+
+#[derive(Accounts)]
+pub struct AnnounceTournament<'info> {
+    #[account(constraint = driver.key().eq(&DRIVER))]
+    pub driver: Signer<'info>,
+    
+    #[account(mut)]
+    pub tournament: Account<'info, Tournament>,
+}
+
+pub fn announce_tournament(
+    ctx: Context<AnnounceTournament>
+) -> Result<()> {
+    let tournament = &mut ctx.accounts.tournament;
+ 
+    tournament.is_announced = true;
+    msg!("Tournament has been announced");    
     Ok(())
 }

@@ -19,6 +19,7 @@ pub struct Tournament {
     pub is_sponsored: bool,
     pub is_paused: bool,
     pub mint: Pubkey,
+    pub is_announced: bool,
     // pub tournament_closed: bool,
     // pub is_closed: bool,
 }
@@ -34,6 +35,7 @@ impl Tournament {
     + 2 // total_players
     + 2 // total_rounds
     + 1 // is_published
+    + 1 // is_announced
     + 1 // is_sponsored
     + 1 // is_paused
     + 4 // tournament_id (length)
@@ -55,6 +57,7 @@ impl Tournament {
         // self.tournament_closed = false;
         self.players = Vec::new();
         self.rounds = Vec::new();
+        self.is_announced = false;
         // self.is_closed = false;
     }
     pub fn calculate_size(total_players: u16, total_rounds: u16) -> usize {

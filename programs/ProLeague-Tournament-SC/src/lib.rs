@@ -123,4 +123,8 @@ mod tournament {
         )?;
         instructions::update_global(ctx, args)
     }
+
+    pub fn announce_tournament(ctx: Context<AnnounceTournament>) -> Result<()> {
+        instructions::announce_tournament(ctx)
+    }
 }

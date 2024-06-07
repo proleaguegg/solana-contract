@@ -122,6 +122,10 @@ pub fn leave_tournament(ctx: Context<LeaveTournament>) -> Result<()> {
     let player = &ctx.accounts.player;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
 
+    // Check if the bracket has been announced throw error
+    if tournament.is_announced {
+        return Err(TournamentError::BracketsIsAnnounced.into());
+    }
     // Check the player exist in the players
     if !tournament.players.contains(&player.key()) {
         return Err(TournamentError::PlayerNotExist.into());

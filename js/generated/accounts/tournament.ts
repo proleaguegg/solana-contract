@@ -51,6 +51,7 @@ export type TournamentAccountData = {
   isSponsored: boolean;
   isPaused: boolean;
   mint: PublicKey;
+  isAnnounced: boolean;
 };
 
 export type TournamentAccountDataArgs = {
@@ -68,6 +69,7 @@ export type TournamentAccountDataArgs = {
   isSponsored: boolean;
   isPaused: boolean;
   mint: PublicKey;
+  isAnnounced: boolean;
 };
 
 export function getTournamentAccountDataSerializer(): Serializer<
@@ -92,6 +94,7 @@ export function getTournamentAccountDataSerializer(): Serializer<
         ['isSponsored', bool()],
         ['isPaused', bool()],
         ['mint', publicKeySerializer()],
+        ['isAnnounced', bool()],
       ],
       { description: 'TournamentAccountData' }
     ),
@@ -184,6 +187,7 @@ export function getTournamentGpaBuilder(
       isSponsored: boolean;
       isPaused: boolean;
       mint: PublicKey;
+      isAnnounced: boolean;
     }>({
       discriminator: [0, array(u8(), { size: 8 })],
       bump: [8, u8()],
@@ -200,6 +204,7 @@ export function getTournamentGpaBuilder(
       isSponsored: [null, bool()],
       isPaused: [null, bool()],
       mint: [null, publicKeySerializer()],
+      isAnnounced: [null, bool()],
     })
     .deserializeUsing<Tournament>((account) => deserializeTournament(account))
     .whereField('discriminator', [175, 139, 119, 242, 115, 194, 57, 92]);
