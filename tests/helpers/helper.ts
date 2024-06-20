@@ -1,3 +1,4 @@
+import * as web3 from "@solana/web3.js";
 import base58 from "bs58";
 import {
   Commitment,
@@ -22,8 +23,11 @@ import {
   clusterUrl,
   computeUnitLimit,
   priorityRate,
+  solanaRpc,
   solanaUrl,
 } from "./contant";
+import { LedgerWallet } from "@honeycomb-protocol/identity-ledger";
+import { Honeycomb, walletIdentity } from "@honeycomb-protocol/hive-control";
 
 export function appendToJsonFile(filePath, newData) {
   fs.readFile(filePath, "utf8", (err, data) => {
@@ -106,7 +110,7 @@ export const setComputeUnitsFunc = (umiInstance: Context, limit = 250000) =>
 
 export const sendConfirmBuilder = async (
   umi: Umi,
-  driverSigner: KeypairSigner,
+  driverSigner: KeypairSigner | Signer,
   builder: TransactionBuilder,
   action: string,
   cmtment: Commitment = "processed", // Default value for commitment
@@ -224,5 +228,21 @@ export const createTokenAccount = async (
     );
   } catch (error) {
     // console.log("Already account created =>", error);
+  }
+};
+
+export const getHoneycomb = async (address: string): Promise<Honeycomb> => {
+  try {
+    const connection = new web3.Connection(solanaRpc, "processed");
+    const wallet = await LedgerWallet.new(`usb://ledger/${address}`);
+
+    const adminHC = new Honeycomb(connection);
+    console.log("Done initializing Honeycomb");
+
+    adminHC.use(walletIdentity(wallet));
+
+    return adminHC;
+  } catch (error: any) {
+    throw new Error(error);
   }
 };

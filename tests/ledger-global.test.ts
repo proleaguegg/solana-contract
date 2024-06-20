@@ -1,0 +1,230 @@
+import dotenv from "dotenv";
+import {
+  signerIdentity,
+  createSignerFromKeypair,
+  publicKey,
+  Umi,
+  Pda,
+  PublicKey,
+  KeypairSigner,
+  Signer,
+} from "@metaplex-foundation/umi";
+import { publicKey as publicKeySerializer } from "@metaplex-foundation/umi/serializers";
+
+import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
+import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
+import { tournamentProgram } from "./plugin.test";
+import {
+  safeFetchTournament,
+  findTournamentPda,
+  initialize,
+  findGlobalPda,
+  safeFetchGlobal,
+  initGlobal,
+  updateGlobal,
+  UpdateGlobalArgs,
+} from "../js";
+import {
+  clusterUrl,
+  creatorAccount,
+  ledgerPubkey,
+  solanaRpc,
+  solanaUrl,
+  tokenMint,
+  tourId,
+} from "./helpers/contant";
+import {
+  createKeypairFromSecret,
+  getHoneycomb,
+  sendConfirmBuilder,
+} from "./helpers/helper";
+import { randomStringGenerator } from "./helpers/randomString";
+import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { WalletLike } from "@honeycomb-protocol/hive-control";
+dotenv.config();
+
+// Describe the Tournament Test Suite
+describe("Global", async function () {
+  // Constant
+  let umi: Umi;
+  let tournamentId: string;
+  let tournament: Pda;
+  let mint: PublicKey;
+  let creator: KeypairSigner;
+  let driver: Signer;
+  let joiningFees: number = 0;
+  let totalPlayers: number = 128;
+  const roundPrizes: number[] = [
+    40 * LAMPORTS_PER_SOL,
+    30 * LAMPORTS_PER_SOL,
+    20 * LAMPORTS_PER_SOL,
+    10 * LAMPORTS_PER_SOL,
+  ];
+  let global: Pda;
+  let list: PublicKey[] = [
+    publicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"), //  USDC Mainnet
+    publicKey("DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263"), // Bonk Mainnet
+  ];
+  let updateArgs: UpdateGlobalArgs = {
+    __kind: "Remove",
+    fields: [publicKey("8j7eMMBwJRjuCKXBp7KyhJ3Kk3wRKgQshJcbx9rifPDB")],
+  };
+
+  this.beforeAll((done) => {
+    if (!tokenMint) {
+      return done("No Mint provided");
+    } else {
+      mint = publicKey(tokenMint);
+    }
+    if (!ledgerPubkey?.length) {
+      return done("No ledger Pubkey provided");
+    }
+    if (!creatorAccount) {
+      return done("No Creator provided");
+    }
+    if (!solanaRpc.length) {
+      return done("No RPC provided");
+    }
+    if (!clusterUrl.length) {
+      return done("No Cluster URL provided");
+    }
+    if (!solanaUrl.length) {
+      return done("No Solana URL provided");
+    }
+    if (tourId) {
+      tournamentId = tourId;
+    } else {
+      tournamentId = randomStringGenerator.getRandomString();
+      console.log("Random String assigned to Tournament ID =>", tournamentId);
+    }
+
+    // Initializing values
+    umi = BaseCreateUmi(solanaRpc, "finalized")
+      .use(tournamentProgram())
+      .use(web3JsRpc(solanaRpc));
+    tournament = findTournamentPda(umi, { tournamentId });
+    global = findGlobalPda(umi);
+    creator = createSignerFromKeypair(
+      umi,
+      umi.eddsa.createKeypairFromSecretKey(
+        createKeypairFromSecret(creatorAccount)
+      )
+    );
+
+    // Driver Signer
+    // driver = createSignerFromKeypair(
+    //   umi,
+    //   umi.eddsa.createKeypairFromSecretKey(
+    //     createKeypairFromSecret(driverAccount)
+    //   )
+    // );
+    // OR
+    getHoneycomb(ledgerPubkey)
+      .then((result) => {
+        const admin = result.identity().signer as WalletLike;
+        driver = {
+          publicKey: admin.publicKey.toBase58() as PublicKey,
+          signMessage: admin.signMessage,
+          signTransaction: admin.signTransaction,
+          signAllTransactions: admin.signAllTransactions,
+        } as Signer;
+        done();
+      })
+      .catch((err) => {
+        done(err);
+      });
+  });
+
+  it.skip("Init Global", async function () {
+    umi.use(signerIdentity(driver, true));
+
+    const programId = umi.programs.getPublicKey(
+      "tournament",
+      "matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR"
+    );
+
+    const programData = umi.eddsa.findPda(
+      publicKey("BPFLoaderUpgradeab1e11111111111111111111111"),
+      [publicKeySerializer().serialize(programId)]
+    );
+
+    const sdkFunc = initGlobal(umi, {
+      global,
+      list,
+      program: programId,
+      programData,
+    });
+    const sdkFuncTx = await sendConfirmBuilder(
+      umi,
+      driver,
+      sdkFunc,
+      "Init Golbal",
+      "finalized"
+    );
+  });
+
+  it.skip("Update Global", async function () {
+    umi.use(signerIdentity(driver, true));
+
+    const programId = umi.programs.getPublicKey(
+      "tournament",
+      "matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR"
+    );
+
+    const programData = umi.eddsa.findPda(
+      publicKey("BPFLoaderUpgradeab1e11111111111111111111111"),
+      [publicKeySerializer().serialize(programId)]
+    );
+
+    const sdkFunc = updateGlobal(umi, {
+      global,
+      args: updateArgs,
+      program: programId,
+      programData,
+    });
+    const sdkFuncTx = await sendConfirmBuilder(
+      umi,
+      driver,
+      sdkFunc,
+      "Update Golbal",
+      "finalized"
+    );
+    return sdkFuncTx;
+  });
+
+  it("Fetch Global", async function () {
+    const globalObj = await safeFetchGlobal(umi, global);
+    console.dir(globalObj, { depth: null });
+    return globalObj;
+  });
+
+  it.skip("Initialize Tournament", async function () {
+    umi.use(signerIdentity(driver, true));
+    const sdkFunc = initialize(umi, {
+      driver: driver,
+      creatorInfo: creator.publicKey,
+      tournamentId,
+      joiningFees,
+      totalPlayers,
+      winningRounds: roundPrizes.length,
+      mint,
+      global,
+      creator,
+    });
+
+    const sdkFuncTx = await sendConfirmBuilder(
+      umi,
+      driver,
+      sdkFunc,
+      "Initialization",
+      "finalized"
+    );
+    return sdkFuncTx;
+  });
+
+  it.skip("Initial Fetch Tournament", async function () {
+    const tournamentObj = await safeFetchTournament(umi, tournament);
+    console.dir(tournamentObj, { depth: null });
+    return tournamentObj;
+  });
+});
