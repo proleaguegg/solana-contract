@@ -6,6 +6,7 @@
     "test": "ts-mocha --bail --timeout 2000000 tests/ProLeague-Tournament-SC.test.ts",
     "128-test": "ts-mocha --bail --timeout 2000000 tests/128-Tournament-SC.test.ts",
     "test:global": "ts-mocha --bail --timeout 2000000 tests/global.test.ts",
+    "test:ledgerGlobal": "ts-mocha --bail --timeout 2000000 tests/ledger-global.test.ts",
     "compile": "tsc",
     "generate:clients": "ts-node ./kinobi.ts",
     "build": "yarn generate:clients && yarn compile",
@@ -16,6 +17,8 @@
     "getTournament": "ts-node ./tests/getTournamentWithAnchor.ts"
   },
   "dependencies": {
+    "@honeycomb-protocol/hive-control": "^0.2.19-beta.11",
+    "@honeycomb-protocol/identity-ledger": "^0.0.1",
     "@metaplex-foundation/kinobi": "^0.16.1",
     "@metaplex-foundation/mpl-token-metadata": "^3.1.0",
     "@metaplex-foundation/umi": "^0.8.9",
