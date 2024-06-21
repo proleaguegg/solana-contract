@@ -1,23 +1,20 @@
 import dotenv from "dotenv";
 import {
   signerIdentity,
-  createSignerFromKeypair,
   publicKey,
   Umi,
   Pda,
   PublicKey,
-  KeypairSigner,
   Signer,
+  Transaction,
 } from "@metaplex-foundation/umi";
 import { publicKey as publicKeySerializer } from "@metaplex-foundation/umi/serializers";
 
 import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
+import { fromWeb3JsTransaction, toWeb3JsTransaction } from "@metaplex-foundation/umi-web3js-adapters";
 import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
 import { tournamentProgram } from "./plugin.test";
 import {
-  safeFetchTournament,
-  findTournamentPda,
-  initialize,
   findGlobalPda,
   safeFetchGlobal,
   initGlobal,
@@ -25,41 +22,20 @@ import {
   UpdateGlobalArgs,
 } from "../js";
 import {
-  clusterUrl,
-  creatorAccount,
   ledgerPubkey,
   solanaRpc,
-  solanaUrl,
-  tokenMint,
-  tourId,
 } from "./helpers/contant";
 import {
-  createKeypairFromSecret,
-  getHoneycomb,
   sendConfirmBuilder,
 } from "./helpers/helper";
-import { randomStringGenerator } from "./helpers/randomString";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
-import { WalletLike } from "@honeycomb-protocol/hive-control";
+import { LedgerWallet } from "@honeycomb-protocol/identity-ledger";
 dotenv.config();
 
 // Describe the Tournament Test Suite
-describe("Global", async function () {
+describe("GlobalLedger", async function () {
   // Constant
   let umi: Umi;
-  let tournamentId: string;
-  let tournament: Pda;
-  let mint: PublicKey;
-  let creator: KeypairSigner;
-  let driver: Signer;
-  let joiningFees: number = 0;
-  let totalPlayers: number = 128;
-  const roundPrizes: number[] = [
-    40 * LAMPORTS_PER_SOL,
-    30 * LAMPORTS_PER_SOL,
-    20 * LAMPORTS_PER_SOL,
-    10 * LAMPORTS_PER_SOL,
-  ];
+  let authority: Signer;
   let global: Pda;
   let list: PublicKey[] = [
     publicKey("EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v"), //  USDC Mainnet
@@ -70,101 +46,72 @@ describe("Global", async function () {
     fields: [publicKey("8j7eMMBwJRjuCKXBp7KyhJ3Kk3wRKgQshJcbx9rifPDB")],
   };
 
-  this.beforeAll((done) => {
-    if (!tokenMint) {
-      return done("No Mint provided");
-    } else {
-      mint = publicKey(tokenMint);
-    }
+  this.beforeAll(async () => {
     if (!ledgerPubkey?.length) {
-      return done("No ledger Pubkey provided");
-    }
-    if (!creatorAccount) {
-      return done("No Creator provided");
+      throw new Error("No ledger Pubkey provided");
     }
     if (!solanaRpc.length) {
-      return done("No RPC provided");
-    }
-    if (!clusterUrl.length) {
-      return done("No Cluster URL provided");
-    }
-    if (!solanaUrl.length) {
-      return done("No Solana URL provided");
-    }
-    if (tourId) {
-      tournamentId = tourId;
-    } else {
-      tournamentId = randomStringGenerator.getRandomString();
-      console.log("Random String assigned to Tournament ID =>", tournamentId);
+      throw new Error("No RPC provided");
     }
 
     // Initializing values
     umi = BaseCreateUmi(solanaRpc, "finalized")
       .use(tournamentProgram())
       .use(web3JsRpc(solanaRpc));
-    tournament = findTournamentPda(umi, { tournamentId });
     global = findGlobalPda(umi);
-    creator = createSignerFromKeypair(
-      umi,
-      umi.eddsa.createKeypairFromSecretKey(
-        createKeypairFromSecret(creatorAccount)
-      )
-    );
-
-    // Driver Signer
-    // driver = createSignerFromKeypair(
-    //   umi,
-    //   umi.eddsa.createKeypairFromSecretKey(
-    //     createKeypairFromSecret(driverAccount)
-    //   )
-    // );
-    // OR
-    getHoneycomb(ledgerPubkey)
-      .then((result) => {
-        const admin = result.identity().signer as WalletLike;
-        driver = {
-          publicKey: admin.publicKey.toBase58() as PublicKey,
-          signMessage: admin.signMessage,
-          signTransaction: admin.signTransaction,
-          signAllTransactions: admin.signAllTransactions,
-        } as Signer;
-        done();
-      })
-      .catch((err) => {
-        done(err);
-      });
+    console.log("Global: " + JSON.stringify(global));
+    const wallet = await LedgerWallet.new(`usb://ledger/${ledgerPubkey}`);
+    console.log("W: " + wallet.publicKey);
+    authority = {
+      publicKey: wallet.publicKey.toBase58() as PublicKey,
+      signMessage: wallet.signMessage,
+      signTransaction: async (tx) => {
+        return fromWeb3JsTransaction(await wallet.signTransaction(toWeb3JsTransaction(tx)))
+      },
+      signAllTransactions: async (txns) => {
+        let signedTxns: Transaction[] = [];
+        for (let tx of txns) {
+          signedTxns.push(fromWeb3JsTransaction(await wallet.signTransaction(toWeb3JsTransaction(tx))))
+        }
+        return signedTxns;
+      },
+    };
+    console.log("Auth: " + authority.publicKey);
   });
 
-  it.skip("Init Global", async function () {
-    umi.use(signerIdentity(driver, true));
+  it.skip("Ledger Init Global", async function () {
+    console.log("Ledger Init Global");
+    umi.use(signerIdentity(authority, true));
 
     const programId = umi.programs.getPublicKey(
       "tournament",
       "matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR"
     );
+    console.log("Program: " + programId);
 
     const programData = umi.eddsa.findPda(
       publicKey("BPFLoaderUpgradeab1e11111111111111111111111"),
       [publicKeySerializer().serialize(programId)]
     );
-
+    console.log("Program Data: " + programData);
     const sdkFunc = initGlobal(umi, {
       global,
       list,
       program: programId,
       programData,
     });
+    console.log({ programData, programId, authority: authority.publicKey })
     const sdkFuncTx = await sendConfirmBuilder(
       umi,
-      driver,
+      authority,
       sdkFunc,
       "Init Golbal",
-      "finalized"
+      "processed"
     );
   });
 
   it.skip("Update Global", async function () {
-    umi.use(signerIdentity(driver, true));
+    umi.use(signerIdentity(authority, true));
 
     const programId = umi.programs.getPublicKey(
       "tournament",
@@ -184,47 +131,17 @@ describe("Global", async function () {
     });
     const sdkFuncTx = await sendConfirmBuilder(
       umi,
-      driver,
+      authority,
       sdkFunc,
       "Update Golbal",
-      "finalized"
+      "processed"
     );
     return sdkFuncTx;
   });
 
-  it("Fetch Global", async function () {
+  it("Ledger Fetch Global", async function () {
     const globalObj = await safeFetchGlobal(umi, global);
     console.dir(globalObj, { depth: null });
     return globalObj;
-  });
-
-  it.skip("Initialize Tournament", async function () {
-    umi.use(signerIdentity(driver, true));
-    const sdkFunc = initialize(umi, {
-      driver: driver,
-      creatorInfo: creator.publicKey,
-      tournamentId,
-      joiningFees,
-      totalPlayers,
-      winningRounds: roundPrizes.length,
-      mint,
-      global,
-      creator,
-    });
-
-    const sdkFuncTx = await sendConfirmBuilder(
-      umi,
-      driver,
-      sdkFunc,
-      "Initialization",
-      "finalized"
-    );
-    return sdkFuncTx;
-  });
-
-  it.skip("Initial Fetch Tournament", async function () {
-    const tournamentObj = await safeFetchTournament(umi, tournament);
-    console.dir(tournamentObj, { depth: null });
-    return tournamentObj;
   });
 });
