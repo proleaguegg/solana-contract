@@ -13,21 +13,21 @@ import { publicKey as publicKeySerializer } from "@metaplex-foundation/umi/seria
 import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
 import { fromWeb3JsTransaction, toWeb3JsTransaction } from "@metaplex-foundation/umi-web3js-adapters";
 import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { tournamentProgram } from "./plugin.test";
+import { tournamentProgram } from "../plugin.test";
 import {
   findGlobalPda,
   safeFetchGlobal,
   initGlobal,
   updateGlobal,
   UpdateGlobalArgs,
-} from "../js";
+} from "../../js";
 import {
   ledgerPubkey,
   solanaRpc,
-} from "./helpers/contant";
+} from "../helpers/contant";
 import {
   sendConfirmBuilder,
-} from "./helpers/helper";
+} from "../helpers/helper";
 import { LedgerWallet } from "@honeycomb-protocol/identity-ledger";
 dotenv.config();
 

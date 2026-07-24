@@ -75,3 +75,82 @@ pub enum TournamentError {
     #[msg("Brackets has been announced. You Can't leave tournament")]
     BracketsIsAnnounced,
 }
+
+#[error_code]
+pub enum LeaderboardError {
+    // ----- state / timing -----
+    #[msg("Leaderboard is not in Open state")]
+    LeaderboardNotOpen,
+    #[msg("Leaderboard is not in Concluded state")]
+    LeaderboardNotConcluded,
+    #[msg("Leaderboard is not in Cancelled state")]
+    LeaderboardNotCancelled,
+    #[msg("Leaderboard already published")]
+    LeaderboardAlreadyPublished,
+    #[msg("Leaderboard already cancelled")]
+    LeaderboardAlreadyCancelled,
+    #[msg("Leaderboard already concluded")]
+    LeaderboardAlreadyConcluded,
+    #[msg("Leaderboard registration window has closed")]
+    RegistrationClosed,
+    #[msg("Leaderboard sponsorship window has closed")]
+    SponsorshipClosed,
+    #[msg("Leaderboard end time has not been reached")]
+    LeaderboardNotEnded,
+    #[msg("Start time must be in the future")]
+    StartTimeInPast,
+    #[msg("Invalid time window")]
+    InvalidTimeWindow,
+    #[msg("Sponsor cutoff is invalid")]
+    SponsorCutoffInvalid,
+
+    // ----- capacity / config -----
+    #[msg("Participant limit reached")]
+    ParticipantLimitReached,
+    #[msg("Below minimum participants")]
+    BelowMinParticipants,
+    #[msg("Too many payout slots")]
+    PayoutSlotsTooMany,
+    #[msg("Payout bps must sum to 10000")]
+    PayoutSumMismatch,
+    #[msg("min_participants must be > 0 and <= max_participants")]
+    InvalidMinMaxParticipants,
+    #[msg("Platform fee out of range")]
+    InvalidFee,
+    #[msg("Leaderboard id too long")]
+    LeaderboardIdTooLong,
+
+    // ----- idempotency markers (workers string-match these) -----
+    // NOTE: duplicate refunds are NOT signalled here. refund_leaderboard_player /
+    // refund_leaderboard_sponsor close the Participant/Sponsor PDA on success, so a
+    // repeat call fails with Anchor's AccountNotInitialized (error 3012) — off-chain
+    // workers treat 3012 on those two instructions as "already refunded".
+    #[msg("Winner already paid for this slot")]
+    WinnerAlreadyPaid,
+    #[msg("Player already joined")]
+    PlayerAlreadyJoined,
+    #[msg("Slot index out of order")]
+    SlotIndexOutOfOrder,
+
+    // ----- lookup -----
+    #[msg("Player is not enrolled")]
+    PlayerNotEnrolled,
+    #[msg("Sponsor not found")]
+    SponsorNotFound,
+    #[msg("Winner is not enrolled")]
+    WinnerNotEnrolled,
+
+    // ----- safety / auth -----
+    #[msg("Mint does not match leaderboard mint")]
+    InvalidMint,
+    #[msg("Invalid treasury account")]
+    InvalidTreasury,
+    #[msg("Unauthorized")]
+    Unauthorized,
+    #[msg("Arithmetic overflow")]
+    OverFlow,
+    #[msg("Payouts not complete")]
+    PayoutsNotComplete,
+    #[msg("Refunds not complete")]
+    RefundsNotComplete,
+}

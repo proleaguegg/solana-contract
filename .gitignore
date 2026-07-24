@@ -10,3 +10,16 @@ key.json
 account.json
 dist
 newCreator.json
+/examples
+# on-chain program backups (rollback artifacts)
+backup-*.so
+# secret keypairs (devnet test wallets, etc.)
+*-keypair.json
+# test artifacts — player JSON here contains ephemeral SECRET KEYS
+test-result
+# run logs
+*.log
+# editor scratch
+tempCodeRunnerFile.*
+# Claude cross-session memory belongs in ~/.claude, never the repo
+memory/

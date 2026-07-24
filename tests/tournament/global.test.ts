@@ -12,7 +12,7 @@ import { publicKey as publicKeySerializer } from "@metaplex-foundation/umi/seria
 
 import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
 import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { tournamentProgram } from "./plugin.test";
+import { tournamentProgram } from "../plugin.test";
 import {
   safeFetchTournament,
   findTournamentPda,
@@ -22,7 +22,7 @@ import {
   initGlobal,
   updateGlobal,
   UpdateGlobalArgs,
-} from "../js";
+} from "../../js";
 import {
   clusterUrl,
   creatorAccount,
@@ -31,9 +31,9 @@ import {
   solanaUrl,
   tokenMint,
   tourId,
-} from "./helpers/contant";
-import { createKeypairFromSecret, sendConfirmBuilder } from "./helpers/helper";
-import { randomStringGenerator } from "./helpers/randomString";
+} from "../helpers/contant";
+import { createKeypairFromSecret, sendConfirmBuilder } from "../helpers/helper";
+import { randomStringGenerator } from "../helpers/randomString";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 dotenv.config();
 

@@ -33,3 +33,19 @@ pub use transpose_tournament::*;
 pub mod global_instructions;
 
 pub use global_instructions::*;
+
+pub mod leaderboard_instructions;
+
+pub use leaderboard_instructions::*;
+
+pub mod leaderboard_join;
+
+pub use leaderboard_join::*;
+
+pub mod leaderboard_sponsor;
+
+pub use leaderboard_sponsor::*;
+
+pub mod leaderboard_conclude;
+
+pub use leaderboard_conclude::*;

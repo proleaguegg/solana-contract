@@ -12,7 +12,7 @@ import {
 } from "@metaplex-foundation/umi";
 import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
 import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { tournamentProgram } from "./plugin.test";
+import { tournamentProgram } from "../plugin.test";
 import {
   addWinner,
   sendPrize,
@@ -30,12 +30,15 @@ import {
   refundCreatorAndCancelTournament,
   leaveTournament,
   findGlobalPda,
-} from "../js";
+} from "../../js";
 import {
   findAssociatedTokenPda,
   transferTokens,
   createAssociatedToken,
+  safeFetchToken,
+  closeToken,
 } from "@metaplex-foundation/mpl-toolbox";
+import { assert } from "chai";
 import {
   clusterUrl,
   creatorAccount,
@@ -45,15 +48,15 @@ import {
   sponsorAccount,
   tokenMint,
   tourId,
-} from "./helpers/contant";
+} from "../helpers/contant";
 import {
   createKeypairFromSecret,
   createTokenAccount,
   sendConfirmBuilder,
   sendConfirmBuilderArr,
-} from "./helpers/helper";
-import { randomStringGenerator } from "./helpers/randomString";
-import { writeFileSync } from "fs";
+} from "../helpers/helper";
+import { randomStringGenerator } from "../helpers/randomString";
+import { writeFileSync, mkdirSync } from "fs";
 import { LAMPORTS_PER_SOL } from "@solana/web3.js";
 dotenv.config();
 
@@ -80,6 +83,9 @@ describe("ProLeague-Tournament-SC", async function () {
   ];
   let sponsorAmount: number = 20 * LAMPORTS_PER_SOL;
   const players: KeypairSigner[] = [];
+  // ephemeral players from the "Leave Tournament" step — tracked here so the
+  // recovery afterAll can sweep their token/rent back to the driver too.
+  const tempLeavePlayers: KeypairSigner[] = [];
   let global: Pda;
 
   this.beforeAll((done) => {
@@ -149,6 +155,7 @@ describe("ProLeague-Tournament-SC", async function () {
       );
       players.push(player);
     }
+    mkdirSync("./test-result", { recursive: true });
     writeFileSync(
       `./test-result/${tournamentId}-palyers.json`,
       JSON.stringify(players),
@@ -288,6 +295,7 @@ describe("ProLeague-Tournament-SC", async function () {
       );
       tempPlayers.push(player);
     }
+    tempLeavePlayers.push(...tempPlayers); // track for recovery sweep
     umi.use(keypairIdentity(driver));
 
     if (joiningFees) {
@@ -613,6 +621,10 @@ describe("ProLeague-Tournament-SC", async function () {
     await new Promise((resolve) => setTimeout(resolve, 10000));
     const tournamentObj = await safeFetchTournament(umi, tournament);
     console.dir(tournamentObj, { depth: null });
+    assert.isNotNull(
+      tournamentObj,
+      "tournament should still exist after prizes, before close"
+    );
     return tournamentObj;
   });
 
@@ -636,6 +648,63 @@ describe("ProLeague-Tournament-SC", async function () {
       "concluding match"
     );
     return sdkFuncTx;
+  });
+
+  // Balance-safety net: sweep every ephemeral player wallet (prizes + refunded
+  // fees) back to the driver and close their ATA (rent -> driver). Real env
+  // wallets (creator/sponsor) are user-controlled and left as-is. Runs even if
+  // an earlier step failed, so tokens are never stranded in throwaway wallets.
+  this.afterAll(async function () {
+    this.timeout(600_000);
+    const toRecover = [...players, ...tempLeavePlayers];
+    if (!toRecover.length) return;
+    console.log(
+      `\n[recovery] sweeping ${toRecover.length} ephemeral player wallets back to driver…`
+    );
+    umi.use(keypairIdentity(driver));
+    const driverTokenAccount = findAssociatedTokenPda(umi, {
+      mint,
+      owner: driver.publicKey,
+    });
+    for (const p of toRecover) {
+      try {
+        const ata = findAssociatedTokenPda(umi, { mint, owner: p.publicKey });
+        const tok = await safeFetchToken(umi, ata);
+        if (!tok) continue; // ATA never created / already closed
+        if (tok.amount > 0n) {
+          await sendConfirmBuilder(
+            umi,
+            driver,
+            transferTokens(umi, {
+              source: ata,
+              destination: driverTokenAccount,
+              authority: p,
+              amount: tok.amount,
+            }),
+            "recover-transfer",
+            "confirmed"
+          );
+        }
+        await sendConfirmBuilder(
+          umi,
+          driver,
+          closeToken(umi, {
+            account: ata,
+            destination: driver.publicKey,
+            owner: p,
+          }),
+          "recover-close",
+          "confirmed"
+        );
+      } catch (e: any) {
+        console.log(
+          `[recovery] sweep failed for ${p.publicKey} (manual check may be needed): ${String(
+            e
+          ).slice(0, 140)}`
+        );
+      }
+    }
+    console.log("[recovery] done.");
   });
 });
 
@@ -731,6 +800,7 @@ describe.skip("Cancel Tournament", async function () {
       );
       players.push(player);
     }
+    mkdirSync("./test-result", { recursive: true });
     writeFileSync(
       `./test-result/${tournamentId}-palyers.json`,
       JSON.stringify(players),

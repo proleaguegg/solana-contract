@@ -23,6 +23,44 @@ pub const DRIVER: Pubkey = if IS_PROD {
     pubkey!("3W67tweAWfSFnv6W9ATPRBskBXcFMY7anVy1uyt2Hi65")
 };
 
+// ===== Leaderboard =====
+
+#[constant]
+pub const LEADERBOARD_TAG: &[u8] = b"LEADERBOARD";
+
+#[constant]
+pub const PARTICIPANT_TAG: &[u8] = b"PARTICIPANT";
+
+#[constant]
+pub const SPONSOR_TAG: &[u8] = b"SPONSOR";
+
+#[constant]
+pub const TOTAL_BPS: u16 = 10_000;
+
+#[constant]
+pub const MAX_PAYOUT_SLOTS: u16 = 10;
+
+#[constant]
+pub const PLATFORM_FEE_BPS_MAX: u16 = 3_000; // 30% hard cap
+
+#[constant]
+pub const MIN_LEADERBOARD_DURATION: i64 = 3_600; // 1h
+
+#[constant]
+pub const MAX_LEADERBOARD_DURATION: i64 = 604_800; // 7d
+
+#[constant]
+pub const LEADERBOARD_ID_MAX_LEN: u32 = 28;
+
+// Platform treasury — fee/dust sweep destination. Dev key is set for devnet.
+// Verify the prod key is the intended mainnet treasury before any mainnet deploy.
+#[constant]
+pub const TREASURY: Pubkey = if IS_PROD {
+    pubkey!("GdKWaposZA1cH76NFLdQbherDjoHt4Tu3CJbm1U2tCPN")
+} else {
+    pubkey!("9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj")
+};
+
 // // Function to return the production mint vector
 // pub fn prod_mint_func() -> Vec<Pubkey> {
 //     vec![

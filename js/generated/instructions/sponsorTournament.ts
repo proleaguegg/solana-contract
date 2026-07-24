@@ -35,7 +35,7 @@ export type SponsorTournamentInstructionAccounts = {
   sponsor: Signer;
   tournament: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
-  sponsorTokenAccount: PublicKey | Pda;
+  sponsorTokenAccount?: PublicKey | Pda;
   mint: PublicKey | Pda;
   associatedTokenProgram?: PublicKey | Pda;
   tokenProgram?: PublicKey | Pda;
@@ -135,6 +135,15 @@ export function sponsorTournament(
       {
         mint: expectPublicKey(resolvedAccounts.mint.value),
         owner: expectPublicKey(resolvedAccounts.tournament.value),
+      }
+    );
+  }
+  if (!resolvedAccounts.sponsorTokenAccount.value) {
+    resolvedAccounts.sponsorTokenAccount.value = findAssociatedTokenPda(
+      context,
+      {
+        mint: expectPublicKey(resolvedAccounts.mint.value),
+        owner: expectPublicKey(resolvedAccounts.sponsor.value),
       }
     );
   }

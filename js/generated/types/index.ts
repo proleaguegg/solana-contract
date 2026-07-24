@@ -6,6 +6,8 @@
  * @see https://github.com/metaplex-foundation/kinobi
  */
 
+export * from './leaderboardError';
+export * from './leaderboardState';
 export * from './round';
 export * from './roundWinners';
 export * from './updateGlobalArgs';

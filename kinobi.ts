@@ -59,6 +59,45 @@ kinobi.update(
       size: null,
       seeds: [k.stringConstantSeed("GLOBAL"), k.programSeed()],
     },
+    leaderboard: {
+      size: null,
+      seeds: [
+        k.stringConstantSeed("LEADERBOARD"),
+        k.variableSeed(
+          "leaderboard_id",
+          k.stringTypeNode({
+            size: {
+              kind: "remainder",
+            },
+          }),
+          "Random Leaderboard id"
+        ),
+      ],
+    },
+    participant: {
+      size: null,
+      seeds: [
+        k.stringConstantSeed("PARTICIPANT"),
+        k.variableSeed(
+          "leaderboard",
+          k.publicKeyTypeNode(),
+          "Leaderboard PDA"
+        ),
+        k.variableSeed("player", k.publicKeyTypeNode(), "Player wallet"),
+      ],
+    },
+    sponsor: {
+      size: null,
+      seeds: [
+        k.stringConstantSeed("SPONSOR"),
+        k.variableSeed(
+          "leaderboard",
+          k.publicKeyTypeNode(),
+          "Leaderboard PDA"
+        ),
+        k.variableSeed("sponsor", k.publicKeyTypeNode(), "Sponsor wallet"),
+      ],
+    },
   })
 );
 
@@ -110,6 +149,64 @@ kinobi.update(
         seeds: {
           mint: k.accountDefault("mint"),
           owner: k.accountDefault("winner"),
+        },
+      }),
+    },
+    {
+      account: "leaderboard",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("leaderboard"),
+    },
+    {
+      account: "leaderboardTokenAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("associatedToken", {
+        importFrom: "mplToolbox",
+        seeds: {
+          mint: k.accountDefault("mint"),
+          owner: k.accountDefault("leaderboard"),
+        },
+      }),
+    },
+    {
+      account: "participant",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("participant", {
+        seeds: {
+          leaderboard: k.accountDefault("leaderboard"),
+          player: k.accountDefault("player"),
+        },
+      }),
+    },
+    {
+      account: "sponsorAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("sponsor", {
+        seeds: {
+          leaderboard: k.accountDefault("leaderboard"),
+          sponsor: k.accountDefault("sponsor"),
+        },
+      }),
+    },
+    {
+      account: "sponsorTokenAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("associatedToken", {
+        importFrom: "mplToolbox",
+        seeds: {
+          mint: k.accountDefault("mint"),
+          owner: k.accountDefault("sponsor"),
+        },
+      }),
+    },
+    {
+      account: "treasuryTokenAccount",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("associatedToken", {
+        importFrom: "mplToolbox",
+        seeds: {
+          mint: k.accountDefault("mint"),
+          owner: k.accountDefault("treasury"),
         },
       }),
     },

@@ -7,4 +7,7 @@
  */
 
 export * from './global';
+export * from './leaderboard';
+export * from './participant';
+export * from './sponsor';
 export * from './tournament';

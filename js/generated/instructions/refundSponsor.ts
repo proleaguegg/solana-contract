@@ -33,7 +33,7 @@ import {
 export type RefundSponsorInstructionAccounts = {
   driver: Signer;
   sponsor: PublicKey | Pda;
-  sponsorTokenAccount: PublicKey | Pda;
+  sponsorTokenAccount?: PublicKey | Pda;
   tournament: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
   mint: PublicKey | Pda;
@@ -115,6 +115,15 @@ export function refundSponsor(
   } satisfies ResolvedAccountsWithIndices;
 
   // Default values.
+  if (!resolvedAccounts.sponsorTokenAccount.value) {
+    resolvedAccounts.sponsorTokenAccount.value = findAssociatedTokenPda(
+      context,
+      {
+        mint: expectPublicKey(resolvedAccounts.mint.value),
+        owner: expectPublicKey(resolvedAccounts.sponsor.value),
+      }
+    );
+  }
   if (!resolvedAccounts.tournamentTokenAccount.value) {
     resolvedAccounts.tournamentTokenAccount.value = findAssociatedTokenPda(
       context,

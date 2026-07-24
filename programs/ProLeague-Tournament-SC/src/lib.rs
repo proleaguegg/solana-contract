@@ -127,4 +127,59 @@ mod tournament {
     pub fn announce_tournament(ctx: Context<AnnounceTournament>) -> Result<()> {
         instructions::announce_tournament(ctx)
     }
+
+    // ===== Leaderboard =====
+
+    pub fn initialize_leaderboard(
+        ctx: Context<InitializeLeaderboard>,
+        args: InitializeLeaderboardArgs,
+    ) -> Result<()> {
+        instructions::initialize_leaderboard(ctx, args)
+    }
+
+    pub fn publish_leaderboard(ctx: Context<PublishLeaderboard>) -> Result<()> {
+        instructions::publish_leaderboard(ctx)
+    }
+
+    pub fn cancel_leaderboard(ctx: Context<CancelLeaderboard>) -> Result<()> {
+        instructions::cancel_leaderboard(ctx)
+    }
+
+    pub fn join_leaderboard(ctx: Context<JoinLeaderboard>) -> Result<()> {
+        instructions::join_leaderboard(ctx)
+    }
+
+    pub fn leave_leaderboard(ctx: Context<LeaveLeaderboard>) -> Result<()> {
+        instructions::leave_leaderboard(ctx)
+    }
+
+    pub fn deposit_sponsorship(
+        ctx: Context<DepositSponsorship>,
+        args: DepositSponsorshipArgs,
+    ) -> Result<()> {
+        instructions::deposit_sponsorship(ctx, args)
+    }
+
+    pub fn refund_leaderboard_sponsor(ctx: Context<RefundLeaderboardSponsor>) -> Result<()> {
+        instructions::refund_leaderboard_sponsor(ctx)
+    }
+
+    pub fn conclude_leaderboard(ctx: Context<ConcludeLeaderboard>) -> Result<()> {
+        instructions::conclude_leaderboard(ctx)
+    }
+
+    pub fn send_prize_leaderboard(
+        ctx: Context<SendLeaderboardPrize>,
+        args: SendLeaderboardPrizeArgs,
+    ) -> Result<()> {
+        instructions::send_prize_leaderboard(ctx, args)
+    }
+
+    pub fn refund_leaderboard_player(ctx: Context<RefundLeaderboardPlayer>) -> Result<()> {
+        instructions::refund_leaderboard_player(ctx)
+    }
+
+    pub fn close_leaderboard(ctx: Context<CloseLeaderboard>) -> Result<()> {
+        instructions::close_leaderboard(ctx)
+    }
 }
