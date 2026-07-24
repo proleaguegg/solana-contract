@@ -1,6 +1,6 @@
 {
-  "name": "@tumi-labs/pro-league",
-  "version": "1.1.0",
+  "name": "@tanv33/pro-league",
+  "version": "1.0.0",
   "main": "index.js",
   "types": "index.d.ts",
   "license": "MIT",
