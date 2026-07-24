@@ -11,25 +11,48 @@ if (!token) {
   process.exit(1);
 }
 
-// Always publish to the real npm registry. `yarn run publish` injects
+// Always target the real npm registry. `yarn run publish` injects
 // npm_config_registry=https://registry.yarnpkg.com (a read-only mirror), which
-// makes `npm publish` 404 on PUT — so we pin the registry explicitly here.
+// makes `npm publish` 404 on PUT — so we pin the registry explicitly.
 const REGISTRY = "https://registry.npmjs.org/";
+const distDir = path.join(__dirname, "..", "dist");
 
-// Write a registry-SCOPED auth line into dist/.npmrc. A bare `_authToken=` is
-// ignored by npm ("must be scoped to a registry"); it has to be keyed by the
-// registry host. dist/ is gitignored, so the token never lands in the repo.
-const npmrcPath = path.join(__dirname, "..", "dist", ".npmrc");
+const pkg = JSON.parse(
+  fs.readFileSync(path.join(distDir, "package.json"), "utf8")
+);
+const spec = `${pkg.name}@${pkg.version}`;
+
+// Idempotent: pushes to main happen on every change, but we only publish NEW
+// versions. If this exact version already exists on npm, skip cleanly (success)
+// instead of failing the job on a duplicate-version error.
+let alreadyPublished = false;
+try {
+  execSync(`npm view ${spec} version --registry ${REGISTRY}`, {
+    stdio: "pipe",
+  });
+  alreadyPublished = true;
+} catch {
+  alreadyPublished = false; // 404 -> not published yet
+}
+
+if (alreadyPublished) {
+  console.log(`${spec} is already published — nothing to do.`);
+  process.exit(0);
+}
+
+// Registry-SCOPED auth line. A bare `_authToken=` is ignored by npm
+// ("must be scoped to a registry"). dist/ is gitignored, so the token never
+// lands in the repo.
 fs.writeFileSync(
-  npmrcPath,
+  path.join(distDir, ".npmrc"),
   `//registry.npmjs.org/:_authToken=${token}\nregistry=${REGISTRY}\n`
 );
 
-// No try/catch: a failed publish MUST fail the job. A green run should mean the
-// package actually went out.
+// No try/catch: a real publish failure (auth, registry, validation) MUST fail
+// the job so a green run genuinely means the package went out.
 execSync(`npm publish --access public --registry ${REGISTRY}`, {
-  cwd: path.join(__dirname, "..", "dist"),
+  cwd: distDir,
   stdio: "inherit",
 });
 
-console.log("Published to npm successfully.");
+console.log(`Published ${spec} to npm.`);
