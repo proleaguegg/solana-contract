@@ -1,5 +1,5 @@
-import * as web3 from "@solana/web3.js";
-import base58 from "bs58";
+import * as web3 from '@solana/web3.js';
+import base58 from 'bs58';
 import {
   Commitment,
   Context,
@@ -11,45 +11,45 @@ import {
   TransactionBuilder,
   TransactionSignature,
   Umi,
-} from "@metaplex-foundation/umi";
-import fs from "fs";
+} from '@metaplex-foundation/umi';
+import fs from 'fs';
 import {
   setComputeUnitLimit,
   setComputeUnitPrice,
   createAssociatedToken,
-} from "@metaplex-foundation/mpl-toolbox";
-import { string } from "@metaplex-foundation/umi/serializers";
+} from '@metaplex-foundation/mpl-toolbox';
+import { string } from '@metaplex-foundation/umi/serializers';
 import {
   clusterUrl,
   computeUnitLimit,
   priorityRate,
   solanaRpc,
   solanaUrl,
-} from "./contant";
-import { LedgerWallet } from "@honeycomb-protocol/identity-ledger";
-import { Honeycomb, walletIdentity } from "@honeycomb-protocol/hive-control";
+} from './contant';
+import { LedgerWallet } from '@honeycomb-protocol/identity-ledger';
+import { Honeycomb, walletIdentity } from '@honeycomb-protocol/hive-control';
 
 export function appendToJsonFile(filePath, newData) {
-  fs.readFile(filePath, "utf8", (err, data) => {
+  fs.readFile(filePath, 'utf8', (err, data) => {
     if (err) {
-      if (err.code === "ENOENT") {
+      if (err.code === 'ENOENT') {
         // File does not exist, so create it with initial array containing newData
-        console.log("File not found. Creating new file.");
+        console.log('File not found. Creating new file.');
         let initialData = [newData]; // Assuming we start with an array
         fs.writeFile(
           filePath,
           JSON.stringify(initialData, null, 4),
-          "utf8",
+          'utf8',
           (err) => {
             if (err) {
-              console.error("An error occurred while creating the file:", err);
+              console.error('An error occurred while creating the file:', err);
             } else {
-              console.log("File created and data added successfully.");
+              console.log('File created and data added successfully.');
             }
           }
         );
       } else {
-        console.error("An error occurred while reading the file:", err);
+        console.error('An error occurred while reading the file:', err);
       }
       return;
     }
@@ -66,35 +66,35 @@ export function appendToJsonFile(filePath, newData) {
       const updatedJsonData = JSON.stringify(jsonData, null, 4);
 
       // Write the updated JSON data back to the file
-      fs.writeFile(filePath, updatedJsonData, "utf8", (err) => {
+      fs.writeFile(filePath, updatedJsonData, 'utf8', (err) => {
         if (err) {
-          console.error("An error occurred while writing to the file:", err);
+          console.error('An error occurred while writing to the file:', err);
         } else {
-          console.log("Data appended successfully.");
+          console.log('Data appended successfully.');
         }
       });
       return updatedJsonData;
     } catch (parseError) {
-      console.error("An error occurred while parsing JSON data:", parseError);
+      console.error('An error occurred while parsing JSON data:', parseError);
     }
   });
 }
 
 export function findTempTournamentPda(
-  context: Pick<Context, "eddsa" | "programs">,
+  context: Pick<Context, 'eddsa' | 'programs'>,
   seeds: {
     /** Random Tournament id */
     tournamentId: string;
   }
 ): Pda {
   const programId = context.programs.getPublicKey(
-    "tournament",
-    "matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR"
+    'tournament',
+    'matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR'
   );
   return context.eddsa.findPda(programId, [
-    string({ size: "variable" }).serialize("TEMP_TOURNAMENT"),
-    string({ size: "variable" }).serialize("TOURNAMENT_STATE"),
-    string({ size: "variable" }).serialize(seeds.tournamentId),
+    string({ size: 'variable' }).serialize('TEMP_TOURNAMENT'),
+    string({ size: 'variable' }).serialize('TOURNAMENT_STATE'),
+    string({ size: 'variable' }).serialize(seeds.tournamentId),
   ]);
 }
 
@@ -108,12 +108,33 @@ export const setComputeUnitsFunc = (umiInstance: Context, limit = 250000) =>
     units: limit,
   });
 
+/**
+ * Devnet RPC endpoints drop a sizeable share of *concurrent* connections
+ * (ETIMEDOUT surfacing as `fetch failed`). Only those transport-level failures
+ * are worth retrying — a program error means the transaction genuinely failed.
+ */
+const isTransientRpcError = (e: any): boolean => {
+  const blob = `${e?.message ?? ''} ${e?.cause?.code ?? ''} ${
+    e?.cause?.message ?? ''
+  }`.toLowerCase();
+  return (
+    blob.includes('fetch failed') ||
+    blob.includes('etimedout') ||
+    blob.includes('econnreset') ||
+    blob.includes('socket hang up') ||
+    blob.includes('429') ||
+    blob.includes('too many requests')
+  );
+};
+
+const wait = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
 export const sendConfirmBuilder = async (
   umi: Umi,
   driverSigner: KeypairSigner | Signer,
   builder: TransactionBuilder,
   action: string,
-  cmtment: Commitment = "processed", // Default value for commitment
+  cmtment: Commitment = 'processed', // Default value for commitment
   computeUnit = computeUnitLimit
   // Default value for commitment
 ): Promise<{
@@ -122,27 +143,42 @@ export const sendConfirmBuilder = async (
 }> => {
   try {
     const getRecentBlockHashObj = await umi.rpc.getLatestBlockhash({
-      commitment: "processed",
+      commitment: 'processed',
     });
     // console.log({ getRecentBlockHashObj });
-    const tx = await builder
+    const prepared = builder
       .setBlockhash(getRecentBlockHashObj)
       .prepend(priorityFeeIX(umi))
       .prepend(setComputeUnitsFunc(umi, computeUnit))
-      .setFeePayer(driverSigner)
-      .sendAndConfirm(umi, {
-        send: {
-          preflightCommitment: "processed",
-          // skipPreflight: true,
-        },
-        confirm: {
-          commitment: cmtment,
-          strategy: {
-            type: "blockhash",
-            ...getRecentBlockHashObj,
+      .setFeePayer(driverSigner);
+
+    // Same blockhash on every attempt => same signature => a retry that races a
+    // landed transaction is de-duplicated by the cluster rather than repeated.
+    let tx: any;
+    let lastError: any;
+    for (let attempt = 1; attempt <= 4; attempt++) {
+      try {
+        tx = await prepared.sendAndConfirm(umi, {
+          send: {
+            preflightCommitment: 'processed',
+            // skipPreflight: true,
           },
-        },
-      });
+          confirm: {
+            commitment: cmtment,
+            strategy: {
+              type: 'blockhash',
+              ...getRecentBlockHashObj,
+            },
+          },
+        });
+        break;
+      } catch (e: any) {
+        lastError = e;
+        if (!isTransientRpcError(e) || attempt === 4) throw e;
+        await wait(500 * attempt);
+      }
+    }
+    if (!tx) throw lastError;
     console.log(
       `Transaction Signature for ${action} Success!🎉 https://${solanaUrl}/tx/${base58.encode(
         tx.signature
@@ -159,8 +195,10 @@ export const sendConfirmBuilderArr = async (
   umi: Umi,
   driverSigner: KeypairSigner,
   builders: TransactionBuilder[],
-  cmtment: Commitment = "processed", // Default value for commitment
-  computeUnit = computeUnitLimit
+  cmtment: Commitment = 'processed', // Default value for commitment
+  computeUnit = computeUnitLimit,
+  concurrency = 3,
+  attempts = 4
 ): Promise<
   {
     signature: TransactionSignature;
@@ -169,33 +207,49 @@ export const sendConfirmBuilderArr = async (
 > => {
   try {
     const getRecentBlockHashObj = await umi.rpc.getLatestBlockhash({
-      commitment: "confirmed",
+      commitment: 'confirmed',
     });
-    // console.log({ getRecentBlockHashObj });
 
-    const transactions = builders.map(async (builder) => {
-      const tx = builder
+    const sendOne = async (builder: TransactionBuilder) => {
+      // The blockhash is held fixed across retries on purpose: the retried
+      // transaction then carries the SAME signature, so if an earlier attempt
+      // actually landed the cluster de-duplicates it instead of executing twice.
+      const prepared = builder
         .setBlockhash(getRecentBlockHashObj)
         .prepend(priorityFeeIX(umi))
         .prepend(setComputeUnitsFunc(umi, computeUnit))
-        .setFeePayer(driverSigner)
-        .sendAndConfirm(umi, {
-          send: {
-            preflightCommitment: "processed",
-            // skipPreflight: true,
-          },
-          confirm: {
-            commitment: cmtment,
-            strategy: {
-              type: "blockhash",
-              ...getRecentBlockHashObj,
-            },
-          },
-        });
-      return tx;
-    });
+        .setFeePayer(driverSigner);
 
-    return Promise.all(transactions);
+      let lastError: any;
+      for (let attempt = 1; attempt <= attempts; attempt++) {
+        try {
+          return await prepared.sendAndConfirm(umi, {
+            send: { preflightCommitment: 'processed' },
+            confirm: {
+              commitment: cmtment,
+              strategy: { type: 'blockhash', ...getRecentBlockHashObj },
+            },
+          });
+        } catch (e: any) {
+          lastError = e;
+          if (!isTransientRpcError(e) || attempt === attempts) throw e;
+          await wait(500 * attempt);
+        }
+      }
+      throw lastError;
+    };
+
+    // Bounded concurrency — firing every builder at once is what triggers the
+    // endpoint's connection drops in the first place.
+    const results: {
+      signature: TransactionSignature;
+      result: RpcConfirmTransactionResult;
+    }[] = [];
+    for (let i = 0; i < builders.length; i += concurrency) {
+      const chunk = builders.slice(i, i + concurrency);
+      results.push(...(await Promise.all(chunk.map(sendOne))));
+    }
+    return results;
   } catch (error: any) {
     // console.log("sendConfirmBuilderArr error", error);
     throw new Error(error);
@@ -223,8 +277,8 @@ export const createTokenAccount = async (
       umi,
       driver,
       txFunc,
-      "Creating Token Account",
-      "finalized"
+      'Creating Token Account',
+      'finalized'
     );
   } catch (error) {
     // console.log("Already account created =>", error);
@@ -233,11 +287,11 @@ export const createTokenAccount = async (
 
 export const getHoneycomb = async (address: string): Promise<Honeycomb> => {
   try {
-    const connection = new web3.Connection(solanaRpc, "processed");
+    const connection = new web3.Connection(solanaRpc, 'processed');
     const wallet = await LedgerWallet.new(`usb://ledger/${address}`);
 
     const adminHC = new Honeycomb(connection);
-    console.log("Done initializing Honeycomb");
+    console.log('Done initializing Honeycomb');
 
     adminHC.use(walletIdentity(wallet));
 

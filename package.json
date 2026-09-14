@@ -11,13 +11,15 @@
     "test:leaderboardEdge": "ts-mocha --bail --timeout 2000000 tests/leaderboard/leaderboard-edge.test.ts",
     "test:leaderboardAll": "ts-mocha --bail --timeout 2000000 tests/leaderboard/*.test.ts",
     "compile": "tsc",
-    "generate:clients": "ts-node ./kinobi.ts",
+    "generate:clients": "ts-node ./kinobi.ts && yarn lint:fix",
     "build": "yarn generate:clients && yarn compile",
     "publish": "node ./scripts/publish.js",
     "createToken": "ts-node ./tests/helpers/create-spl-token.ts",
     "metaToken": "ts-node ./tests/helpers/metaplex-spl-token.ts",
     "transferToken": "ts-node ./tests/helpers/transfer-mint-token.ts",
-    "getTournament": "ts-node ./tests/getTournamentWithAnchor.ts"
+    "getTournament": "ts-node ./tests/getTournamentWithAnchor.ts",
+    "test:tournamentEdge": "ts-mocha --bail --timeout 2000000 tests/tournament/tournament-edge.test.ts",
+    "test:tournamentAll": "ts-mocha --bail --timeout 2000000 tests/tournament/ProLeague-Tournament-SC.test.ts tests/tournament/tournament-edge.test.ts"
   },
   "dependencies": {
     "@honeycomb-protocol/hive-control": "^0.2.19-beta.11",

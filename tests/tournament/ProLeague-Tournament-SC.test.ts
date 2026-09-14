@@ -1,5 +1,5 @@
-import base58 from "bs58";
-import dotenv from "dotenv";
+import base58 from 'bs58';
+import dotenv from 'dotenv';
 import {
   keypairIdentity,
   createSignerFromKeypair,
@@ -9,10 +9,10 @@ import {
   PublicKey,
   KeypairSigner,
   TransactionBuilder,
-} from "@metaplex-foundation/umi";
-import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
-import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { tournamentProgram } from "../plugin.test";
+} from '@metaplex-foundation/umi';
+import { web3JsRpc } from '@metaplex-foundation/umi-rpc-web3js';
+import { createUmi as BaseCreateUmi } from '@metaplex-foundation/umi-bundle-defaults';
+import { tournamentProgram } from '../plugin.test';
 import {
   addWinner,
   sendPrize,
@@ -30,15 +30,15 @@ import {
   refundCreatorAndCancelTournament,
   leaveTournament,
   findGlobalPda,
-} from "../../js";
+} from '../../js';
 import {
   findAssociatedTokenPda,
   transferTokens,
   createAssociatedToken,
   safeFetchToken,
   closeToken,
-} from "@metaplex-foundation/mpl-toolbox";
-import { assert } from "chai";
+} from '@metaplex-foundation/mpl-toolbox';
+import { assert } from 'chai';
 import {
   clusterUrl,
   creatorAccount,
@@ -48,20 +48,20 @@ import {
   sponsorAccount,
   tokenMint,
   tourId,
-} from "../helpers/contant";
+} from '../helpers/contant';
 import {
   createKeypairFromSecret,
   createTokenAccount,
   sendConfirmBuilder,
   sendConfirmBuilderArr,
-} from "../helpers/helper";
-import { randomStringGenerator } from "../helpers/randomString";
-import { writeFileSync, mkdirSync } from "fs";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+} from '../helpers/helper';
+import { randomStringGenerator } from '../helpers/randomString';
+import { writeFileSync, mkdirSync } from 'fs';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 dotenv.config();
 
 // Describe the Tournament Test Suite
-describe("ProLeague-Tournament-SC", async function () {
+describe('ProLeague-Tournament-SC', async function () {
   // Pre - Check
   let isSponsored: boolean = true;
   // Constant
@@ -82,6 +82,12 @@ describe("ProLeague-Tournament-SC", async function () {
     // 10 * LAMPORTS_PER_SOL,
   ];
   let sponsorAmount: number = 20 * LAMPORTS_PER_SOL;
+  const platformFeeBps: number = 2000; // 20%, matches the Leaderboard product's rate
+  // Dev-cluster TREASURY constant baked into the program (see constant.rs) —
+  // close_tournament sweeps pending_fees here.
+  const DEV_TREASURY = publicKey(
+    '9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj'
+  );
   const players: KeypairSigner[] = [];
   // ephemeral players from the "Leave Tournament" step — tracked here so the
   // recovery afterAll can sweep their token/rent back to the driver too.
@@ -90,34 +96,34 @@ describe("ProLeague-Tournament-SC", async function () {
 
   this.beforeAll((done) => {
     if (!tokenMint) {
-      return done("No Mint provided");
+      return done('No Mint provided');
     } else {
       mint = publicKey(tokenMint);
     }
     if (!driverAccount) {
-      return done("No Driver provided");
+      return done('No Driver provided');
     }
     if (!creatorAccount) {
-      return done("No Creator provided");
+      return done('No Creator provided');
     }
     if (!solanaRpc.length) {
-      return done("No RPC provided");
+      return done('No RPC provided');
     }
     if (!clusterUrl.length) {
-      return done("No Cluster URL provided");
+      return done('No Cluster URL provided');
     }
     if (!solanaUrl.length) {
-      return done("No Solana URL provided");
+      return done('No Solana URL provided');
     }
     if (tourId) {
       tournamentId = tourId;
     } else {
       tournamentId = randomStringGenerator.getRandomString();
-      console.log("Random String assigned to Tournament ID =>", tournamentId);
+      console.log('Random String assigned to Tournament ID =>', tournamentId);
     }
 
     // Initializing values
-    umi = BaseCreateUmi(solanaRpc, "finalized")
+    umi = BaseCreateUmi(solanaRpc, 'finalized')
       .use(tournamentProgram())
       .use(web3JsRpc(solanaRpc));
     tournament = findTournamentPda(umi, { tournamentId });
@@ -144,7 +150,7 @@ describe("ProLeague-Tournament-SC", async function () {
           )
         );
       } else {
-        return done("No Sponsor provided");
+        return done('No Sponsor provided');
       }
     }
     // Looping to create Players Account with Signer
@@ -155,16 +161,16 @@ describe("ProLeague-Tournament-SC", async function () {
       );
       players.push(player);
     }
-    mkdirSync("./test-result", { recursive: true });
+    mkdirSync('./test-result', { recursive: true });
     writeFileSync(
       `./test-result/${tournamentId}-palyers.json`,
       JSON.stringify(players),
-      "utf8"
+      'utf8'
     );
     done();
   });
 
-  it("Initialize Tournament", async function () {
+  it('Initialize Tournament', async function () {
     umi.use(keypairIdentity(driver));
     const sdkFunc = initialize(umi, {
       driver: driver,
@@ -173,6 +179,7 @@ describe("ProLeague-Tournament-SC", async function () {
       joiningFees,
       totalPlayers,
       winningRounds: roundPrizes.length,
+      platformFeeBps,
       mint,
       global,
       creator,
@@ -182,19 +189,19 @@ describe("ProLeague-Tournament-SC", async function () {
       umi,
       driver,
       sdkFunc,
-      "Initialization",
-      "finalized"
+      'Initialization',
+      'finalized'
     );
     return sdkFuncTx;
   });
 
-  it("Initial Fetch Tournament", async function () {
+  it('Initial Fetch Tournament', async function () {
     const tournamentObj = await safeFetchTournament(umi, tournament);
     console.dir(tournamentObj, { depth: null });
     return tournamentObj;
   });
 
-  it("Sponsor Tournament", async function () {
+  it('Sponsor Tournament', async function () {
     umi.use(keypairIdentity(driver));
     if (isSponsored) {
       const driverTokenAccount = findAssociatedTokenPda(umi, {
@@ -230,8 +237,8 @@ describe("ProLeague-Tournament-SC", async function () {
         umi,
         driver,
         transFunc,
-        "Transferring Token Sponsor",
-        "finalized"
+        'Transferring Token Sponsor',
+        'finalized'
       );
 
       const sdkFunc = sponsorTournament(umi, {
@@ -246,14 +253,14 @@ describe("ProLeague-Tournament-SC", async function () {
         umi,
         driver,
         sdkFunc,
-        "Sponsor Tournament"
+        'Sponsor Tournament'
       );
       return sdkFuncTx;
     }
     return true;
   });
 
-  it("Publish Tournament", async function () {
+  it('Publish Tournament', async function () {
     umi.use(keypairIdentity(creator));
     const checkOrCreateDriverTokenAccount = await createTokenAccount(
       umi,
@@ -274,13 +281,13 @@ describe("ProLeague-Tournament-SC", async function () {
       umi,
       driver,
       sdkFunc,
-      "Publish Tournament",
-      "finalized"
+      'Publish Tournament',
+      'finalized'
     );
     return sdkFuncTx;
   });
 
-  it("Leave Tournament", async function () {
+  it('Leave Tournament', async function () {
     const driverTokenAccount = findAssociatedTokenPda(umi, {
       mint,
       owner: driver.publicKey,
@@ -402,7 +409,7 @@ describe("ProLeague-Tournament-SC", async function () {
     return sdkFuncTx;
   });
 
-  it("Join Tournament", async function () {
+  it('Join Tournament', async function () {
     const driverTokenAccount = findAssociatedTokenPda(umi, {
       mint,
       owner: driver.publicKey,
@@ -488,7 +495,7 @@ describe("ProLeague-Tournament-SC", async function () {
     }
   });
 
-  it("Add Winner", async function () {
+  it('Add Winner', async function () {
     let tempPlayers = [...players].slice(0, totalPlayers / 2);
     let round = Math.log2(totalPlayers);
     let roundIndex = round - 1;
@@ -525,7 +532,7 @@ describe("ProLeague-Tournament-SC", async function () {
     return true;
   });
 
-  it("Mark Winner Won Next Round", async function () {
+  it('Mark Winner Won Next Round', async function () {
     let tempPlayers = [...players].slice(0, players.length / 4);
     let round = Math.log2(totalPlayers);
     let roundIndex = round - 1;
@@ -562,7 +569,7 @@ describe("ProLeague-Tournament-SC", async function () {
     return true;
   });
 
-  it("Send Prize", async function () {
+  it('Send Prize', async function () {
     const winners: KeypairSigner[] = [
       ...players.slice(0, Math.pow(2, roundPrizes.length)),
     ];
@@ -617,26 +624,75 @@ describe("ProLeague-Tournament-SC", async function () {
     return sdkFuncTx;
   });
 
-  it("Fetch Tournament", async function () {
+  it('Fetch Tournament', async function () {
     await new Promise((resolve) => setTimeout(resolve, 10000));
     const tournamentObj = await safeFetchTournament(umi, tournament);
     console.dir(tournamentObj, { depth: null });
     assert.isNotNull(
       tournamentObj,
-      "tournament should still exist after prizes, before close"
+      'tournament should still exist after prizes, before close'
+    );
+
+    // ---- platform fee accounting ------------------------------------------
+    // Every entry fee and the sponsorship each booked floor(gross * bps/10000)
+    // into pending_fees; nothing has been swept yet, so it must all still be
+    // owed here, and the escrow must still physically hold it.
+    const perEntryFee = Math.floor((joiningFees * platformFeeBps) / 10_000);
+    const sponsorFee = isSponsored
+      ? Math.floor((sponsorAmount * platformFeeBps) / 10_000)
+      : 0;
+    const expectedPending = perEntryFee * totalPlayers + sponsorFee;
+    assert.equal(
+      Number(tournamentObj!.pendingFees),
+      expectedPending,
+      `pending fees should be ${totalPlayers} entries + sponsor at ${platformFeeBps} bps`
+    );
+    assert.equal(
+      tournamentObj!.platformFeeBps,
+      platformFeeBps,
+      'fee rate unchanged for the life of the tournament'
+    );
+
+    const escrowBefore = await safeFetchToken(
+      umi,
+      findAssociatedTokenPda(umi, { mint, owner: tournament[0] })
+    );
+    assert.isAtLeast(
+      Number(escrowBefore!.amount),
+      expectedPending,
+      'escrow must still physically hold the fees it owes the treasury'
     );
     return tournamentObj;
   });
 
-  it("Close Tournament", async function () {
+  it('Close Tournament', async function () {
     const creatorTokenAccount = findAssociatedTokenPda(umi, {
       mint,
       owner: creator.publicKey,
     });
+    const treasuryTokenAccount = findAssociatedTokenPda(umi, {
+      mint,
+      owner: DEV_TREASURY,
+    });
+
+    // snapshot both destinations and the escrow so the sweep can be verified
+    const readAmount = async (ata: Pda) => {
+      const acc = await safeFetchToken(umi, ata);
+      return acc ? Number(acc.amount) : 0; // 0 when the ATA does not exist yet
+    };
+    const before = await safeFetchTournament(umi, tournament);
+    const owedToTreasury = Number(before!.pendingFees);
+    const escrowTotal = await readAmount(
+      findAssociatedTokenPda(umi, { mint, owner: tournament[0] })
+    );
+    const treasuryBefore = await readAmount(treasuryTokenAccount);
+    const creatorBefore = await readAmount(creatorTokenAccount);
+
     umi.use(keypairIdentity(driver));
     const sdkFunc = closeTournament(umi, {
       tournament,
       creatorTokenAccount,
+      treasury: DEV_TREASURY,
       driver: driver,
       mint,
     });
@@ -645,7 +701,27 @@ describe("ProLeague-Tournament-SC", async function () {
       umi,
       driver,
       sdkFunc,
-      "concluding match"
+      'concluding match'
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 10000));
+
+    // treasury receives exactly the booked fees; the creator receives the rest
+    const treasuryAfter = await readAmount(treasuryTokenAccount);
+    const creatorAfter = await readAmount(creatorTokenAccount);
+    assert.equal(
+      treasuryAfter - treasuryBefore,
+      owedToTreasury,
+      'treasury swept exactly pending_fees'
+    );
+    assert.equal(
+      creatorAfter - creatorBefore,
+      escrowTotal - owedToTreasury,
+      'creator received the remainder of the escrow'
+    );
+    assert.isNull(
+      await safeFetchTournament(umi, tournament),
+      'tournament account closed'
     );
     return sdkFuncTx;
   });
@@ -681,8 +757,8 @@ describe("ProLeague-Tournament-SC", async function () {
               authority: p,
               amount: tok.amount,
             }),
-            "recover-transfer",
-            "confirmed"
+            'recover-transfer',
+            'confirmed'
           );
         }
         await sendConfirmBuilder(
@@ -693,23 +769,23 @@ describe("ProLeague-Tournament-SC", async function () {
             destination: driver.publicKey,
             owner: p,
           }),
-          "recover-close",
-          "confirmed"
+          'recover-close',
+          'confirmed'
         );
       } catch (e: any) {
         console.log(
-          `[recovery] sweep failed for ${p.publicKey} (manual check may be needed): ${String(
-            e
-          ).slice(0, 140)}`
+          `[recovery] sweep failed for ${
+            p.publicKey
+          } (manual check may be needed): ${String(e).slice(0, 140)}`
         );
       }
     }
-    console.log("[recovery] done.");
+    console.log('[recovery] done.');
   });
 });
 
 // Cancel Tournament Test Suite
-describe.skip("Cancel Tournament", async function () {
+describe.skip('Cancel Tournament', async function () {
   // Pre - Check
   let isSponsored: boolean = true;
   // Constant
@@ -723,6 +799,7 @@ describe.skip("Cancel Tournament", async function () {
   let joiningFees: number = 10 * LAMPORTS_PER_SOL;
   // let joiningFees: number = 0;
   let totalPlayers: number = 64;
+  const platformFeeBps: number = 2000; // 20%, matches the Leaderboard product's rate
   const roundPrizes: number[] = [
     40 * LAMPORTS_PER_SOL,
     30 * LAMPORTS_PER_SOL,
@@ -735,34 +812,34 @@ describe.skip("Cancel Tournament", async function () {
 
   this.beforeAll((done) => {
     if (!tokenMint) {
-      return done("No Mint provided");
+      return done('No Mint provided');
     } else {
       mint = publicKey(tokenMint);
     }
     if (!driverAccount) {
-      return done("No Driver provided");
+      return done('No Driver provided');
     }
     if (!creatorAccount) {
-      return done("No Creator provided");
+      return done('No Creator provided');
     }
     if (!solanaRpc.length) {
-      return done("No RPC provided");
+      return done('No RPC provided');
     }
     if (!clusterUrl.length) {
-      return done("No Cluster URL provided");
+      return done('No Cluster URL provided');
     }
     if (!solanaUrl.length) {
-      return done("No Solana URL provided");
+      return done('No Solana URL provided');
     }
     if (tourId) {
       tournamentId = tourId;
     } else {
       tournamentId = randomStringGenerator.getRandomString();
-      console.log("Random String assigned to Tournament ID =>", tournamentId);
+      console.log('Random String assigned to Tournament ID =>', tournamentId);
     }
 
     // Initializing values
-    umi = BaseCreateUmi(solanaRpc, "finalized")
+    umi = BaseCreateUmi(solanaRpc, 'finalized')
       .use(tournamentProgram())
       .use(web3JsRpc(solanaRpc));
     tournament = findTournamentPda(umi, { tournamentId });
@@ -789,7 +866,7 @@ describe.skip("Cancel Tournament", async function () {
           )
         );
       } else {
-        return done("No Sponsor provided");
+        return done('No Sponsor provided');
       }
     }
     // Looping to create Players Account with Signer
@@ -800,16 +877,16 @@ describe.skip("Cancel Tournament", async function () {
       );
       players.push(player);
     }
-    mkdirSync("./test-result", { recursive: true });
+    mkdirSync('./test-result', { recursive: true });
     writeFileSync(
       `./test-result/${tournamentId}-palyers.json`,
       JSON.stringify(players),
-      "utf8"
+      'utf8'
     );
     done();
   });
 
-  it("Initialize Tournament", async function () {
+  it('Initialize Tournament', async function () {
     umi.use(keypairIdentity(driver));
     const sdkFunc = initialize(umi, {
       driver: driver,
@@ -818,6 +895,7 @@ describe.skip("Cancel Tournament", async function () {
       joiningFees,
       totalPlayers,
       winningRounds: roundPrizes.length,
+      platformFeeBps,
       mint,
       global,
     });
@@ -826,18 +904,18 @@ describe.skip("Cancel Tournament", async function () {
       umi,
       driver,
       sdkFunc,
-      "Initialization",
-      "finalized"
+      'Initialization',
+      'finalized'
     );
   });
 
-  it("Initial Fetch Tournament", async function () {
+  it('Initial Fetch Tournament', async function () {
     const tournamentObj = await safeFetchTournament(umi, tournament);
     console.dir(tournamentObj, { depth: null });
     return tournamentObj;
   });
 
-  it("Sponsor Tournament", async function () {
+  it('Sponsor Tournament', async function () {
     umi.use(keypairIdentity(driver));
     if (isSponsored) {
       const driverTokenAccount = findAssociatedTokenPda(umi, {
@@ -873,8 +951,8 @@ describe.skip("Cancel Tournament", async function () {
         umi,
         driver,
         transFunc,
-        "Transferring Token Sponsor",
-        "finalized"
+        'Transferring Token Sponsor',
+        'finalized'
       );
 
       const sdkFunc = sponsorTournament(umi, {
@@ -889,14 +967,14 @@ describe.skip("Cancel Tournament", async function () {
         umi,
         driver,
         sdkFunc,
-        "Sponsor Tournament"
+        'Sponsor Tournament'
       );
       return sdkFuncTx;
     }
     return true;
   });
 
-  it("Publish Tournament", async function () {
+  it('Publish Tournament', async function () {
     umi.use(keypairIdentity(creator));
     const checkOrCreateDriverTokenAccount = await createTokenAccount(
       umi,
@@ -917,13 +995,13 @@ describe.skip("Cancel Tournament", async function () {
       umi,
       driver,
       sdkFunc,
-      "Publish Tournament",
-      "finalized"
+      'Publish Tournament',
+      'finalized'
     );
     return sdkFuncTx;
   });
 
-  it("Join Tournament", async function () {
+  it('Join Tournament', async function () {
     const driverTokenAccount = findAssociatedTokenPda(umi, {
       mint,
       owner: driver.publicKey,
@@ -1009,7 +1087,7 @@ describe.skip("Cancel Tournament", async function () {
     }
   });
 
-  it("Pause Tournament", async function () {
+  it('Pause Tournament', async function () {
     umi.use(keypairIdentity(driver));
 
     const sdkFunc = pauseTournament(umi, {
@@ -1022,13 +1100,13 @@ describe.skip("Cancel Tournament", async function () {
       umi,
       driver,
       sdkFunc,
-      "Pause Tournament",
-      "finalized"
+      'Pause Tournament',
+      'finalized'
     );
     return sdkFuncTx;
   });
 
-  it("Refund Joining Fees", async function () {
+  it('Refund Joining Fees', async function () {
     umi.use(keypairIdentity(driver));
     if (joiningFees) {
       const refundPlayersJoiningFees: TransactionBuilder[] = [];
@@ -1059,7 +1137,7 @@ describe.skip("Cancel Tournament", async function () {
     return true;
   });
 
-  it("Refund Sponsor", async function () {
+  it('Refund Sponsor', async function () {
     if (isSponsored) {
       const sponsorTokenAccount = findAssociatedTokenPda(umi, {
         mint,
@@ -1078,15 +1156,15 @@ describe.skip("Cancel Tournament", async function () {
         umi,
         driver,
         sdkFunc,
-        "Refund Sponsor",
-        "finalized"
+        'Refund Sponsor',
+        'finalized'
       );
       return sdkFuncTx;
     }
     return true;
   });
 
-  it("Refund Creator & Cancel Tournament", async function () {
+  it('Refund Creator & Cancel Tournament', async function () {
     const creatorTokenAccount = findAssociatedTokenPda(umi, {
       mint,
       owner: creator.publicKey,
@@ -1102,13 +1180,13 @@ describe.skip("Cancel Tournament", async function () {
       umi,
       driver,
       sdkFunc,
-      "Refund Creator And Close Tournament"
+      'Refund Creator And Close Tournament'
     );
     return sdkFuncTx;
   });
 });
 // Join Tournament Test Suite
-describe.skip("Join Tournament Manual", async function () {
+describe.skip('Join Tournament Manual', async function () {
   // Constant
   let umi: Umi;
   let tournamentId: string;
@@ -1122,34 +1200,34 @@ describe.skip("Join Tournament Manual", async function () {
   const players: string[] = [];
   this.beforeAll((done) => {
     if (!tokenMint) {
-      return done("No Mint provided");
+      return done('No Mint provided');
     } else {
       mint = publicKey(tokenMint);
     }
     if (!driverAccount) {
-      return done("No Driver provided");
+      return done('No Driver provided');
     }
     if (!creatorAccount) {
-      return done("No Creator provided");
+      return done('No Creator provided');
     }
     if (!solanaRpc.length) {
-      return done("No RPC provided");
+      return done('No RPC provided');
     }
     if (!clusterUrl.length) {
-      return done("No Cluster URL provided");
+      return done('No Cluster URL provided');
     }
     if (!solanaUrl.length) {
-      return done("No Solana URL provided");
+      return done('No Solana URL provided');
     }
     if (tourId) {
       tournamentId = tourId;
     } else {
       tournamentId = randomStringGenerator.getRandomString();
-      console.log("Random String assigned to Tournament ID =>", tournamentId);
+      console.log('Random String assigned to Tournament ID =>', tournamentId);
     }
 
     // Initializing values
-    umi = BaseCreateUmi(solanaRpc, "finalized")
+    umi = BaseCreateUmi(solanaRpc, 'finalized')
       .use(tournamentProgram())
       .use(web3JsRpc(solanaRpc));
     tournament = findTournamentPda(umi, { tournamentId });
@@ -1176,7 +1254,7 @@ describe.skip("Join Tournament Manual", async function () {
     done();
   });
 
-  it("Initial Fetch Tournament", async function () {
+  it('Initial Fetch Tournament', async function () {
     const tournamentObj = await safeFetchTournament(umi, tournament);
     console.dir(tournamentObj, { depth: null });
     console.log(tournamentObj?.players.length);
@@ -1184,7 +1262,7 @@ describe.skip("Join Tournament Manual", async function () {
     return tournamentObj;
   });
 
-  it.skip("Join Tournament", async function () {
+  it.skip('Join Tournament', async function () {
     const driverTokenAccount = findAssociatedTokenPda(umi, {
       mint,
       owner: driver.publicKey,
