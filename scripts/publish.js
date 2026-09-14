@@ -1,24 +1,35 @@
-const { execSync } = require("child_process");
-const fs = require("fs");
-const path = require("path");
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
 
-require("dotenv").config();
+require('dotenv').config();
 
 // npm auth token (set as NODE_AUTH_TOKEN in CI from the NPM_AUTH_TOKEN secret)
 const token = process.env.NODE_AUTH_TOKEN;
 if (!token) {
-  console.error("NODE_AUTH_TOKEN is not set — cannot publish.");
+  console.error('NODE_AUTH_TOKEN is not set — cannot publish.');
   process.exit(1);
 }
 
 // Always target the real npm registry. `yarn run publish` injects
 // npm_config_registry=https://registry.yarnpkg.com (a read-only mirror), which
 // makes `npm publish` 404 on PUT — so we pin the registry explicitly.
-const REGISTRY = "https://registry.npmjs.org/";
-const distDir = path.join(__dirname, "..", "dist");
+const REGISTRY = 'https://registry.npmjs.org/';
+const distDir = path.join(__dirname, '..', 'dist');
+
+// tsc only emits .js/.d.ts/.json, so docs have to be copied in explicitly —
+// without this npm renders the package page with no README at all.
+const repoRoot = path.join(__dirname, '..');
+for (const file of ['README.md', 'LICENSE']) {
+  const src = path.join(repoRoot, file);
+  if (fs.existsSync(src)) {
+    fs.copyFileSync(src, path.join(distDir, file));
+    console.log(`Copied ${file} into dist/.`);
+  }
+}
 
 const pkg = JSON.parse(
-  fs.readFileSync(path.join(distDir, "package.json"), "utf8")
+  fs.readFileSync(path.join(distDir, 'package.json'), 'utf8')
 );
 const spec = `${pkg.name}@${pkg.version}`;
 
@@ -28,7 +39,7 @@ const spec = `${pkg.name}@${pkg.version}`;
 let alreadyPublished = false;
 try {
   execSync(`npm view ${spec} version --registry ${REGISTRY}`, {
-    stdio: "pipe",
+    stdio: 'pipe',
   });
   alreadyPublished = true;
 } catch {
@@ -44,7 +55,7 @@ if (alreadyPublished) {
 // ("must be scoped to a registry"). dist/ is gitignored, so the token never
 // lands in the repo.
 fs.writeFileSync(
-  path.join(distDir, ".npmrc"),
+  path.join(distDir, '.npmrc'),
   `//registry.npmjs.org/:_authToken=${token}\nregistry=${REGISTRY}\n`
 );
 
@@ -52,7 +63,7 @@ fs.writeFileSync(
 // the job so a green run genuinely means the package went out.
 execSync(`npm publish --access public --registry ${REGISTRY}`, {
   cwd: distDir,
-  stdio: "inherit",
+  stdio: 'inherit',
 });
 
 console.log(`Published ${spec} to npm.`);
