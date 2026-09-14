@@ -34,6 +34,8 @@ export type CloseTournamentInstructionAccounts = {
   tournament: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
   creatorTokenAccount: PublicKey | Pda;
+  treasury: PublicKey | Pda;
+  treasuryTokenAccount?: PublicKey | Pda;
   driver: Signer;
   mint: PublicKey | Pda;
   associatedTokenProgram?: PublicKey | Pda;
@@ -90,20 +92,26 @@ export function closeTournament(
       isWritable: true,
       value: input.creatorTokenAccount ?? null,
     },
-    driver: { index: 3, isWritable: false, value: input.driver ?? null },
-    mint: { index: 4, isWritable: false, value: input.mint ?? null },
+    treasury: { index: 3, isWritable: false, value: input.treasury ?? null },
+    treasuryTokenAccount: {
+      index: 4,
+      isWritable: true,
+      value: input.treasuryTokenAccount ?? null,
+    },
+    driver: { index: 5, isWritable: true, value: input.driver ?? null },
+    mint: { index: 6, isWritable: false, value: input.mint ?? null },
     associatedTokenProgram: {
-      index: 5,
+      index: 7,
       isWritable: false,
       value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
-      index: 6,
+      index: 8,
       isWritable: false,
       value: input.tokenProgram ?? null,
     },
     systemProgram: {
-      index: 7,
+      index: 9,
       isWritable: false,
       value: input.systemProgram ?? null,
     },
@@ -116,6 +124,15 @@ export function closeTournament(
       {
         mint: expectPublicKey(resolvedAccounts.mint.value),
         owner: expectPublicKey(resolvedAccounts.tournament.value),
+      }
+    );
+  }
+  if (!resolvedAccounts.treasuryTokenAccount.value) {
+    resolvedAccounts.treasuryTokenAccount.value = findAssociatedTokenPda(
+      context,
+      {
+        mint: expectPublicKey(resolvedAccounts.mint.value),
+        owner: expectPublicKey(resolvedAccounts.treasury.value),
       }
     );
   }

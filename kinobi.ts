@@ -104,6 +104,13 @@ kinobi.update(
 kinobi.update(
   new k.SetInstructionAccountDefaultValuesVisitor([
     {
+      // Seeds are [GLOBAL, programId] — no variables, so this always resolves
+      // to one address. Callers should never have to derive it by hand.
+      account: "global",
+      ignoreIfOptional: true,
+      ...k.pdaDefault("global"),
+    },
+    {
       account: "tournament",
       ignoreIfOptional: true,
       ...k.pdaDefault("tournament"),

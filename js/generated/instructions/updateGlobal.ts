@@ -22,6 +22,7 @@ import {
   struct,
   u8,
 } from '@metaplex-foundation/umi/serializers';
+import { findGlobalPda } from '../accounts';
 import {
   ResolvedAccount,
   ResolvedAccountsWithIndices,
@@ -36,7 +37,7 @@ import {
 // Accounts.
 export type UpdateGlobalInstructionAccounts = {
   /** Public info account */
-  global: PublicKey | Pda;
+  global?: PublicKey | Pda;
   /** The update authority of the program */
   authority?: Signer;
   /** Program data accout */
@@ -84,7 +85,7 @@ export type UpdateGlobalInstructionArgs = UpdateGlobalInstructionDataArgs;
 
 // Instruction.
 export function updateGlobal(
-  context: Pick<Context, 'identity' | 'programs'>,
+  context: Pick<Context, 'eddsa' | 'identity' | 'programs'>,
   input: UpdateGlobalInstructionAccounts & UpdateGlobalInstructionArgs
 ): TransactionBuilder {
   // Program ID.
@@ -119,6 +120,9 @@ export function updateGlobal(
   const resolvedArgs: UpdateGlobalInstructionArgs = { ...input };
 
   // Default values.
+  if (!resolvedAccounts.global.value) {
+    resolvedAccounts.global.value = findGlobalPda(context);
+  }
   if (!resolvedAccounts.authority.value) {
     resolvedAccounts.authority.value = context.identity;
   }

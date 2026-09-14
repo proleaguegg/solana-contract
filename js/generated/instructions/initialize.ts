@@ -25,7 +25,7 @@ import {
   u64,
   u8,
 } from '@metaplex-foundation/umi/serializers';
-import { findTournamentPda } from '../accounts';
+import { findGlobalPda, findTournamentPda } from '../accounts';
 import {
   ResolvedAccount,
   ResolvedAccountsWithIndices,
@@ -40,7 +40,7 @@ export type InitializeInstructionAccounts = {
   creator?: Signer;
   creatorInfo: PublicKey | Pda;
   /** Public info account */
-  global: PublicKey | Pda;
+  global?: PublicKey | Pda;
   tournament?: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
   mint: PublicKey | Pda;
@@ -56,6 +56,7 @@ export type InitializeInstructionData = {
   totalPlayers: number;
   winningRounds: number;
   tournamentId: string;
+  platformFeeBps: number;
 };
 
 export type InitializeInstructionDataArgs = {
@@ -63,6 +64,7 @@ export type InitializeInstructionDataArgs = {
   totalPlayers: number;
   winningRounds: number;
   tournamentId: string;
+  platformFeeBps: number;
 };
 
 export function getInitializeInstructionDataSerializer(): Serializer<
@@ -81,6 +83,7 @@ export function getInitializeInstructionDataSerializer(): Serializer<
         ['totalPlayers', u16()],
         ['winningRounds', u8()],
         ['tournamentId', string()],
+        ['platformFeeBps', u16()],
       ],
       { description: 'InitializeInstructionData' }
     ),
@@ -143,6 +146,9 @@ export function initialize(
   const resolvedArgs: InitializeInstructionArgs = { ...input };
 
   // Default values.
+  if (!resolvedAccounts.global.value) {
+    resolvedAccounts.global.value = findGlobalPda(context);
+  }
   if (!resolvedAccounts.tournament.value) {
     resolvedAccounts.tournament.value = findTournamentPda(context, {
       tournamentId: expectSome(resolvedArgs.tournamentId),

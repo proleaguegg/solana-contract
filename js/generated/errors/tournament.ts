@@ -504,6 +504,88 @@ export class BracketsIsAnnouncedError extends ProgramError {
 codeToErrorMap.set(0x1793, BracketsIsAnnouncedError);
 nameToErrorMap.set('BracketsIsAnnounced', BracketsIsAnnouncedError);
 
+/** InvalidFee: Platform fee exceeds maximum allowed */
+export class InvalidFeeError extends ProgramError {
+  override readonly name: string = 'InvalidFee';
+
+  readonly code: number = 0x1794; // 6036
+
+  constructor(program: Program, cause?: Error) {
+    super('Platform fee exceeds maximum allowed', program, cause);
+  }
+}
+codeToErrorMap.set(0x1794, InvalidFeeError);
+nameToErrorMap.set('InvalidFee', InvalidFeeError);
+
+/** InvalidTreasury: Treasury account does not match program treasury */
+export class InvalidTreasuryError extends ProgramError {
+  override readonly name: string = 'InvalidTreasury';
+
+  readonly code: number = 0x1795; // 6037
+
+  constructor(program: Program, cause?: Error) {
+    super('Treasury account does not match program treasury', program, cause);
+  }
+}
+codeToErrorMap.set(0x1795, InvalidTreasuryError);
+nameToErrorMap.set('InvalidTreasury', InvalidTreasuryError);
+
+/** TournamentNotPublished: Tournament is not published */
+export class TournamentNotPublishedError extends ProgramError {
+  override readonly name: string = 'TournamentNotPublished';
+
+  readonly code: number = 0x1796; // 6038
+
+  constructor(program: Program, cause?: Error) {
+    super('Tournament is not published', program, cause);
+  }
+}
+codeToErrorMap.set(0x1796, TournamentNotPublishedError);
+nameToErrorMap.set('TournamentNotPublished', TournamentNotPublishedError);
+
+/** InvalidPlayerCount: Total players must be a power of two and at least 2 */
+export class InvalidPlayerCountError extends ProgramError {
+  override readonly name: string = 'InvalidPlayerCount';
+
+  readonly code: number = 0x1797; // 6039
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'Total players must be a power of two and at least 2',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x1797, InvalidPlayerCountError);
+nameToErrorMap.set('InvalidPlayerCount', InvalidPlayerCountError);
+
+/** SponsorshipClosed: Tournament sponsorship window is closed */
+export class SponsorshipClosedError extends ProgramError {
+  override readonly name: string = 'SponsorshipClosed';
+
+  readonly code: number = 0x1798; // 6040
+
+  constructor(program: Program, cause?: Error) {
+    super('Tournament sponsorship window is closed', program, cause);
+  }
+}
+codeToErrorMap.set(0x1798, SponsorshipClosedError);
+nameToErrorMap.set('SponsorshipClosed', SponsorshipClosedError);
+
+/** TournamentIsPaused: Tournament is paused for cancellation */
+export class TournamentIsPausedError extends ProgramError {
+  override readonly name: string = 'TournamentIsPaused';
+
+  readonly code: number = 0x1799; // 6041
+
+  constructor(program: Program, cause?: Error) {
+    super('Tournament is paused for cancellation', program, cause);
+  }
+}
+codeToErrorMap.set(0x1799, TournamentIsPausedError);
+nameToErrorMap.set('TournamentIsPaused', TournamentIsPausedError);
+
 /**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors

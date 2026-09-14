@@ -26,7 +26,7 @@ import {
   u64,
   u8,
 } from '@metaplex-foundation/umi/serializers';
-import { findLeaderboardPda } from '../accounts';
+import { findGlobalPda, findLeaderboardPda } from '../accounts';
 import {
   ResolvedAccount,
   ResolvedAccountsWithIndices,
@@ -40,7 +40,7 @@ export type InitializeLeaderboardInstructionAccounts = {
   driver: Signer;
   creator?: Signer;
   creatorInfo: PublicKey | Pda;
-  global: PublicKey | Pda;
+  global?: PublicKey | Pda;
   leaderboard?: PublicKey | Pda;
   leaderboardTokenAccount?: PublicKey | Pda;
   mint: PublicKey | Pda;
@@ -164,6 +164,9 @@ export function initializeLeaderboard(
   const resolvedArgs: InitializeLeaderboardInstructionArgs = { ...input };
 
   // Default values.
+  if (!resolvedAccounts.global.value) {
+    resolvedAccounts.global.value = findGlobalPda(context);
+  }
   if (!resolvedAccounts.leaderboard.value) {
     resolvedAccounts.leaderboard.value = findLeaderboardPda(context, {
       leaderboardId: expectSome(resolvedArgs.leaderboardId),

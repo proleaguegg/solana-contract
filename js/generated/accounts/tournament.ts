@@ -52,6 +52,8 @@ export type TournamentAccountData = {
   isPaused: boolean;
   mint: PublicKey;
   isAnnounced: boolean;
+  platformFeeBps: number;
+  pendingFees: bigint;
 };
 
 export type TournamentAccountDataArgs = {
@@ -70,6 +72,8 @@ export type TournamentAccountDataArgs = {
   isPaused: boolean;
   mint: PublicKey;
   isAnnounced: boolean;
+  platformFeeBps: number;
+  pendingFees: number | bigint;
 };
 
 export function getTournamentAccountDataSerializer(): Serializer<
@@ -95,6 +99,8 @@ export function getTournamentAccountDataSerializer(): Serializer<
         ['isPaused', bool()],
         ['mint', publicKeySerializer()],
         ['isAnnounced', bool()],
+        ['platformFeeBps', u16()],
+        ['pendingFees', u64()],
       ],
       { description: 'TournamentAccountData' }
     ),
@@ -188,6 +194,8 @@ export function getTournamentGpaBuilder(
       isPaused: boolean;
       mint: PublicKey;
       isAnnounced: boolean;
+      platformFeeBps: number;
+      pendingFees: number | bigint;
     }>({
       discriminator: [0, array(u8(), { size: 8 })],
       bump: [8, u8()],
@@ -205,6 +213,8 @@ export function getTournamentGpaBuilder(
       isPaused: [null, bool()],
       mint: [null, publicKeySerializer()],
       isAnnounced: [null, bool()],
+      platformFeeBps: [null, u16()],
+      pendingFees: [null, u64()],
     })
     .deserializeUsing<Tournament>((account) => deserializeTournament(account))
     .whereField('discriminator', [175, 139, 119, 242, 115, 194, 57, 92]);
