@@ -1,10 +1,10 @@
-import dotenv from "dotenv";
-import { randomStringGenerator } from "./randomString";
+import dotenv from 'dotenv';
+import { randomStringGenerator } from './randomString';
 
 dotenv.config();
-export const solanaRpc = process.env.SOLANA_RPC || "";
-export const solanaUrl = process.env.SOLANA_URL || "";
-export const clusterUrl = process.env.CLUSTER_URL || "";
+export const solanaRpc = process.env.SOLANA_RPC || '';
+export const solanaUrl = process.env.SOLANA_URL || '';
+export const clusterUrl = process.env.CLUSTER_URL || '';
 export const tokenMint = process.env.TOKEN_MINT;
 export const tourId = process.env.TOURNAMENT_ID;
 export const creatorAccount = process.env.CREATOR_ACCOUNT;

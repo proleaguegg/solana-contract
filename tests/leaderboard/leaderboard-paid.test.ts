@@ -1,5 +1,5 @@
-import dotenv from "dotenv";
-import { assert } from "chai";
+import dotenv from 'dotenv';
+import { assert } from 'chai';
 import {
   keypairIdentity,
   createSignerFromKeypair,
@@ -9,18 +9,18 @@ import {
   Pda,
   PublicKey,
   KeypairSigner,
-} from "@metaplex-foundation/umi";
-import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
+} from '@metaplex-foundation/umi';
+import { createUmi as BaseCreateUmi } from '@metaplex-foundation/umi-bundle-defaults';
+import { web3JsRpc } from '@metaplex-foundation/umi-rpc-web3js';
 import {
   findAssociatedTokenPda,
   safeFetchToken,
   createAssociatedToken,
   transferTokens,
   closeToken,
-} from "@metaplex-foundation/mpl-toolbox";
+} from '@metaplex-foundation/mpl-toolbox';
 
-import { tournamentProgram } from "../plugin.test";
+import { tournamentProgram } from '../plugin.test';
 import {
   initializeLeaderboard,
   publishLeaderboard,
@@ -33,7 +33,7 @@ import {
   findParticipantPda,
   findGlobalPda,
   LeaderboardState,
-} from "../../js";
+} from '../../js';
 import {
   clusterUrl,
   creatorAccount,
@@ -41,9 +41,9 @@ import {
   solanaRpc,
   solanaUrl,
   tokenMint,
-} from "../helpers/contant";
-import { createKeypairFromSecret, sendConfirmBuilder } from "../helpers/helper";
-import { randomStringGenerator } from "../helpers/randomString";
+} from '../helpers/contant';
+import { createKeypairFromSecret, sendConfirmBuilder } from '../helpers/helper';
+import { randomStringGenerator } from '../helpers/randomString';
 
 dotenv.config();
 
@@ -61,9 +61,9 @@ dotenv.config();
 
 const TOTAL_BPS = 10_000;
 const FEE_BPS = 2000; // 20%
-const COMMIT = "confirmed" as const;
-const BUYIN = BigInt(process.env.PAID_BUYIN || "1000");
-const NUM_PLAYERS = Number(process.env.PAID_PLAYERS || "3");
+const COMMIT = 'confirmed' as const;
+const BUYIN = BigInt(process.env.PAID_BUYIN || '1000');
+const NUM_PLAYERS = Number(process.env.PAID_PLAYERS || '3');
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
 const nowSec = () => Math.floor(Date.now() / 1000);
@@ -87,7 +87,7 @@ async function poll<T>(
   return last;
 }
 
-describe("Leaderboard — paid buy-ins", function () {
+describe('Leaderboard — paid buy-ins', function () {
   this.timeout(2_000_000);
 
   let umi: Umi;
@@ -113,16 +113,16 @@ describe("Leaderboard — paid buy-ins", function () {
 
   before(function (done) {
     for (const [k, v] of [
-      ["TOKEN_MINT", tokenMint],
-      ["DRIVER_ACCOUNT", driverAccount],
-      ["CREATOR_ACCOUNT", creatorAccount],
-      ["SOLANA_RPC", solanaRpc],
-      ["SOLANA_URL", solanaUrl],
-      ["CLUSTER_URL", clusterUrl],
+      ['TOKEN_MINT', tokenMint],
+      ['DRIVER_ACCOUNT', driverAccount],
+      ['CREATOR_ACCOUNT', creatorAccount],
+      ['SOLANA_RPC', solanaRpc],
+      ['SOLANA_URL', solanaUrl],
+      ['CLUSTER_URL', clusterUrl],
     ] as const) {
       if (!v || !String(v).length) return done(new Error(`Missing env: ${k}`));
     }
-    if (NUM_PLAYERS < 2) return done(new Error("PAID_PLAYERS must be >= 2"));
+    if (NUM_PLAYERS < 2) return done(new Error('PAID_PLAYERS must be >= 2'));
 
     umi = BaseCreateUmi(solanaRpc, COMMIT)
       .use(tournamentProgram())
@@ -131,7 +131,9 @@ describe("Leaderboard — paid buy-ins", function () {
     global = findGlobalPda(umi);
     driver = createSignerFromKeypair(
       umi,
-      umi.eddsa.createKeypairFromSecretKey(createKeypairFromSecret(driverAccount))
+      umi.eddsa.createKeypairFromSecretKey(
+        createKeypairFromSecret(driverAccount)
+      )
     );
     creator = createSignerFromKeypair(
       umi,
@@ -155,7 +157,7 @@ describe("Leaderboard — paid buy-ins", function () {
   // ---- balance-safety net: always sweep player funds back to the driver -----
   after(async function () {
     this.timeout(600_000);
-    console.log("\n[recovery] sweeping any player balances back to driver…");
+    console.log('\n[recovery] sweeping any player balances back to driver…');
     for (const p of players) {
       try {
         const ata = playerAta(p.publicKey);
@@ -188,9 +190,12 @@ describe("Leaderboard — paid buy-ins", function () {
         );
       } catch (e: any) {
         console.log(
-          `[recovery] player ${p.publicKey} sweep failed (manual check may be needed): ${String(
-            e
-          ).slice(0, 160)}`
+          `[recovery] player ${
+            p.publicKey
+          } sweep failed (manual check may be needed): ${String(e).slice(
+            0,
+            160
+          )}`
         );
       }
     }
@@ -203,24 +208,28 @@ describe("Leaderboard — paid buy-ins", function () {
     console.log(
       `[recovery] done. driver ${mint} balance now: ${end}` +
         (driverStart != null
-          ? ` (start ${driverStart}, delta ${end - driverStart} — tokens conserved; only SOL fees spent)`
-          : "")
+          ? ` (start ${driverStart}, delta ${
+              end - driverStart
+            } — tokens conserved; only SOL fees spent)`
+          : '')
     );
     if (driverStart != null) {
-      assert.equal(end, driverStart, "driver token balance must be conserved");
+      assert.equal(end, driverStart, 'driver token balance must be conserved');
     }
   });
 
   it("driver funds each player's ATA with the buy-in", async function () {
     const start = await safeFetchToken(umi, driverAta);
-    assert.isNotNull(start, "driver must hold TOKEN_MINT");
+    assert.isNotNull(start, 'driver must hold TOKEN_MINT');
     assert.isTrue(
       (start!.amount ?? 0n) >= BUYIN * BigInt(NUM_PLAYERS),
-      "driver needs enough TOKEN_MINT to fund all players"
+      'driver needs enough TOKEN_MINT to fund all players'
     );
     driverStart = start!.amount; // captured for the conservation check in after()
     console.log(
-      `[funding] driver start balance: ${start!.amount} (funding ${NUM_PLAYERS} × ${BUYIN})`
+      `[funding] driver start balance: ${
+        start!.amount
+      } (funding ${NUM_PLAYERS} × ${BUYIN})`
     );
 
     for (const p of players) {
@@ -255,7 +264,7 @@ describe("Leaderboard — paid buy-ins", function () {
     }
   });
 
-  it("initializes a PAID leaderboard", async function () {
+  it('initializes a PAID leaderboard', async function () {
     const startTs = nowSec() + 1200; // 20 min out
     await sendConfirmBuilder(
       umi,
@@ -276,7 +285,7 @@ describe("Leaderboard — paid buy-ins", function () {
         payoutSlotsBps: [6000, 4000],
         platformFeeBps: FEE_BPS,
       }),
-      "init-paid",
+      'init-paid',
       COMMIT
     );
     const lb = await poll(
@@ -287,12 +296,12 @@ describe("Leaderboard — paid buy-ins", function () {
     assert.equal(lb!.state, LeaderboardState.Draft);
   });
 
-  it("publishes it (Draft -> Open)", async function () {
+  it('publishes it (Draft -> Open)', async function () {
     await sendConfirmBuilder(
       umi,
       driver,
       publishLeaderboard(umi, { driver, creator, leaderboard }),
-      "publish-paid",
+      'publish-paid',
       COMMIT
     );
     const lb = await poll(
@@ -302,7 +311,7 @@ describe("Leaderboard — paid buy-ins", function () {
     assert.equal(lb!.state, LeaderboardState.Open);
   });
 
-  it("all players pay the buy-in and join", async function () {
+  it('all players pay the buy-in and join', async function () {
     for (const p of players) {
       await sendConfirmBuilder(
         umi,
@@ -323,7 +332,7 @@ describe("Leaderboard — paid buy-ins", function () {
     // each player's ATA is now empty; pool holds every buy-in
     for (const p of players) {
       const t = await safeFetchToken(umi, playerAta(p.publicKey));
-      assert.equal(t!.amount, 0n, "player ATA should be drained after join");
+      assert.equal(t!.amount, 0n, 'player ATA should be drained after join');
     }
     const pool = await poll(
       () => safeFetchToken(umi, poolAta),
@@ -332,12 +341,12 @@ describe("Leaderboard — paid buy-ins", function () {
     assert.equal(pool!.amount, BUYIN * BigInt(NUM_PLAYERS));
   });
 
-  it("creator cancels before start", async function () {
+  it('creator cancels before start', async function () {
     await sendConfirmBuilder(
       umi,
       driver,
       cancelLeaderboard(umi, { driver, creator, leaderboard }),
-      "cancel-paid",
+      'cancel-paid',
       COMMIT
     );
     const lb = await poll(
@@ -347,7 +356,7 @@ describe("Leaderboard — paid buy-ins", function () {
     assert.equal(lb!.state, LeaderboardState.Cancelled);
   });
 
-  it("refunds every player their full buy-in", async function () {
+  it('refunds every player their full buy-in', async function () {
     let i = 0;
     for (const p of players) {
       await sendConfirmBuilder(
@@ -372,7 +381,7 @@ describe("Leaderboard — paid buy-ins", function () {
         () => safeFetchToken(umi, playerAta(p.publicKey)),
         (v) => v?.amount === BUYIN
       );
-      assert.equal(t!.amount, BUYIN, "player should get full gross back");
+      assert.equal(t!.amount, BUYIN, 'player should get full gross back');
     }
     const lb = await safeFetchLeaderboard(umi, leaderboard);
     assert.equal(lb!.refundedPlayerCount, lb!.participantCount);
@@ -380,10 +389,10 @@ describe("Leaderboard — paid buy-ins", function () {
     assert.equal(lb!.pendingFees, 0n);
   });
 
-  it("closes the cancelled leaderboard", async function () {
+  it('closes the cancelled leaderboard', async function () {
     // dev treasury (constant.rs) — needed to sweep residual dust (0 here)
     const DEV_TREASURY = publicKey(
-      "9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj"
+      '9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj'
     );
     await sendConfirmBuilder(
       umi,
@@ -394,14 +403,14 @@ describe("Leaderboard — paid buy-ins", function () {
         leaderboard,
         mint,
       }),
-      "close-paid",
+      'close-paid',
       COMMIT
     );
     const lb = await poll(
       () => safeFetchLeaderboard(umi, leaderboard),
       (v) => v == null
     );
-    assert.isNull(lb, "leaderboard should be closed");
+    assert.isNull(lb, 'leaderboard should be closed');
     // players still hold their refunded buy-ins here; the `after` hook sweeps
     // them back to the driver so no balance is lost.
   });

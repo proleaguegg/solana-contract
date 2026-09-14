@@ -1,18 +1,18 @@
-import { createMint } from "@solana/spl-token";
+import { createMint } from '@solana/spl-token';
 import {
   clusterApiUrl,
   Connection,
   Keypair,
   LAMPORTS_PER_SOL,
   PublicKey,
-} from "@solana/web3.js";
-import { getOrCreateAssociatedTokenAccount, mintTo } from "@solana/spl-token";
-import base58 from "bs58";
-import dotenv from "dotenv";
-import { solanaRpc } from "./contant";
+} from '@solana/web3.js';
+import { getOrCreateAssociatedTokenAccount, mintTo } from '@solana/spl-token';
+import base58 from 'bs58';
+import dotenv from 'dotenv';
+import { solanaRpc } from './contant';
 dotenv.config();
 
-const connection = new Connection(solanaRpc, "confirmed");
+const connection = new Connection(solanaRpc, 'confirmed');
 const createNewTokenMint = async (
   payer: Keypair,
   mintAuthority: Keypair,
@@ -73,7 +73,7 @@ const trnasferTokens = async (
       1000000000 * LAMPORTS_PER_SOL // because decimals for the mint are set to 9
     );
     console.log(
-      "\x1b[32m", //Green Text
+      '\x1b[32m', //Green Text
       `   Transaction Success!🎉`,
       `\n    https://explorer.solana.com/tx/${transfer}?cluster=devnet`
     );
@@ -87,9 +87,9 @@ const trnasferTokens = async (
 (async () => {
   try {
     // Get The Payer from the env
-    const secret = process.env.DRIVER_ACCOUNT ?? "";
+    const secret = process.env.DRIVER_ACCOUNT ?? '';
     if (!secret) {
-      console.log("Err: No account found");
+      console.log('Err: No account found');
       return;
     }
     const secretKey = Uint8Array.from(base58.decode(secret));
@@ -111,12 +111,12 @@ const trnasferTokens = async (
         mintAuthority,
         freezeAuthority
       );
-      console.log("mintTokenDetails =>", mintTokenDetails);
+      console.log('mintTokenDetails =>', mintTokenDetails);
       mint = mintTokenDetails.mint;
     }
 
     const tokenAccount = await getOrCreateAccountToHoldBalance(mint, payer);
-    console.log("createOrGetAccount =>", tokenAccount);
+    console.log('createOrGetAccount =>', tokenAccount);
 
     const transfer = await trnasferTokens(
       payer,
@@ -124,13 +124,13 @@ const trnasferTokens = async (
       mintAuthority,
       tokenAccount
     );
-    console.log("transfer =>", transfer);
+    console.log('transfer =>', transfer);
 
     // const solTransferTransactionF = await solTransferTransactionFunc();
 
-    console.log("create-spl-token run successfully");
+    console.log('create-spl-token run successfully');
     return;
   } catch (error) {
-    console.log("Error in create-spl-token =>", error);
+    console.log('Error in create-spl-token =>', error);
   }
 })();

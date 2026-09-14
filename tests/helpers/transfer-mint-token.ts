@@ -1,7 +1,7 @@
 import {
   createTransferInstruction,
   getOrCreateAssociatedTokenAccount,
-} from "@solana/spl-token";
+} from '@solana/spl-token';
 import {
   clusterApiUrl,
   Connection,
@@ -10,13 +10,13 @@ import {
   PublicKey,
   sendAndConfirmTransaction,
   Transaction,
-} from "@solana/web3.js";
-import base58 from "bs58";
-import dotenv from "dotenv";
-import { solanaRpc } from "./contant";
+} from '@solana/web3.js';
+import base58 from 'bs58';
+import dotenv from 'dotenv';
+import { solanaRpc } from './contant';
 dotenv.config();
 
-const connection = new Connection(solanaRpc, "confirmed");
+const connection = new Connection(solanaRpc, 'confirmed');
 
 // Transfer SOL to associated token account and use SyncNative to update wrapped SOL balance
 const solTransferTransactionFunc = async (
@@ -36,11 +36,11 @@ const solTransferTransactionFunc = async (
         LAMPORTS_PER_SOL * transferAmount
       )
     );
-    const latestBlockHash = await connection.getLatestBlockhash("confirmed");
+    const latestBlockHash = await connection.getLatestBlockhash('confirmed');
     tx.recentBlockhash = latestBlockHash.blockhash;
     const signature = await sendAndConfirmTransaction(connection, tx, [signer]);
     console.log(
-      "\x1b[32m", //Green Text
+      '\x1b[32m', //Green Text
       `   Transaction Success!🎉`,
       `\n    https://explorer.solana.com/tx/${signature}?cluster=devnet`
     );
@@ -72,17 +72,17 @@ const getOrCreateAccountToHoldBalance = async (
 (async () => {
   try {
     const receiverPublicKey: PublicKey = new PublicKey(
-      "3idCHfBHAgf3ZkjSLcyzyjMaQMfkqya9UYyEVgLgS9mP"
+      '3idCHfBHAgf3ZkjSLcyzyjMaQMfkqya9UYyEVgLgS9mP'
     ); //
-    const tokenMint = new PublicKey(process.env.TOKEN_MINT || "");
+    const tokenMint = new PublicKey(process.env.TOKEN_MINT || '');
     const driverKeyPair = Keypair.fromSecretKey(
-      new Uint8Array(base58.decode(process.env.DRIVER_ACCOUNT || ""))
+      new Uint8Array(base58.decode(process.env.DRIVER_ACCOUNT || ''))
     );
     const mintOwnerAccount = Keypair.fromSecretKey(
-      new Uint8Array(base58.decode(process.env.DRIVER_ACCOUNT || ""))
+      new Uint8Array(base58.decode(process.env.DRIVER_ACCOUNT || ''))
     );
     if (!mintOwnerAccount) {
-      console.log("No Mint Owner Account provided");
+      console.log('No Mint Owner Account provided');
       return;
     }
 
@@ -91,14 +91,14 @@ const getOrCreateAccountToHoldBalance = async (
       driverKeyPair,
       receiverPublicKey
     );
-    console.log("tokenAccountReceiver =>", tokenAccountReceiver);
+    console.log('tokenAccountReceiver =>', tokenAccountReceiver);
 
     const tokenAccountDriver = await getOrCreateAccountToHoldBalance(
       tokenMint,
       driverKeyPair,
       driverKeyPair.publicKey
     );
-    console.log("tokenAccountDriver =>", tokenAccountDriver);
+    console.log('tokenAccountDriver =>', tokenAccountDriver);
 
     const transfer = await solTransferTransactionFunc(
       tokenAccountDriver.address,
@@ -108,9 +108,9 @@ const getOrCreateAccountToHoldBalance = async (
       driverKeyPair
     );
 
-    console.log("transfer =>", transfer);
+    console.log('transfer =>', transfer);
     return;
   } catch (error) {
-    console.log("Error in Transfer Mint Token => ", error);
+    console.log('Error in Transfer Mint Token => ', error);
   }
 })();

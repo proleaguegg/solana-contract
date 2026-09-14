@@ -1,5 +1,5 @@
-import dotenv from "dotenv";
-import { assert } from "chai";
+import dotenv from 'dotenv';
+import { assert } from 'chai';
 import {
   keypairIdentity,
   createSignerFromKeypair,
@@ -9,15 +9,15 @@ import {
   Pda,
   PublicKey,
   KeypairSigner,
-} from "@metaplex-foundation/umi";
-import { createUmi as BaseCreateUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { web3JsRpc } from "@metaplex-foundation/umi-rpc-web3js";
+} from '@metaplex-foundation/umi';
+import { createUmi as BaseCreateUmi } from '@metaplex-foundation/umi-bundle-defaults';
+import { web3JsRpc } from '@metaplex-foundation/umi-rpc-web3js';
 import {
   findAssociatedTokenPda,
   safeFetchToken,
-} from "@metaplex-foundation/mpl-toolbox";
+} from '@metaplex-foundation/mpl-toolbox';
 
-import { tournamentProgram } from "../plugin.test";
+import { tournamentProgram } from '../plugin.test';
 import {
   initializeLeaderboard,
   publishLeaderboard,
@@ -38,7 +38,7 @@ import {
   safeFetchSponsor,
   findGlobalPda,
   LeaderboardState,
-} from "../../js";
+} from '../../js';
 import {
   clusterUrl,
   creatorAccount,
@@ -47,9 +47,9 @@ import {
   solanaUrl,
   sponsorAccount,
   tokenMint,
-} from "../helpers/contant";
-import { createKeypairFromSecret, sendConfirmBuilder } from "../helpers/helper";
-import { randomStringGenerator } from "../helpers/randomString";
+} from '../helpers/contant';
+import { createKeypairFromSecret, sendConfirmBuilder } from '../helpers/helper';
+import { randomStringGenerator } from '../helpers/randomString';
 
 dotenv.config();
 
@@ -66,11 +66,9 @@ dotenv.config();
 //   SPONSOR_ACCOUNT must hold some TOKEN_MINT balance to fund the pool.
 // ---------------------------------------------------------------------------
 
-const DEV_TREASURY = publicKey(
-  "9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj"
-);
+const DEV_TREASURY = publicKey('9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj');
 const TOTAL_BPS = 10_000;
-const COMMIT = "confirmed" as const;
+const COMMIT = 'confirmed' as const;
 
 /** Assert a builder send rejects, and that the error text matches a marker. */
 async function expectTxError(
@@ -89,22 +87,22 @@ async function expectTxError(
         try {
           return JSON.stringify(e, Object.getOwnPropertyNames(e ?? {}));
         } catch {
-          return "";
+          return '';
         }
       })(),
       JSON.stringify(e?.logs ?? e?.cause?.logs ?? []),
     ]
-      .join(" ")
+      .join(' ')
       .toLowerCase();
     const hit = markers.some((m) => blob.includes(m.toLowerCase()));
     assert.isTrue(
       hit,
       `tx failed but not with expected marker(s) [${markers.join(
-        ", "
+        ', '
       )}]. Got: ${blob.slice(0, 600)}`
     );
   }
-  assert.isTrue(threw, "expected the transaction to fail, but it succeeded");
+  assert.isTrue(threw, 'expected the transaction to fail, but it succeeded');
 }
 
 const nowSec = () => Math.floor(Date.now() / 1000);
@@ -133,7 +131,7 @@ async function poll<T>(
   return last;
 }
 
-describe("Leaderboard", function () {
+describe('Leaderboard', function () {
   this.timeout(2_000_000);
 
   let umi: Umi;
@@ -145,13 +143,13 @@ describe("Leaderboard", function () {
 
   before(function (done) {
     for (const [k, v] of [
-      ["TOKEN_MINT", tokenMint],
-      ["DRIVER_ACCOUNT", driverAccount],
-      ["CREATOR_ACCOUNT", creatorAccount],
-      ["SPONSOR_ACCOUNT", sponsorAccount],
-      ["SOLANA_RPC", solanaRpc],
-      ["SOLANA_URL", solanaUrl],
-      ["CLUSTER_URL", clusterUrl],
+      ['TOKEN_MINT', tokenMint],
+      ['DRIVER_ACCOUNT', driverAccount],
+      ['CREATOR_ACCOUNT', creatorAccount],
+      ['SPONSOR_ACCOUNT', sponsorAccount],
+      ['SOLANA_RPC', solanaRpc],
+      ['SOLANA_URL', solanaUrl],
+      ['CLUSTER_URL', clusterUrl],
     ] as const) {
       if (!v || !String(v).length) return done(new Error(`Missing env: ${k}`));
     }
@@ -164,7 +162,9 @@ describe("Leaderboard", function () {
     global = findGlobalPda(umi);
     driver = createSignerFromKeypair(
       umi,
-      umi.eddsa.createKeypairFromSecretKey(createKeypairFromSecret(driverAccount))
+      umi.eddsa.createKeypairFromSecretKey(
+        createKeypairFromSecret(driverAccount)
+      )
     );
     creator = createSignerFromKeypair(
       umi,
@@ -214,94 +214,98 @@ describe("Leaderboard", function () {
   // =========================================================================
   // 1. initialize_leaderboard validation
   // =========================================================================
-  describe("initialize validation", function () {
-    it("rejects payout bps that do not sum to 10000", async function () {
+  describe('initialize validation', function () {
+    it('rejects payout bps that do not sum to 10000', async function () {
       await expectTxError(
         () =>
           sendConfirmBuilder(
             umi,
             driver,
             initIx(baseArgs({ payoutSlotsBps: [6000, 3000] })),
-            "bad-sum",
+            'bad-sum',
             COMMIT
           ),
-        ["Payout bps must sum to 10000", "PayoutSumMismatch"]
+        ['Payout bps must sum to 10000', 'PayoutSumMismatch']
       );
     });
 
-    it("rejects a leaderboard id longer than 28 chars", async function () {
+    it('rejects a leaderboard id longer than 28 chars', async function () {
       await expectTxError(
         () =>
           sendConfirmBuilder(
             umi,
             driver,
-            initIx(baseArgs({ leaderboardId: "x".repeat(30) })),
-            "long-id",
+            initIx(baseArgs({ leaderboardId: 'x'.repeat(30) })),
+            'long-id',
             COMMIT
           ),
-        ["Leaderboard id too long", "LeaderboardIdTooLong"]
+        ['Leaderboard id too long', 'LeaderboardIdTooLong']
       );
     });
 
-    it("rejects a start timestamp in the past", async function () {
+    it('rejects a start timestamp in the past', async function () {
       const start = nowSec() - 100;
       await expectTxError(
         () =>
           sendConfirmBuilder(
             umi,
             driver,
-            initIx(baseArgs({ startTimestamp: start, endTimestamp: start + 3600 })),
-            "past-start",
+            initIx(
+              baseArgs({ startTimestamp: start, endTimestamp: start + 3600 })
+            ),
+            'past-start',
             COMMIT
           ),
-        ["Start time must be in the future", "StartTimeInPast"]
+        ['Start time must be in the future', 'StartTimeInPast']
       );
     });
 
-    it("rejects a duration under 1 hour", async function () {
+    it('rejects a duration under 1 hour', async function () {
       const start = nowSec() + 1200;
       await expectTxError(
         () =>
           sendConfirmBuilder(
             umi,
             driver,
-            initIx(baseArgs({ startTimestamp: start, endTimestamp: start + 100 })),
-            "short-window",
+            initIx(
+              baseArgs({ startTimestamp: start, endTimestamp: start + 100 })
+            ),
+            'short-window',
             COMMIT
           ),
-        ["Invalid time window", "InvalidTimeWindow"]
+        ['Invalid time window', 'InvalidTimeWindow']
       );
     });
 
-    it("rejects a platform fee above 30%", async function () {
+    it('rejects a platform fee above 30%', async function () {
       await expectTxError(
         () =>
           sendConfirmBuilder(
             umi,
             driver,
             initIx(baseArgs({ platformFeeBps: 3001 })),
-            "fee-too-high",
+            'fee-too-high',
             COMMIT
           ),
-        ["Platform fee out of range", "InvalidFee"]
+        ['Platform fee out of range', 'InvalidFee']
       );
     });
 
-    it("rejects min_participants = 0", async function () {
+    it('rejects min_participants = 0', async function () {
       await expectTxError(
         () =>
           sendConfirmBuilder(
             umi,
             driver,
             initIx(baseArgs({ minParticipants: 0 })),
-            "min-zero",
+            'min-zero',
             COMMIT
           ),
-        ["min_participants", "InvalidMinMaxParticipants"]
+        ['min_participants', 'InvalidMinMaxParticipants']
       );
     });
 
-    it("rejects more than MAX_PAYOUT_SLOTS (10) payout slots", async function () {
+    it('rejects more than MAX_PAYOUT_SLOTS (10) payout slots', async function () {
       const eleven = Array(11).fill(0);
       eleven[0] = TOTAL_BPS;
       await expectTxError(
@@ -310,24 +314,24 @@ describe("Leaderboard", function () {
             umi,
             driver,
             initIx(baseArgs({ payoutSlotsBps: eleven, minParticipants: 11 })),
-            "too-many-slots",
+            'too-many-slots',
             COMMIT
           ),
-        ["Too many payout slots", "PayoutSlotsTooMany"]
+        ['Too many payout slots', 'PayoutSlotsTooMany']
       );
     });
 
-    it("rejects a sponsor_cutoff >= duration", async function () {
+    it('rejects a sponsor_cutoff >= duration', async function () {
       await expectTxError(
         () =>
           sendConfirmBuilder(
             umi,
             driver,
             initIx(baseArgs({ sponsorCutoff: 3600 })),
-            "bad-cutoff",
+            'bad-cutoff',
             COMMIT
           ),
-        ["Sponsor cutoff is invalid", "SponsorCutoffInvalid"]
+        ['Sponsor cutoff is invalid', 'SponsorCutoffInvalid']
       );
     });
   });
@@ -335,7 +339,7 @@ describe("Leaderboard", function () {
   // =========================================================================
   // 2. happy setup + cancel/refund/close (free leaderboard, pre-start)
   // =========================================================================
-  describe("cancel & refund path", function () {
+  describe('cancel & refund path', function () {
     let leaderboardId: string;
     let leaderboard: Pda;
     let poolAta: Pda;
@@ -357,7 +361,7 @@ describe("Leaderboard", function () {
       playerB = generateSigner(umi);
     });
 
-    it("initializes a free leaderboard in Draft", async function () {
+    it('initializes a free leaderboard in Draft', async function () {
       await sendConfirmBuilder(
         umi,
         driver,
@@ -368,7 +372,7 @@ describe("Leaderboard", function () {
             payoutSlotsBps: [6000, 4000],
           })
         ),
-        "init",
+        'init',
         COMMIT
       );
       const lb = await poll(
@@ -381,12 +385,12 @@ describe("Leaderboard", function () {
       assert.equal(lb!.creator, creator.publicKey);
     });
 
-    it("publishes it (Draft -> Open)", async function () {
+    it('publishes it (Draft -> Open)', async function () {
       await sendConfirmBuilder(
         umi,
         driver,
         publishLeaderboard(umi, { driver, creator, leaderboard }),
-        "publish",
+        'publish',
         COMMIT
       );
       const lb = await poll(
@@ -396,33 +400,33 @@ describe("Leaderboard", function () {
       assert.equal(lb!.state, LeaderboardState.Open);
     });
 
-    it("rejects publishing again", async function () {
+    it('rejects publishing again', async function () {
       await expectTxError(
         () =>
           sendConfirmBuilder(
             umi,
             driver,
             publishLeaderboard(umi, { driver, creator, leaderboard }),
-            "double-publish",
+            'double-publish',
             COMMIT
           ),
-        ["already published", "LeaderboardAlreadyPublished"]
+        ['already published', 'LeaderboardAlreadyPublished']
       );
     });
 
-    it("joins player A and player B", async function () {
+    it('joins player A and player B', async function () {
       await sendConfirmBuilder(
         umi,
         driver,
         joinLeaderboard(umi, { driver, player: playerA, leaderboard, mint }),
-        "joinA",
+        'joinA',
         COMMIT
       );
       await sendConfirmBuilder(
         umi,
         driver,
         joinLeaderboard(umi, { driver, player: playerB, leaderboard, mint }),
-        "joinB",
+        'joinB',
         COMMIT
       );
       const lb = await poll(
@@ -445,21 +449,26 @@ describe("Leaderboard", function () {
       assert.equal(pa!.player, playerA.publicKey);
     });
 
-    it("rejects player A joining twice", async function () {
+    it('rejects player A joining twice', async function () {
       await expectTxError(
         () =>
           sendConfirmBuilder(
             umi,
             driver,
-            joinLeaderboard(umi, { driver, player: playerA, leaderboard, mint }),
-            "rejoinA",
+            joinLeaderboard(umi, {
+              driver,
+              player: playerA,
+              leaderboard,
+              mint,
+            }),
+            'rejoinA',
             COMMIT
           ),
-        ["already joined", "PlayerAlreadyJoined"]
+        ['already joined', 'PlayerAlreadyJoined']
       );
     });
 
-    it("lets player B leave (count back to 1)", async function () {
+    it('lets player B leave (count back to 1)', async function () {
       await sendConfirmBuilder(
         umi,
         driver,
@@ -469,7 +478,7 @@ describe("Leaderboard", function () {
           leaderboard,
           mint,
         }),
-        "leaveB",
+        'leaveB',
         COMMIT
       );
       const lb = await poll(
@@ -488,10 +497,10 @@ describe("Leaderboard", function () {
           ),
         (v) => v == null
       );
-      assert.isNull(pb, "player B participant should be closed");
+      assert.isNull(pb, 'player B participant should be closed');
     });
 
-    it("accepts a sponsor deposit (pool + pending fees credited)", async function () {
+    it('accepts a sponsor deposit (pool + pending fees credited)', async function () {
       await sendConfirmBuilder(
         umi,
         driver,
@@ -502,7 +511,7 @@ describe("Leaderboard", function () {
           mint,
           amount: depositGross,
         }),
-        "deposit",
+        'deposit',
         COMMIT
       );
       const lb = await poll(
@@ -521,12 +530,12 @@ describe("Leaderboard", function () {
       assert.equal(pool!.amount, depositGross);
     });
 
-    it("lets the creator cancel before start", async function () {
+    it('lets the creator cancel before start', async function () {
       await sendConfirmBuilder(
         umi,
         driver,
         cancelLeaderboard(umi, { driver, creator, leaderboard }),
-        "cancel",
+        'cancel',
         COMMIT
       );
       const lb = await poll(
@@ -536,7 +545,7 @@ describe("Leaderboard", function () {
       assert.equal(lb!.state, LeaderboardState.Cancelled);
     });
 
-    it("refunds the sponsor the full gross amount", async function () {
+    it('refunds the sponsor the full gross amount', async function () {
       const before = await safeFetchToken(
         umi,
         findAssociatedTokenPda(umi, { mint, owner: sponsor.publicKey })
@@ -550,7 +559,7 @@ describe("Leaderboard", function () {
           leaderboard,
           mint,
         }),
-        "refund-sponsor",
+        'refund-sponsor',
         COMMIT
       );
       const lb = await poll(
@@ -571,7 +580,7 @@ describe("Leaderboard", function () {
       assert.equal(
         (after?.amount ?? 0n) - (before?.amount ?? 0n),
         depositGross,
-        "sponsor should get the full gross back on cancel"
+        'sponsor should get the full gross back on cancel'
       );
       const sp = await poll(
         () =>
@@ -584,10 +593,10 @@ describe("Leaderboard", function () {
           ),
         (v) => v == null
       );
-      assert.isNull(sp, "sponsor account should be closed after refund");
+      assert.isNull(sp, 'sponsor account should be closed after refund');
     });
 
-    it("errors 3012 on a duplicate sponsor refund (closed PDA)", async function () {
+    it('errors 3012 on a duplicate sponsor refund (closed PDA)', async function () {
       await expectTxError(
         () =>
           sendConfirmBuilder(
@@ -599,14 +608,14 @@ describe("Leaderboard", function () {
               leaderboard,
               mint,
             }),
-            "double-refund-sponsor",
+            'double-refund-sponsor',
             COMMIT
           ),
-        ["3012", "already initialized", "AccountNotInitialized"]
+        ['3012', 'already initialized', 'AccountNotInitialized']
       );
     });
 
-    it("refunds player A (closes participant)", async function () {
+    it('refunds player A (closes participant)', async function () {
       await sendConfirmBuilder(
         umi,
         driver,
@@ -616,7 +625,7 @@ describe("Leaderboard", function () {
           leaderboard,
           mint,
         }),
-        "refund-player",
+        'refund-player',
         COMMIT
       );
       const lb = await poll(
@@ -627,7 +636,7 @@ describe("Leaderboard", function () {
       assert.equal(lb!.refundedPlayerCount, lb!.participantCount);
     });
 
-    it("closes the leaderboard once all refunds are done", async function () {
+    it('closes the leaderboard once all refunds are done', async function () {
       await sendConfirmBuilder(
         umi,
         driver,
@@ -637,19 +646,19 @@ describe("Leaderboard", function () {
           leaderboard,
           mint,
         }),
-        "close",
+        'close',
         COMMIT
       );
       const lb = await poll(
         () => safeFetchLeaderboard(umi, leaderboard),
         (v) => v == null
       );
-      assert.isNull(lb, "leaderboard account should be closed");
+      assert.isNull(lb, 'leaderboard account should be closed');
       const pool = await poll(
         () => safeFetchToken(umi, poolAta),
         (v) => v == null
       );
-      assert.isNull(pool, "pool ATA should be closed");
+      assert.isNull(pool, 'pool ATA should be closed');
     });
   });
 
@@ -657,8 +666,8 @@ describe("Leaderboard", function () {
   // 3. conclude + payout happy path — GATED (needs a full >=1h window)
   //    Run with:  RUN_LONG=1 yarn test:leaderboard
   // =========================================================================
-  const longDescribe = process.env.RUN_LONG === "1" ? describe : describe.skip;
-  longDescribe("conclude & payout path (long, ~1h)", function () {
+  const longDescribe = process.env.RUN_LONG === '1' ? describe : describe.skip;
+  longDescribe('conclude & payout path (long, ~1h)', function () {
     let leaderboardId: string;
     let leaderboard: Pda;
     let playerA: KeypairSigner;
@@ -672,7 +681,7 @@ describe("Leaderboard", function () {
       playerB = generateSigner(umi);
     });
 
-    it("init + publish + join(2) + sponsor before the short start", async function () {
+    it('init + publish + join(2) + sponsor before the short start', async function () {
       const start = nowSec() + 150; // 2.5 min to get everyone in
       endTs = start + 3600;
       await sendConfirmBuilder(
@@ -687,14 +696,14 @@ describe("Leaderboard", function () {
             minParticipants: 2,
           })
         ),
-        "init-long",
+        'init-long',
         COMMIT
       );
       await sendConfirmBuilder(
         umi,
         driver,
         publishLeaderboard(umi, { driver, creator, leaderboard }),
-        "publish-long",
+        'publish-long',
         COMMIT
       );
       for (const p of [playerA, playerB]) {
@@ -702,7 +711,7 @@ describe("Leaderboard", function () {
           umi,
           driver,
           joinLeaderboard(umi, { driver, player: p, leaderboard, mint }),
-          "join-long",
+          'join-long',
           COMMIT
         );
       }
@@ -716,12 +725,12 @@ describe("Leaderboard", function () {
           mint,
           amount: 1000n,
         }),
-        "deposit-long",
+        'deposit-long',
         COMMIT
       );
     });
 
-    it("waits for the window to end, then concludes", async function () {
+    it('waits for the window to end, then concludes', async function () {
       // The window is >= 1h; allow up to ~75 min for this single test.
       this.timeout(4_500_000);
       while (nowSec() < endTs + 5) {
@@ -737,7 +746,7 @@ describe("Leaderboard", function () {
           mint,
           treasury: DEV_TREASURY,
         }),
-        "conclude",
+        'conclude',
         COMMIT
       );
       const lb = await poll(
@@ -748,7 +757,7 @@ describe("Leaderboard", function () {
       assert.equal(lb!.pendingFees, 0n);
     });
 
-    it("pays slots strictly in order and rejects out-of-order / re-pay", async function () {
+    it('pays slots strictly in order and rejects out-of-order / re-pay', async function () {
       const participantOf = (p: KeypairSigner) =>
         findParticipantPda(umi, {
           leaderboard: publicKey(leaderboard),
@@ -769,10 +778,10 @@ describe("Leaderboard", function () {
               mint,
               slotIndex: 1,
             }),
-            "slot1-early",
+            'slot1-early',
             COMMIT
           ),
-        ["Slot index out of order", "SlotIndexOutOfOrder"]
+        ['Slot index out of order', 'SlotIndexOutOfOrder']
       );
 
       // slot 0
@@ -787,7 +796,7 @@ describe("Leaderboard", function () {
           mint,
           slotIndex: 0,
         }),
-        "slot0",
+        'slot0',
         COMMIT
       );
       let lb = await poll(
@@ -810,10 +819,10 @@ describe("Leaderboard", function () {
               mint,
               slotIndex: 0,
             }),
-            "slot0-again",
+            'slot0-again',
             COMMIT
           ),
-        ["already paid", "WinnerAlreadyPaid"]
+        ['already paid', 'WinnerAlreadyPaid']
       );
 
       // slot 1
@@ -828,7 +837,7 @@ describe("Leaderboard", function () {
           mint,
           slotIndex: 1,
         }),
-        "slot1",
+        'slot1',
         COMMIT
       );
       lb = await poll(
@@ -838,7 +847,7 @@ describe("Leaderboard", function () {
       assert.equal(lb!.paidSlots, 2);
     });
 
-    it("closes the concluded leaderboard", async function () {
+    it('closes the concluded leaderboard', async function () {
       await sendConfirmBuilder(
         umi,
         driver,
@@ -848,7 +857,7 @@ describe("Leaderboard", function () {
           leaderboard,
           mint,
         }),
-        "close-long",
+        'close-long',
         COMMIT
       );
       const lb = await poll(

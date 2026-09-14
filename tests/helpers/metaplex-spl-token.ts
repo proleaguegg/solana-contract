@@ -5,21 +5,21 @@ import {
   createSignerFromKeypair,
   Umi,
   KeypairSigner,
-} from "@metaplex-foundation/umi";
-import base58 from "bs58";
+} from '@metaplex-foundation/umi';
+import base58 from 'bs58';
 import {
   TokenStandard,
   createAndMint,
   mplTokenMetadata,
-} from "@metaplex-foundation/mpl-token-metadata";
-import { createUmi } from "@metaplex-foundation/umi-bundle-defaults";
-import { solanaRpc } from "./contant";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+} from '@metaplex-foundation/mpl-token-metadata';
+import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
+import { solanaRpc } from './contant';
+import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 // Bonk
 const metadata = {
-  name: "Bonk",
-  symbol: "BONK",
-  uri: "https://bonkcoin.com/static/media/bonkog_200.e87b5d92088ca7a75178.png",
+  name: 'Bonk',
+  symbol: 'BONK',
+  uri: 'https://bonkcoin.com/static/media/bonkog_200.e87b5d92088ca7a75178.png',
 };
 // Ponke
 // const metadata = {
@@ -42,22 +42,22 @@ const createAndMintFunc = async (umi: Umi, mint: KeypairSigner) =>
     tokenStandard: TokenStandard.Fungible,
   }).sendAndConfirm(umi, {
     send: {
-      preflightCommitment: "processed",
+      preflightCommitment: 'processed',
     },
     confirm: {
-      commitment: "processed",
+      commitment: 'processed',
     },
   });
 
 // This anonymous function will invoke all the others functions
 (async () => {
   try {
-    const umi = createUmi(solanaRpc, "confirmed"); //Replace with your QuickNode RPC Endpoint
+    const umi = createUmi(solanaRpc, 'confirmed'); //Replace with your QuickNode RPC Endpoint
     umi.use(mplTokenMetadata());
 
-    const secret = process.env.DRIVER_ACCOUNT ?? "";
+    const secret = process.env.DRIVER_ACCOUNT ?? '';
     if (!secret) {
-      console.log("Err: No account found");
+      console.log('Err: No account found');
       return;
     }
 
@@ -72,11 +72,11 @@ const createAndMintFunc = async (umi: Umi, mint: KeypairSigner) =>
     console.log({ mint });
 
     const res = await createAndMintFunc(umi, mint);
-    console.log("res =>", res);
+    console.log('res =>', res);
 
-    console.log("Spl-Token created using Metaplex");
+    console.log('Spl-Token created using Metaplex');
     return;
   } catch (error) {
-    console.log("Error in creating Spl-Token =>", error);
+    console.log('Error in creating Spl-Token =>', error);
   }
 })();

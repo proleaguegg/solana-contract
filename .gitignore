@@ -23,3 +23,9 @@ test-result
 tempCodeRunnerFile.*
 # Claude cross-session memory belongs in ~/.claude, never the repo
 memory/
+
+# local scratch scripts + their output (not part of the package)
+local/
+
+# Claude Code local session config
+.claude/

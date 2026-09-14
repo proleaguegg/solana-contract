@@ -1,7 +1,7 @@
 class RandomStringGenerator {
   private preGeneratedStrings: string[];
   private characters =
-    "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
   private stringLength: number;
   private totalPreGenerated: number;
 
@@ -16,7 +16,7 @@ class RandomStringGenerator {
   }
 
   private generateString(): string {
-    let result = "";
+    let result = '';
     const charactersLength = this.characters.length;
     for (let i = 0; i < this.stringLength; i++) {
       result += this.characters.charAt(
