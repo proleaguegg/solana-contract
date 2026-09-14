@@ -1,9 +1,31 @@
 {
   "name": "@tanv33/pro-league",
-  "version": "1.0.0",
+  "version": "2.0.0",
+  "description": "TypeScript client for the ProLeague tournament and leaderboard program on Solana: escrowed prize pools, automated payouts, and on-chain platform fees.",
+  "keywords": [
+    "solana",
+    "anchor",
+    "umi",
+    "web3",
+    "tournament",
+    "leaderboard",
+    "esports",
+    "prize-pool",
+    "escrow",
+    "spl-token",
+    "kinobi"
+  ],
   "main": "index.js",
   "types": "index.d.ts",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/proleaguegg/proleague-tournament-contract-main.git"
+  },
+  "homepage": "https://github.com/proleaguegg/proleague-tournament-contract-main#readme",
+  "bugs": {
+    "url": "https://github.com/proleaguegg/proleague-tournament-contract-main/issues"
+  },
   "publishConfig": {
     "access": "public"
   },
