@@ -20,6 +20,8 @@ pub struct Tournament {
     pub is_paused: bool,
     pub mint: Pubkey,
     pub is_announced: bool,
+    pub platform_fee_bps: u16, // creator-set at initialize, capped at PLATFORM_FEE_BPS_MAX
+    pub pending_fees: u64, // fee portion already skimmed from entries/sponsor money, owed to TREASURY at close
     // pub tournament_closed: bool,
     // pub is_closed: bool,
 }
@@ -40,7 +42,9 @@ impl Tournament {
     + 1 // is_paused
     + 4 // tournament_id (length)
     + 28 // Default string size for tournament_id (adjustable)
-    + 32; // mint pubkey
+    + 32 // mint pubkey
+    + 2 // platform_fee_bps
+    + 8; // pending_fees
     /// Sets default values for a GuildKit.
     pub fn set_defaults(&mut self) {
         self.creator = Pubkey::default();
@@ -58,6 +62,8 @@ impl Tournament {
         self.players = Vec::new();
         self.rounds = Vec::new();
         self.is_announced = false;
+        self.platform_fee_bps = 0;
+        self.pending_fees = 0;
         // self.is_closed = false;
     }
     pub fn calculate_size(total_players: u16, total_rounds: u16) -> usize {

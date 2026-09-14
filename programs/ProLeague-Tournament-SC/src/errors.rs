@@ -74,6 +74,18 @@ pub enum TournamentError {
     PubkeyNotFound,
     #[msg("Brackets has been announced. You Can't leave tournament")]
     BracketsIsAnnounced,
+    #[msg("Platform fee exceeds maximum allowed")]
+    InvalidFee,
+    #[msg("Treasury account does not match program treasury")]
+    InvalidTreasury,
+    #[msg("Tournament is not published")]
+    TournamentNotPublished,
+    #[msg("Total players must be a power of two and at least 2")]
+    InvalidPlayerCount,
+    #[msg("Tournament sponsorship window is closed")]
+    SponsorshipClosed,
+    #[msg("Tournament is paused for cancellation")]
+    TournamentIsPaused,
 }
 
 #[error_code]

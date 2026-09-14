@@ -3,7 +3,10 @@ use anchor_spl::{
     token::{Mint, Token, TokenAccount, Transfer},
 };
 
-use crate::{constant::TOURNAMENT_TAG, errors::TournamentError};
+use crate::{
+    constant::{DRIVER, TOURNAMENT_TAG},
+    errors::TournamentError,
+};
 
 use {crate::state::*, anchor_lang::prelude::*};
 
@@ -14,7 +17,7 @@ pub struct SendPrize<'info> {
     /// CHECK: This is not unsafe
     #[account()]
     pub winner: AccountInfo<'info>,
-    #[account(mut)]
+    #[account(mut, constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
     #[account(mut,
@@ -56,10 +59,9 @@ pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {
         .position(|address| address.eq(&winner))
         .unwrap() as u32;
 
-    // // Validate if the match has been closed
-    // if !tournament.tournament_closed {
-    //     return Err(TournamentError::TournamentNotClosed.into());
-    // }
+    // Paying a prize while the tournament is being cancelled would drain escrow
+    // that is owed back to players, leaving refund_joining_fees short.
+    require!(!tournament.is_paused, TournamentError::TournamentIsPaused);
 
     // Check if winner exists in this round
     let round = &mut tournament.rounds[round_index as usize];

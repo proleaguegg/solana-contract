@@ -8,7 +8,7 @@ use anchor_spl::{
 };
 
 use {
-    crate::{constant::*, errors::TournamentError, state::*},
+    crate::{constant::*, errors::TournamentError, state::*, utils::compute_net_bps},
     anchor_lang::prelude::*,
 };
 
@@ -58,6 +58,7 @@ pub struct ArgumentInitialize {
     pub total_players: u16,
     pub winning_rounds: u8,
     pub tournament_id: String,
+    pub platform_fee_bps: u16,
 }
 pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<()> {
     msg!("Tournament Initialized with data: {:?}!", data);
@@ -67,6 +68,20 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     let driver = &ctx.accounts.driver;
     let mint = &ctx.accounts.mint;
     tournament.set_defaults();
+
+    require!(
+        data.platform_fee_bps <= PLATFORM_FEE_BPS_MAX,
+        TournamentError::InvalidFee
+    );
+
+    // The bracket only works on a power of two: the account is sized with
+    // log2() truncated while publish builds log2().ceil() rounds, so anything
+    // else allocates too little space and wedges the tournament after entry
+    // fees are already escrowed.
+    require!(
+        data.total_players >= 2 && data.total_players.is_power_of_two(),
+        TournamentError::InvalidPlayerCount
+    );
 
     if !global.whitelist_mint.contains(&mint.key()){
         require!(creator.is_signer, TournamentError::CreatorMustBeSigner);
@@ -93,6 +108,8 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     tournament.tournament_id = data.tournament_id;
     tournament.joining_fees = data.joining_fees;
     tournament.total_players = data.total_players;
+    tournament.platform_fee_bps = data.platform_fee_bps;
+    tournament.pending_fees = 0;
     // tournament.tournament_closed = false;
     tournament.is_published = false;
     tournament.is_announced = false;
@@ -110,7 +127,7 @@ pub struct PublishTournament<'info> {
     #[account()]
     pub creator: Signer<'info>,
 
-    #[account(mut)]
+    #[account(mut, constraint = tournament.creator == creator.key() @ TournamentError::WrongCreator)]
     pub tournament: Account<'info, Tournament>,
 
     #[account(mut,
@@ -149,13 +166,26 @@ pub fn publish_tournament(
     //     return Err(TournamentError::TournamentIsClosed.into());
     // }
 
+    // Publish exactly once. Re-publishing would let the prize ladder and entry
+    // fee be rewritten mid-tournament (wiping recorded winners along with it).
+    require!(
+        !tournament.is_published,
+        TournamentError::TournamentPublished
+    );
+
     // Update tournament details
     if let Some(joining_fees) = data.joining_fees {
+        // The entry fee is what every booked platform fee is derived from, so
+        // it can't move once anyone has paid it — refunds would no longer
+        // match what was charged.
+        require!(
+            tournament.players.is_empty(),
+            TournamentError::PlayerAlreadyJoined
+        );
         tournament.joining_fees = joining_fees;
     }
     // Check the escrow_balance and  round_prizes sum
     let mut total_prize_sum: u64 = 0;
-    let total_fee: u64 = tournament.joining_fees * (tournament.total_players as u64);
 
     // This will give: 1, 1, 2, 4, 8, ... for each round
     let mut winners_in_current_round = 1;
@@ -180,13 +210,32 @@ pub fn publish_tournament(
         });
     }
 
-    let needed_amount = if tournament_token_account.amount > total_prize_sum {
-        0
-    } else {
-        total_prize_sum - tournament_token_account.amount
-    };
-    if total_fee < needed_amount {
-        // Transfer the escrow balance from the creator to the new account (vault)
+    // Money already sitting in escrow net of platform fees already booked on it
+    // (e.g. a sponsor deposit that landed before publish), plus what entry fees
+    // will net out to once the platform's cut is skimmed off each join.
+    let available_net_now = tournament_token_account
+        .amount
+        .checked_sub(tournament.pending_fees)
+        .ok_or(TournamentError::OverFlow)?;
+    let entry_net_per_player =
+        compute_net_bps(tournament.joining_fees, tournament.platform_fee_bps, TOTAL_BPS)
+            .ok_or(TournamentError::OverFlow)?;
+    // Only the seats still open get projected — anyone who already joined has
+    // their money sitting in the escrow above, and counting them twice would
+    // understate the shortfall and let the prize pool publish underfunded.
+    let remaining_slots = (tournament.total_players as u64)
+        .saturating_sub(tournament.players.len() as u64);
+    let total_expected_entry_net = entry_net_per_player
+        .checked_mul(remaining_slots)
+        .ok_or(TournamentError::OverFlow)?;
+    let projected_net_total = available_net_now
+        .checked_add(total_expected_entry_net)
+        .ok_or(TournamentError::OverFlow)?;
+
+    let needed_amount = total_prize_sum.saturating_sub(projected_net_total);
+    if needed_amount > 0 {
+        // Creator tops up the exact prize shortfall directly — this top-up isn't
+        // an entry fee or sponsorship, so it isn't subject to the platform fee.
         let cpi_ctx = CpiContext::new(
             ctx.accounts.token_program.to_account_info().clone(),
             Transfer {
@@ -195,7 +244,7 @@ pub fn publish_tournament(
                 authority: creator.to_account_info().clone(),
             },
         );
-        anchor_spl::token::transfer(cpi_ctx, needed_amount - total_fee)?;
+        anchor_spl::token::transfer(cpi_ctx, needed_amount)?;
     }
     tournament.is_published = true;
     // msg!("Changed data to: {:?}!", data);
@@ -248,6 +297,11 @@ pub fn sponsor_tournament(
     //     return Err(TournamentError::TournamentIsClosed.into());
     // }
 
+    // A paused tournament is being cancelled — refunds are already going out.
+    // New money landing here would re-block the teardown (the final cancel step
+    // requires sponsor_amount == 0) and risks being swept to the creator.
+    require!(!tournament.is_paused, TournamentError::SponsorshipClosed);
+
     // Validate if the tournament is already sponsored
     if tournament.sponsor_amount > 0 {
         return Err(TournamentError::TournamentAlreadySponsored.into());
@@ -264,6 +318,16 @@ pub fn sponsor_tournament(
     );
 
     anchor_spl::token::transfer(cpi_ctx, sponsor_amount)?;
+
+    // Sponsor money is subject to the platform fee too, same as entry fees —
+    // booked here, actually swept to TREASURY at close_tournament.
+    let sponsor_fee = compute_net_bps(sponsor_amount, tournament.platform_fee_bps, TOTAL_BPS)
+        .map(|net| sponsor_amount - net)
+        .ok_or(TournamentError::OverFlow)?;
+    tournament.pending_fees = tournament
+        .pending_fees
+        .checked_add(sponsor_fee)
+        .ok_or(TournamentError::OverFlow)?;
 
     tournament.sponsor_amount = sponsor_amount;
     tournament.sponsor = sponsor.key();
@@ -290,8 +354,19 @@ pub struct CloseTournament<'info> {
      )]
      pub creator_token_account: Account<'info, TokenAccount>,
 
+    /// CHECK: must equal the program's TREASURY constant
+    #[account(constraint = treasury.key() == TREASURY @ TournamentError::InvalidTreasury)]
+    pub treasury: AccountInfo<'info>,
 
-    #[account(constraint = driver.key().eq(&DRIVER))]
+    #[account(
+        init_if_needed,
+        payer = driver,
+        associated_token::mint = mint,
+        associated_token::authority = treasury,
+    )]
+    pub treasury_token_account: Account<'info, TokenAccount>,
+
+    #[account(mut, constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
     #[account()]
@@ -304,9 +379,15 @@ pub struct CloseTournament<'info> {
 pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
     let creator_token_account = &mut ctx.accounts.creator_token_account;
+    let treasury_token_account = &mut ctx.accounts.treasury_token_account;
     let driver = &ctx.accounts.driver;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
-    
+
+    // A paused tournament must unwind through the refund path
+    // (refund_joining_fees / refund_sponsor / refund_creator_and_cancel), not
+    // sweep to the treasury and creator with players still owed their entry fees.
+    require!(!tournament.is_paused, TournamentError::TournamentIsPaused);
+
     // Loop through each round
     for round in tournament.rounds.iter() {
         // Check each winner's claimed status
@@ -321,31 +402,31 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
             if expected_length != round.winners_and_collected_status.len() {
                 return Err(TournamentError::ExpectedWinnerLength.into()); // Define YourError as needed
             }
-            let mut claimed_count = 0;
+            // Every recorded entry must be settled before the pot can be swept:
+            // either it was paid out, or that player advanced and gets paid in
+            // the round they actually go out in. Counting claims instead let a
+            // round close with prizes still owed (round 0 never checked at all,
+            // and rounds of 4+ passed on a single claim), stranding winners
+            // once the escrow is closed.
             for winner_status in round.winners_and_collected_status.values() {
-                if winner_status.claimed {
-                    claimed_count += 1;
+                if !winner_status.claimed && !winner_status.won_next_round {
+                    return Err(TournamentError::PrizeNotClaimed.into());
                 }
             }
-    
-            let half_players = expected_length / 2; // calculate half (integer division)
-    
-            // If the number of claimed prizes is not exactly half, throw an error
-            if claimed_count != half_players && expected_length != 1 && claimed_count != 1 {
-                return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
-            }
-            // for winner_status in round.winners_and_collected_status.values() {
-            //     // if !winner_status.claimed && !winner_status.won_next_round && round.winning_price > 0 { // risky but have to do it becuase of job ruing concurrently
-            //     if !winner_status.claimed && round.winning_price > 0 {
-            //         // If any winner has not claimed their prize, throw an error
-            //         return Err(TournamentError::PrizeNotClaimed.into()); // Define YourError as needed
-            //     }
-            // }
         }
     }
 
     // Send remaining tokens to the specific address
-    let remaining_balance = tournament_token_account.amount;
+    let total_balance = tournament_token_account.amount;
+
+    // Sweep the platform's cut first, then whatever's left goes to the creator.
+    // Clamp to total_balance as a belt-and-braces guard — bookkeeping should
+    // always keep pending_fees <= total_balance, this just stops an underflow
+    // panic if it ever drifted.
+    let fee_amount = tournament.pending_fees.min(total_balance);
+    let remaining_balance = total_balance - fee_amount;
+    tournament.pending_fees = 0;
+
     let tournament_seed = &[
         TOURNAMENT_TAG.as_ref(),
         &tournament.tournament_id.as_ref(),
@@ -353,8 +434,21 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
     ];
     let cpi_signer = &[&tournament_seed[..]];
 
+    if fee_amount > 0 {
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info().clone(),
+            Transfer {
+                from: tournament_token_account.to_account_info(),
+                to: treasury_token_account.to_account_info(),
+                authority: tournament.to_account_info(),
+            },
+            cpi_signer,
+        );
+        anchor_spl::token::transfer(cpi_ctx, fee_amount)?;
+    }
+
     if remaining_balance > 0 {
-       
+
         // Transfer the escrow balance from the tournament to the creator (vault)
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info().clone(),
@@ -398,8 +492,16 @@ pub fn announce_tournament(
     ctx: Context<AnnounceTournament>
 ) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
- 
+
+    // Announcing locks the roster (leave_tournament is blocked afterwards), so
+    // the prize ladder has to already be set and funded — otherwise players are
+    // committed before they can see what they are playing for.
+    require!(
+        tournament.is_published,
+        TournamentError::TournamentNotPublished
+    );
+
     tournament.is_announced = true;
-    msg!("Tournament has been announced");    
+    msg!("Tournament has been announced");
     Ok(())
 }

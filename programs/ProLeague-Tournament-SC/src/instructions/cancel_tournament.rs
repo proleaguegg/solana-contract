@@ -75,6 +75,12 @@ pub fn refund_joining_fees(ctx: Context<RefundJoiningFees>) -> Result<()> {
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
 
 
+    // Refunds belong to the cancellation flow only. On a live tournament this
+    // would hand back an entry fee that is already promised as prize money and
+    // silently drop the player from the bracket. Voluntary exit before the
+    // brackets are announced is what leave_tournament is for.
+    require!(tournament.is_paused, TournamentError::TournamentNotPaused);
+
     // Check joining fees
     if tournament.joining_fees <= 0 {
         return Err(TournamentError::NoJoiningFeeFound.into());
@@ -104,6 +110,19 @@ pub fn refund_joining_fees(ctx: Context<RefundJoiningFees>) -> Result<()> {
             cpi_signer
         );
         anchor_spl::token::transfer(cpi_ctx, tournament.joining_fees)?;
+
+        // Undo the platform-fee booking made at join time — refunding the full
+        // gross entry fee means nothing is owed to TREASURY on it anymore.
+        let fee = crate::utils::compute_fee_bps(
+            tournament.joining_fees,
+            tournament.platform_fee_bps,
+            TOTAL_BPS,
+        )
+        .ok_or(TournamentError::OverFlow)?;
+        tournament.pending_fees = tournament
+            .pending_fees
+            .checked_sub(fee)
+            .ok_or(TournamentError::OverFlow)?;
     }
 
    // Remove player from the list
@@ -154,6 +173,10 @@ pub fn refund_sponsor(ctx: Context<RefundSponsor>) -> Result<()> {
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
 
 
+    // Same as refund_joining_fees: only unwind a sponsorship as part of a
+    // cancellation, never out from under a running tournament's prize pool.
+    require!(tournament.is_paused, TournamentError::TournamentNotPaused);
+
     // Check sponsor
     if !tournament.is_sponsored {
         return Err(TournamentError::TournamentNotSponsored.into());
@@ -187,6 +210,19 @@ pub fn refund_sponsor(ctx: Context<RefundSponsor>) -> Result<()> {
         cpi_signer,
         );
         anchor_spl::token::transfer(cpi_ctx, tournament.sponsor_amount)?;
+
+        // Undo the platform-fee booking made at sponsor time — same reasoning
+        // as refund_joining_fees: full gross refund, nothing owed on it.
+        let fee = crate::utils::compute_fee_bps(
+            tournament.sponsor_amount,
+            tournament.platform_fee_bps,
+            TOTAL_BPS,
+        )
+        .ok_or(TournamentError::OverFlow)?;
+        tournament.pending_fees = tournament
+            .pending_fees
+            .checked_sub(fee)
+            .ok_or(TournamentError::OverFlow)?;
     }
 
    // Reset sponsor amount

@@ -5,7 +5,12 @@ use anchor_spl::{
 };
 
 use {
-    crate::{constant::*, errors::LeaderboardError, state::*},
+    crate::{
+        constant::*,
+        errors::LeaderboardError,
+        state::*,
+        utils::{compute_fee_bps, compute_net_bps},
+    },
     anchor_lang::prelude::*,
 };
 
@@ -250,14 +255,9 @@ pub fn cancel_leaderboard(ctx: Context<CancelLeaderboard>) -> Result<()> {
 // ----- helpers -----
 
 pub fn compute_net(gross: u64, fee_bps: u16) -> Result<u64> {
-    let fee = compute_fee(gross, fee_bps)?;
-    gross.checked_sub(fee).ok_or(LeaderboardError::OverFlow.into())
+    compute_net_bps(gross, fee_bps, TOTAL_BPS).ok_or(LeaderboardError::OverFlow.into())
 }
 
 pub fn compute_fee(gross: u64, fee_bps: u16) -> Result<u64> {
-    (gross as u128)
-        .checked_mul(fee_bps as u128)
-        .and_then(|v| v.checked_div(TOTAL_BPS as u128))
-        .and_then(|v| u64::try_from(v).ok())
-        .ok_or(LeaderboardError::OverFlow.into())
+    compute_fee_bps(gross, fee_bps, TOTAL_BPS).ok_or(LeaderboardError::OverFlow.into())
 }

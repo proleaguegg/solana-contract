@@ -77,6 +77,81 @@ pub fn reallocate_bytes<'info>(
     }
 }
 
+/// Splits a gross amount into (fee, net) at `fee_bps` / `total_bps`. Shared by
+/// tournament and leaderboard fee math so both stay in lockstep. `None` on overflow.
+pub fn compute_fee_bps(gross: u64, fee_bps: u16, total_bps: u16) -> Option<u64> {
+    (gross as u128)
+        .checked_mul(fee_bps as u128)
+        .and_then(|v| v.checked_div(total_bps as u128))
+        .and_then(|v| u64::try_from(v).ok())
+}
+
+pub fn compute_net_bps(gross: u64, fee_bps: u16, total_bps: u16) -> Option<u64> {
+    let fee = compute_fee_bps(gross, fee_bps, total_bps)?;
+    gross.checked_sub(fee)
+}
+
+#[cfg(test)]
+mod fee_math_tests {
+    use super::*;
+
+    const TOTAL: u16 = 10_000;
+
+    #[test]
+    fn fee_and_net_always_sum_to_gross() {
+        // No dust may be created or lost: what the player pays must equal what
+        // the prize pool gets plus what the treasury is owed.
+        for gross in [0u64, 1, 3, 7, 10, 999, 10_000_000_000, u64::MAX / 4] {
+            for bps in [0u16, 1, 250, 2_000, 3_000] {
+                let fee = compute_fee_bps(gross, bps, TOTAL).unwrap();
+                let net = compute_net_bps(gross, bps, TOTAL).unwrap();
+                assert_eq!(fee + net, gross, "gross={gross} bps={bps}");
+            }
+        }
+    }
+
+    #[test]
+    fn zero_fee_takes_nothing() {
+        assert_eq!(compute_fee_bps(1_000, 0, TOTAL), Some(0));
+        assert_eq!(compute_net_bps(1_000, 0, TOTAL), Some(1_000));
+    }
+
+    #[test]
+    fn twenty_percent_of_ten_is_two() {
+        assert_eq!(compute_fee_bps(10, 2_000, TOTAL), Some(2));
+        assert_eq!(compute_net_bps(10, 2_000, TOTAL), Some(8));
+    }
+
+    #[test]
+    fn rounds_down_never_over_charges() {
+        // 3 * 20% = 0.6 -> floors to 0, so the player never loses a whole unit.
+        assert_eq!(compute_fee_bps(3, 2_000, TOTAL), Some(0));
+    }
+
+    #[test]
+    fn join_then_refund_returns_to_zero() {
+        // join_tournament books this, leave_tournament / refund_joining_fees
+        // un-books it — the pair must cancel exactly or pending_fees drifts.
+        let entry = 10_000_000u64;
+        let bps = 2_000u16;
+        let mut pending = 0u64;
+        for _ in 0..8 {
+            pending += compute_fee_bps(entry, bps, TOTAL).unwrap();
+        }
+        for _ in 0..8 {
+            pending = pending
+                .checked_sub(compute_fee_bps(entry, bps, TOTAL).unwrap())
+                .unwrap();
+        }
+        assert_eq!(pending, 0);
+    }
+
+    #[test]
+    fn overflow_is_none_not_panic() {
+        assert_eq!(compute_fee_bps(u64::MAX, 3_000, 0), None);
+    }
+}
+
 pub fn assert_program_authority(
     program: AccountInfo,
     program_data: AccountInfo,

@@ -51,6 +51,11 @@ pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
     // if tournament.tournament_closed {
     //     return Err(TournamentError::TournamentNotClosed.into());
     // }
+    // A paused tournament is being cancelled and every entry fee is on its way
+    // back out — taking more in would just have to be refunded again, and it
+    // re-blocks the final cancel step (which requires an empty player list).
+    require!(!tournament.is_paused, TournamentError::TournamentIsPaused);
+
     if tournament.players.len() >= tournament.total_players as usize {
         return Err(TournamentError::TournamentIsFull.into());
     }
@@ -75,6 +80,19 @@ pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
             },
         );
         anchor_spl::token::transfer(cpi_ctx, tournament.joining_fees)?;
+
+        // Platform's cut of this entry fee — booked here, actually swept to
+        // TREASURY at close_tournament (see close_tournament / helper::compute_fee_bps).
+        let fee = crate::utils::compute_fee_bps(
+            tournament.joining_fees,
+            tournament.platform_fee_bps,
+            TOTAL_BPS,
+        )
+        .ok_or(TournamentError::OverFlow)?;
+        tournament.pending_fees = tournament
+            .pending_fees
+            .checked_add(fee)
+            .ok_or(TournamentError::OverFlow)?;
     }
 
     // Add the player to the tournament's list of players
@@ -151,6 +169,19 @@ pub fn leave_tournament(ctx: Context<LeaveTournament>) -> Result<()> {
             cpi_signer
         );
         anchor_spl::token::transfer(cpi_ctx, tournament.joining_fees)?;
+
+        // Undo the platform-fee booking made at join time — the player is
+        // getting their full gross entry fee back, so nothing is owed on it.
+        let fee = crate::utils::compute_fee_bps(
+            tournament.joining_fees,
+            tournament.platform_fee_bps,
+            TOTAL_BPS,
+        )
+        .ok_or(TournamentError::OverFlow)?;
+        tournament.pending_fees = tournament
+            .pending_fees
+            .checked_sub(fee)
+            .ok_or(TournamentError::OverFlow)?;
     }
 
     // Remove player from the list
