@@ -86,6 +86,10 @@ pub enum TournamentError {
     SponsorshipClosed,
     #[msg("Tournament is paused for cancellation")]
     TournamentIsPaused,
+    #[msg("Creator has insufficient funds to cover the prize pool and platform fee")]
+    InsufficientCreatorFunds,
+    #[msg("A tournament that charges an entry fee must award a prize pool")]
+    PrizePoolRequired,
 }
 
 #[error_code]

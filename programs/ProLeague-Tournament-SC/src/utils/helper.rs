@@ -129,21 +129,59 @@ mod fee_math_tests {
     }
 
     #[test]
-    fn join_then_refund_returns_to_zero() {
-        // join_tournament books this, leave_tournament / refund_joining_fees
-        // un-books it — the pair must cancel exactly or pending_fees drifts.
-        let entry = 10_000_000u64;
+    fn entries_do_not_move_the_fee() {
+        // The fee is a cut of the prize pool, fixed at publish. Joins, leaves and
+        // refunds must not touch it at all — the old per-entry booking is gone.
+        let pool = 1_000_000u64;
         let bps = 2_000u16;
-        let mut pending = 0u64;
-        for _ in 0..8 {
-            pending += compute_fee_bps(entry, bps, TOTAL).unwrap();
+        let pending = compute_fee_bps(pool, bps, TOTAL).unwrap();
+        // however many entries arrive or are refunded, pending_fees is unchanged
+        assert_eq!(pending, 200_000);
+        assert_eq!(compute_fee_bps(pool, bps, TOTAL).unwrap(), pending);
+    }
+
+    /// Mirrors publish_tournament: payees per round run 1, 1, 2, 4, 8 ...
+    fn weighted_pool(prizes: &[u64]) -> Option<u64> {
+        let mut total: u64 = 0;
+        let mut winners: u64 = 1;
+        for (i, p) in prizes.iter().enumerate() {
+            total = total.checked_add(p.checked_mul(winners)?)?;
+            if i >= 1 {
+                winners = winners.checked_mul(2)?;
+            }
         }
-        for _ in 0..8 {
-            pending = pending
-                .checked_sub(compute_fee_bps(entry, bps, TOTAL).unwrap())
-                .unwrap();
-        }
-        assert_eq!(pending, 0);
+        Some(total)
+    }
+
+    #[test]
+    fn prize_pool_is_weighted_not_a_plain_sum() {
+        // The naive sum(round_prizes) undercharges on any ladder deeper than two
+        // rounds, because index 2 onward pay 2, 4, 8 players each.
+        assert_eq!(weighted_pool(&[40, 30]), Some(70)); // shallow: coincides
+        assert_eq!(weighted_pool(&[40, 30, 20]), Some(110)); // naive sum would be 90
+        assert_eq!(weighted_pool(&[40, 30, 20, 10]), Some(150)); // naive sum would be 100
+    }
+
+    #[test]
+    fn pool_fee_is_charged_on_top_so_winners_are_never_short() {
+        let pool = weighted_pool(&[40, 30, 20, 10]).unwrap(); // 150
+        let fee = compute_fee_bps(pool, 700, TOTAL).unwrap();
+        assert_eq!(fee, 10); // floor(150 * 700 / 10000)
+        // creator funds pool + fee; the pool itself is untouched
+        assert_eq!(pool + fee, 160);
+    }
+
+    #[test]
+    fn zero_pool_means_zero_fee() {
+        assert_eq!(weighted_pool(&[]), Some(0));
+        assert_eq!(compute_fee_bps(0, 3_000, TOTAL), Some(0));
+    }
+
+    #[test]
+    fn pool_math_is_checked_not_wrapping() {
+        // A wrap here would silently zero the platform fee, so it must return None.
+        assert_eq!(weighted_pool(&[u64::MAX, u64::MAX]), None);
+        assert_eq!(weighted_pool(&[u64::MAX / 2, u64::MAX / 2, u64::MAX]), None);
     }
 
     #[test]

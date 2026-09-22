@@ -8,7 +8,7 @@ use anchor_spl::{
 };
 
 use {
-    crate::{constant::*, errors::TournamentError, state::*, utils::compute_net_bps},
+    crate::{constant::*, errors::TournamentError, state::*, utils::compute_fee_bps},
     anchor_lang::prelude::*,
 };
 
@@ -173,34 +173,63 @@ pub fn publish_tournament(
         TournamentError::TournamentPublished
     );
 
+    // Publish before anyone joins. The escrow balance is what funds the pool and
+    // the fee, and entry money can still leave a live tournament via
+    // leave_tournament — counting it here would let a later leave drain the pool
+    // below what winners are owed. Sponsorship cannot leave (refund_sponsor
+    // requires a pause), so pre-publish sponsor money is safe to count.
+    require!(
+        tournament.players.is_empty(),
+        TournamentError::PlayerAlreadyJoined
+    );
+
     // Update tournament details
     if let Some(joining_fees) = data.joining_fees {
-        // The entry fee is what every booked platform fee is derived from, so
-        // it can't move once anyone has paid it — refunds would no longer
-        // match what was charged.
-        require!(
-            tournament.players.is_empty(),
-            TournamentError::PlayerAlreadyJoined
-        );
         tournament.joining_fees = joining_fees;
     }
+    // Rounds the bracket actually has. Prices beyond this are silently dropped
+    // when the rounds vec is built below, so allowing them would inflate both the
+    // funding requirement and the fee base for prizes that can never be paid.
+    let num_rounds = (tournament.total_players as f64).log2().ceil() as usize;
+    require!(
+        data.round_prizes.len() <= num_rounds,
+        TournamentError::InvalidRound
+    );
+
     // Check the escrow_balance and  round_prizes sum
     let mut total_prize_sum: u64 = 0;
 
-    // This will give: 1, 1, 2, 4, 8, ... for each round
-    let mut winners_in_current_round = 1;
+    // Payees per round run 1, 1, 2, 4, 8 ... — round i holds 2^i players, of whom
+    // 2^(i-1) are eliminated there and paid. This weighted sum is the real prize
+    // pool and, from here on, the platform fee base, so every step is checked:
+    // a wrap would silently zero the fee.
+    let mut winners_in_current_round: u64 = 1;
 
     for i in 0..data.round_prizes.len() {
-        total_prize_sum += data.round_prizes[i] * winners_in_current_round;
+        let round_cost = data.round_prizes[i]
+            .checked_mul(winners_in_current_round)
+            .ok_or(TournamentError::OverFlow)?;
+        total_prize_sum = total_prize_sum
+            .checked_add(round_cost)
+            .ok_or(TournamentError::OverFlow)?;
 
         // Double the winners for every round after the first two rounds
         if i >= 1 {
-            winners_in_current_round *= 2;
+            winners_in_current_round = winners_in_current_round
+                .checked_mul(2)
+                .ok_or(TournamentError::OverFlow)?;
         }
     }
 
+    // The platform fee is a cut of the prize pool, so a tournament that charges
+    // an entry fee but awards nothing would pay the platform nothing while the
+    // creator keeps every entry. Free tournaments with no prizes stay allowed.
+    require!(
+        total_prize_sum > 0 || tournament.joining_fees == 0,
+        TournamentError::PrizePoolRequired
+    );
+
     // Initialize rounds based on total players
-    let num_rounds = (tournament.total_players as f64).log2().ceil() as usize;
     tournament.rounds = Vec::with_capacity(num_rounds as usize);
     for i in 0..num_rounds {
         tournament.rounds.push(Round {
@@ -210,32 +239,32 @@ pub fn publish_tournament(
         });
     }
 
-    // Money already sitting in escrow net of platform fees already booked on it
-    // (e.g. a sponsor deposit that landed before publish), plus what entry fees
-    // will net out to once the platform's cut is skimmed off each join.
-    let available_net_now = tournament_token_account
-        .amount
-        .checked_sub(tournament.pending_fees)
+    // The platform fee is a cut of the prize pool charged ON TOP of it, so
+    // winners always receive the full advertised prize and the payout path is
+    // untouched. round_prizes is only knowable here, and publish is single-use,
+    // so the fee is fixed for the life of the tournament at this point.
+    let fee = compute_fee_bps(total_prize_sum, tournament.platform_fee_bps, TOTAL_BPS)
         .ok_or(TournamentError::OverFlow)?;
-    let entry_net_per_player =
-        compute_net_bps(tournament.joining_fees, tournament.platform_fee_bps, TOTAL_BPS)
-            .ok_or(TournamentError::OverFlow)?;
-    // Only the seats still open get projected — anyone who already joined has
-    // their money sitting in the escrow above, and counting them twice would
-    // understate the shortfall and let the prize pool publish underfunded.
-    let remaining_slots = (tournament.total_players as u64)
-        .saturating_sub(tournament.players.len() as u64);
-    let total_expected_entry_net = entry_net_per_player
-        .checked_mul(remaining_slots)
-        .ok_or(TournamentError::OverFlow)?;
-    let projected_net_total = available_net_now
-        .checked_add(total_expected_entry_net)
-        .ok_or(TournamentError::OverFlow)?;
+    tournament.pending_fees = fee;
 
-    let needed_amount = total_prize_sum.saturating_sub(projected_net_total);
+    // The escrow must hold the entire pool plus the fee before anyone can join.
+    // Entry fees are deliberately NOT projected here: they arrive later and may
+    // never arrive at all, and one escrow funds both prizes and the fee, so a
+    // pool covered by expected entries is how an under-filled bracket ends up
+    // shorting the treasury. Whatever already funded the escrow (a sponsor, or
+    // an early join) counts; the creator covers only the remainder.
+    let required = total_prize_sum
+        .checked_add(fee)
+        .ok_or(TournamentError::OverFlow)?;
+    let needed_amount = required.saturating_sub(tournament_token_account.amount);
+
     if needed_amount > 0 {
-        // Creator tops up the exact prize shortfall directly — this top-up isn't
-        // an entry fee or sponsorship, so it isn't subject to the platform fee.
+        // Fail with a clear error rather than an opaque SPL insufficient-funds
+        // deep inside the transfer CPI.
+        require!(
+            creator_token_account.amount >= needed_amount,
+            TournamentError::InsufficientCreatorFunds
+        );
         let cpi_ctx = CpiContext::new(
             ctx.accounts.token_program.to_account_info().clone(),
             Transfer {
@@ -319,16 +348,8 @@ pub fn sponsor_tournament(
 
     anchor_spl::token::transfer(cpi_ctx, sponsor_amount)?;
 
-    // Sponsor money is subject to the platform fee too, same as entry fees —
-    // booked here, actually swept to TREASURY at close_tournament.
-    let sponsor_fee = compute_net_bps(sponsor_amount, tournament.platform_fee_bps, TOTAL_BPS)
-        .map(|net| sponsor_amount - net)
-        .ok_or(TournamentError::OverFlow)?;
-    tournament.pending_fees = tournament
-        .pending_fees
-        .checked_add(sponsor_fee)
-        .ok_or(TournamentError::OverFlow)?;
-
+    // Sponsorship is NOT fee'd. The platform fee is a cut of the prize pool that
+    // this money funds; charging here too would take the same money twice.
     tournament.sponsor_amount = sponsor_amount;
     tournament.sponsor = sponsor.key();
     tournament.is_sponsored = true;

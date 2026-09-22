@@ -21,7 +21,7 @@ pub struct Tournament {
     pub mint: Pubkey,
     pub is_announced: bool,
     pub platform_fee_bps: u16, // creator-set at initialize, capped at PLATFORM_FEE_BPS_MAX
-    pub pending_fees: u64, // fee portion already skimmed from entries/sponsor money, owed to TREASURY at close
+    pub pending_fees: u64, // platform fee on the prize pool, fixed at publish, owed to TREASURY at close
     // pub tournament_closed: bool,
     // pub is_closed: bool,
 }

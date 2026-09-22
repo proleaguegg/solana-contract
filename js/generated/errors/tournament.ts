@@ -586,6 +586,40 @@ export class TournamentIsPausedError extends ProgramError {
 codeToErrorMap.set(0x1799, TournamentIsPausedError);
 nameToErrorMap.set('TournamentIsPaused', TournamentIsPausedError);
 
+/** InsufficientCreatorFunds: Creator has insufficient funds to cover the prize pool and platform fee */
+export class InsufficientCreatorFundsError extends ProgramError {
+  override readonly name: string = 'InsufficientCreatorFunds';
+
+  readonly code: number = 0x179a; // 6042
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'Creator has insufficient funds to cover the prize pool and platform fee',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x179a, InsufficientCreatorFundsError);
+nameToErrorMap.set('InsufficientCreatorFunds', InsufficientCreatorFundsError);
+
+/** PrizePoolRequired: A tournament that charges an entry fee must award a prize pool */
+export class PrizePoolRequiredError extends ProgramError {
+  override readonly name: string = 'PrizePoolRequired';
+
+  readonly code: number = 0x179b; // 6043
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'A tournament that charges an entry fee must award a prize pool',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x179b, PrizePoolRequiredError);
+nameToErrorMap.set('PrizePoolRequired', PrizePoolRequiredError);
+
 /**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors
