@@ -625,15 +625,22 @@ describe('Tournament — edge cases', function () {
 
   // ---- fee accounting -------------------------------------------------------
 
-  it('books the platform fee on join and reverses it on leave', async function () {
+  it('does not fee entry fees — pendingFees is unchanged by join and leave', async function () {
+    // The platform fee is now a cut of the prize pool, fixed at publish.
+    // Entry money must flow into escrow whole and never move pendingFees.
     const t = await initTournament({ joiningFees: SMALL_FEE });
-    await publish(t, [0, 0]);
+    await createTokenAccount(umi, mint, driver, creator.publicKey);
+    await publish(t, [SMALL_FEE, 0]);
 
-    // the sponsor wallet doubles as the paying player — it already holds
-    // TOKEN_MINT, so no funding hop is needed
-    const player = sponsor;
-    const expectedFee = feeOf(SMALL_FEE, FEE_BPS);
+    const published = await pollT(t.pda, (a) => a.isPublished);
+    const feeAtPublish = Number(published!.pendingFees);
+    assert.equal(
+      feeAtPublish,
+      feeOf(SMALL_FEE, FEE_BPS),
+      'fee is floor(pool x bps) fixed at publish'
+    );
 
+    const player = sponsor; // already holds TOKEN_MINT
     umi.use(keypairIdentity(driver));
     await sendConfirmBuilder(
       umi,
@@ -642,9 +649,6 @@ describe('Tournament — edge cases', function () {
         driver,
         player,
         playerInfo: player.publicKey,
-        // player_token_account is an Option<> account, and kinobi's ATA default
-        // is declared ignoreIfOptional — so it must be passed explicitly or the
-        // program unwraps a None
         playerTokenAccount: findAssociatedTokenPda(umi, {
           mint,
           owner: player.publicKey,
@@ -656,24 +660,11 @@ describe('Tournament — edge cases', function () {
       COMMIT
     );
 
-    const afterJoin = await pollT(
-      t.pda,
-      (a) => Number(a.pendingFees) === expectedFee
-    );
+    const afterJoin = await pollT(t.pda, (a) => a.players.length === 1);
     assert.equal(
       Number(afterJoin!.pendingFees),
-      expectedFee,
-      'fee booked on join'
-    );
-
-    const escrow = await fetchToken(
-      umi,
-      findAssociatedTokenPda(umi, { mint, owner: t.pda[0] })
-    );
-    assert.equal(
-      Number(escrow.amount),
-      SMALL_FEE,
-      'full gross sits in escrow — the fee is bookkeeping until close'
+      feeAtPublish,
+      'join must not change pendingFees'
     );
 
     await send(
@@ -689,13 +680,12 @@ describe('Tournament — edge cases', function () {
     const afterLeave = await pollT(t.pda, (a) => a.players.length === 0);
     assert.equal(
       Number(afterLeave!.pendingFees),
-      0,
-      'fee un-booked on leave — join/leave must cancel exactly'
+      feeAtPublish,
+      'leave must not change pendingFees either'
     );
-    assert.equal(afterLeave!.players.length, 0, 'player removed');
   });
 
-  it('books the platform fee on a sponsorship', async function () {
+  it('does not fee sponsorships', async function () {
     const t = await initTournament();
     umi.use(keypairIdentity(sponsor));
     await sendConfirmBuilder(
@@ -712,13 +702,76 @@ describe('Tournament — edge cases', function () {
     );
     const acc = await pollT(
       t.pda,
-      (a) => Number(a.pendingFees) === feeOf(SMALL_FEE, FEE_BPS)
+      (a) => Number(a.sponsorAmount) === SMALL_FEE
     );
     assert.equal(
       Number(acc!.pendingFees),
-      feeOf(SMALL_FEE, FEE_BPS),
-      'fee booked on sponsorship'
+      0,
+      'sponsorship funds the pool; fee is taken on the pool at publish, not here'
     );
-    assert.equal(Number(acc!.sponsorAmount), SMALL_FEE, 'gross recorded');
+  });
+
+  it('charges the fee on the WEIGHTED pool, not the plain sum of roundPrizes', async function () {
+    // roundPrizes[2] pays 2 players, so sum() != pool for ladders deeper than 2.
+    const t = await initTournament({ totalPlayers: 8, winningRounds: 3 });
+    await createTokenAccount(umi, mint, driver, creator.publicKey);
+    const prizes = [4 * SMALL_FEE, 2 * SMALL_FEE, SMALL_FEE]; // pool = 4+2+(1x2) = 8
+    const weighted = 4 * SMALL_FEE + 2 * SMALL_FEE + 2 * SMALL_FEE;
+    const naive = prizes.reduce((a, b) => a + b, 0); // would be 7 x SMALL_FEE
+    assert.notEqual(weighted, naive, 'test ladder must expose the difference');
+
+    await publish(t, prizes);
+    const acc = await pollT(t.pda, (a) => a.isPublished);
+    assert.equal(
+      Number(acc!.pendingFees),
+      feeOf(weighted, FEE_BPS),
+      'fee must derive from the weighted pool'
+    );
+  });
+
+  it('rejects an entry fee with no prize pool', async function () {
+    const t = await initTournament({ joiningFees: SMALL_FEE });
+    await expectTxError(
+      () => publish(t, [0, 0]),
+      ['PrizePoolRequired', 'must award a prize pool', '0x179a']
+    );
+  });
+
+  it('refuses to publish once a player has joined', async function () {
+    // Entry money can still leave via leave_tournament, so it must never be
+    // counted as funding for the pool. Publish must come first.
+    const t = await initTournament();
+    const player = generateSigner(umi);
+    umi.use(keypairIdentity(driver));
+    await send(
+      joinTournament(umi, {
+        driver,
+        playerInfo: player.publicKey,
+        tournament: t.pda,
+        mint,
+      }),
+      'join before publish'
+    );
+    await expectTxError(
+      () => publish(t, [0, 0]),
+      ['PlayerAlreadyJoined', 'Player Already joined', '0x1788']
+    );
+  });
+
+  it('refuses prize rows the bracket does not have', async function () {
+    // 4 players => 2 rounds. A 4-row ladder would inflate the fee base and the
+    // funding requirement for prizes that can never be paid.
+    const t = await initTournament({ totalPlayers: 4 });
+    await expectTxError(
+      () => publish(t, [SMALL_FEE, SMALL_FEE, SMALL_FEE, SMALL_FEE]),
+      ['InvalidRound', 'does not exist', '0x1770']
+    );
+  });
+
+  it('allows a free tournament with no prize pool', async function () {
+    const t = await initTournament({ joiningFees: 0 });
+    await publish(t, [0, 0]);
+    const acc = await pollT(t.pda, (a) => a.isPublished);
+    assert.equal(Number(acc!.pendingFees), 0, 'no pool means no fee');
   });
 });

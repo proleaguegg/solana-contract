@@ -634,18 +634,20 @@ describe('ProLeague-Tournament-SC', async function () {
     );
 
     // ---- platform fee accounting ------------------------------------------
-    // Every entry fee and the sponsorship each booked floor(gross * bps/10000)
-    // into pending_fees; nothing has been swept yet, so it must all still be
-    // owed here, and the escrow must still physically hold it.
-    const perEntryFee = Math.floor((joiningFees * platformFeeBps) / 10_000);
-    const sponsorFee = isSponsored
-      ? Math.floor((sponsorAmount * platformFeeBps) / 10_000)
-      : 0;
-    const expectedPending = perEntryFee * totalPlayers + sponsorFee;
+    // The fee is a cut of the PRIZE POOL, fixed at publish and charged on top of
+    // it. Entry fees and sponsorship are not fee'd at all, so pendingFees must
+    // equal floor(weightedPool * bps) regardless of how many players joined.
+    const weightedPool = roundPrizes.reduce(
+      (sum, p, i) => sum + p * (i <= 1 ? 1 : 2 ** (i - 1)),
+      0
+    );
+    const expectedPending = Math.floor(
+      (weightedPool * platformFeeBps) / 10_000
+    );
     assert.equal(
       Number(tournamentObj!.pendingFees),
       expectedPending,
-      `pending fees should be ${totalPlayers} entries + sponsor at ${platformFeeBps} bps`
+      `pending fees should be ${platformFeeBps} bps of the weighted prize pool`
     );
     assert.equal(
       tournamentObj!.platformFeeBps,
