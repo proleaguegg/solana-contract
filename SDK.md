@@ -90,7 +90,7 @@ await publishTournament(umi, {
 }).sendAndConfirm(umi);
 ```
 
-`publishTournament` can only be called **once**, and only while no player has joined. Every tournament instruction must be passed the tournament's own `mint`; any other mint fails with `InvalidMint`.
+`publishTournament` can only be called **once**, and only while no player has joined. Every tournament instruction that moves tokens (except the operator-only `destroyTournament`) must be passed the tournament's own `mint`; any other mint fails with `InvalidMint`.
 
 ### Join, play, pay out
 
@@ -206,7 +206,7 @@ fee  = floor(pool × platformFeeBps / 10000)
 | Step | Effect |
 |---|---|
 | `publishTournament` | `pendingFees = fee`; creator funds `pool + fee − escrow balance` |
-| `joinTournament` / `sponsorTournament` | Full amount enters escrow; no fee |
+| `joinTournament` / `sponsorTournament` | Full amount enters escrow; no fee. A sponsorship made before publish counts toward the creator's `pool + fee` |
 | `closeTournament` | `pendingFees` → treasury, remainder (entry fees included) → creator, escrow closed |
 
 Winners receive the full advertised prize. Refunds (`leaveTournament`, `refundJoiningFees`, `refundSponsor`) return the full amount.
