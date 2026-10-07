@@ -18,13 +18,17 @@ const REGISTRY = 'https://registry.npmjs.org/';
 const distDir = path.join(__dirname, '..', 'dist');
 
 // tsc only emits .js/.d.ts/.json, so docs have to be copied in explicitly —
-// without this npm renders the package page with no README at all.
+// without this npm renders the package page with no README at all. The npm
+// page shows the SDK guide (SDK.md), not the repository README.
 const repoRoot = path.join(__dirname, '..');
-for (const file of ['README.md', 'LICENSE']) {
+for (const [file, dest] of [
+  ['SDK.md', 'README.md'],
+  ['LICENSE', 'LICENSE'],
+]) {
   const src = path.join(repoRoot, file);
   if (fs.existsSync(src)) {
-    fs.copyFileSync(src, path.join(distDir, file));
-    console.log(`Copied ${file} into dist/.`);
+    fs.copyFileSync(src, path.join(distDir, dest));
+    console.log(`Copied ${file} into dist/${dest}.`);
   }
 }
 
