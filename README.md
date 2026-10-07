@@ -238,4 +238,6 @@ Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because 
 
 ## License
 
-MIT
+Proprietary. Copyright (c) 2023-2026 ProLeague. All rights reserved.
+No use, copying, modification or distribution without prior written
+permission. See [LICENSE](LICENSE).
