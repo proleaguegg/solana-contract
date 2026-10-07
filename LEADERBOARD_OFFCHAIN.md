@@ -3,8 +3,8 @@
 How the on-chain leaderboard program works and how the backend (MongoDB + APIs +
 workers) should mirror it. Written for the off-chain infra team.
 
-- **Program ID:** `matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR` (devnet + mainnet)
-- **SDK:** `@tumi-labs/pro-league@^1.1.0` (Umi-based TS client; every instruction
+- **Program ID:** `matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR` (devnet; the mainnet deployment predates leaderboards and must be upgraded first)
+- **SDK:** `@tanv33/pro-league@^2.1.1` (Umi-based TS client; every instruction
   builder + PDA finder + account fetcher used below is exported from it)
 
 ---

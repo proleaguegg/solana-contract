@@ -1,243 +1,134 @@
-# @tanv33/pro-league
+# ProLeague Tournament Program
 
-TypeScript client for the ProLeague tournament & leaderboard program on Solana — escrowed prize pools, automated payouts, and on-chain platform fees.
+On-chain tournament and leaderboard settlement for competitive gaming, built on Solana. Entry fees and sponsorships sit in program-owned escrow, prizes pay out through the program, and the platform fee is computed on-chain.
 
-Bracket tournaments and time-boxed leaderboards both settle on-chain: entry fees and sponsorships sit in a program-owned escrow that only the program can move, prizes pay out to winners automatically, and a configurable platform fee is swept to the treasury when the event concludes. No custodial wallet, no manual payout step.
+| | |
+|---|---|
+| **Release** | 2.1.1 |
+| **Program ID** | `matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR` |
+| **Framework** | Anchor 0.29.0 (Rust), `solana-program` 1.17.4 |
+| **Size** | ~3,700 lines of Rust, 31 instructions |
+| **Audit** | Not independently audited |
+| **Devnet** | Runs this release; used by the live ProLeague app |
+| **Mainnet** | Deployed; runs an earlier 2024 build. Upgrade to this release pending |
 
-Generated from the Anchor IDL with [Kinobi](https://github.com/metaplex-foundation/kinobi), built for [Umi](https://github.com/metaplex-foundation/umi).
+## Crypto World's Fair
 
-- **Program ID:** `matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR`
-- **Clusters:** devnet, mainnet-beta
+ProLeague is competing in Colosseum's Crypto World's Fair hackathon, which runs through October 12, 2026. This repository is the on-chain component of that submission. It is published so reviewers can read the code behind the product: Colosseum judges, and the security reviewers on the CertiK, Adevar Labs and Superteam Earn side tracks. If you are reviewing, start at [Review guide](#review-guide).
 
-## Install
+- Colosseum project: https://colosseum.com/arena/projects/proleague.gg
+- Live app (devnet): https://app.proleague.gg
+- Site: https://proleague.gg
+
+## What it does
+
+- **Bracket tournaments.** A creator publishes a tournament with per-round prizes. Players join, an operator reports winners round by round, and the program pays each winner from escrow.
+- **Leaderboards.** Time-boxed competitions (1 hour to 7 days) that settle into up to 10 payout slots.
+- **Sponsorship.** A brand can fund a tournament or leaderboard. Sponsor funds are held in the same escrow and are refundable if the event is cancelled.
+- **Refunds and cancellation.** A tournament can be paused, after which joining fees and sponsor funds are refunded and the event is cancelled. Refunds return the full amount.
+- **Platform fee.** Computed on-chain. See [Fee model](#fee-model).
+
+## How a tournament settles
+
+```
+creator ── initialize / publish ──▶  Tournament PDA
+players ── join (entry fee) ──────▶    └─ escrow token account (owned by the PDA)
+sponsors ── sponsor ──────────────▶
+
+operator ── add_winner ──▶ send_prize ──▶ winner wallets      (once per round)
+operator ── close_tournament ──▶ treasury (fee)  +  creator (remainder)
+```
+
+Lifecycle: `initialize → sponsor? → publish → join / leave → announce → add_winner → mark_winner_won_next_round → send_prize → close`.
+Cancellation: `pause → refund_joining_fees + refund_sponsor → refund_creator_and_cancel_tournament`.
+
+## Trust model
+
+**What the program enforces on-chain**
+
+- A prize is paid **at most once per round and winner**. `send_prize` sets the winner's `claimed` flag before the token transfer and returns `AlreadyClaimed` on a second attempt.
+- A winner who advanced cannot be paid an earlier round's prize (`WonNextRound`).
+- No prize can be paid while a tournament is paused, so escrow owed back to players cannot be drained mid-cancellation.
+- Every token instruction is pinned to the mint recorded at `initialize`; any other mint fails with `InvalidMint` (2.1.1). The escrow token account must be owned by the tournament PDA, and transfers are signed with the PDA's seeds.
+- Leaderboard escrow must be the leaderboard's associated token account, and every leaderboard token instruction is bound to the leaderboard's mint.
+- The platform fee is capped at 30% (`PLATFORM_FEE_BPS_MAX`), fees can only go to the hardcoded treasury, and release builds compile with `overflow-checks = true`.
+
+**What the program trusts**
+
+- A single **operator ("driver") key** reports winners and triggers payouts. It is a compile-time constant in `constant.rs`, selected by the `prod` Cargo feature. Rotating it requires a program upgrade.
+- The program does **not** verify match outcomes. Winners are reported by the operator, so result integrity depends on that key and on the off-chain system behind it.
+- `send_prize` only pays a wallet the operator recorded as a winner from the enrolled players. The operator also holds recovery instructions that can move escrow on its own authority: `transpose_tournament_player` / `transpose_tournament_creator` replace a player's or the creator's wallet, and `destroy_tournament` sweeps a tournament's escrow and closes it. A compromised operator key could use these to redirect funds.
+- The program upgrade authority is a single key per cluster.
+
+## Fee model
+
+**Tournaments (2.1.0+).** The fee follows prize value, not entry fees, so a free or sponsored tournament still funds the platform in proportion to what it pays out.
+
+```
+pool = Σ roundPrizes[i] × payees(i)        payees = 1, 1, 2, 4, 8, …
+fee  = floor(pool × platformFeeBps / 10,000)
+```
+
+- The fee is fixed at publish and charged **on top**: the creator funds `pool + fee` and winners receive the full advertised prize. At 700 bps, a 10,000 prize pool requires 10,700 in escrow.
+- Entry fees and sponsorships are **not** fee'd. They pass through escrow and go to the creator at close, or return whole on a refund.
+- `pending_fees` is paid to the treasury at `close_tournament`.
+- The fee math is checked arithmetic with unit tests in `src/utils/helper.rs`.
+
+**Leaderboards.** Each buy-in and sponsorship is split on arrival into prize pool and `pending_fees` at `platform_fee_bps`. Fees are swept to the treasury at `conclude_leaderboard`; a cancelled leaderboard refunds the full amount, fee included. Payout slots are paid in strict order, and rounding dust goes to the treasury at close.
+
+## Review guide
+
+Suggested reading order, by where value moves:
+
+| File | Lines | Why |
+|---|---|---|
+| `instructions/prize_instructions.rs` | 107 | `send_prize`: the payout path and its once-only guard |
+| `instructions/tournament_instructions.rs` | 528 | `publish` (pool, fee, funding) and `close` (fee sweep, remainder) |
+| `utils/helper.rs` | 227 | Weighted pool and fee math, with unit tests |
+| `instructions/join_tournament.rs` | 182 | Entry, leave, and fee unwinding |
+| `instructions/cancel_tournament.rs`, `destroy_tournament.rs` | 297, 116 | Refund and cancellation paths |
+| `instructions/winner_instructions.rs`, `transpose_tournament.rs` | 112, 90 | Winner reporting, `won_next_round`, operator recovery |
+| `instructions/leaderboard_*.rs` | ~1,100 | Leaderboard lifecycle, sponsorship, conclude, payout slots |
+| `constant.rs`, `errors.rs`, `state/` | 88, 174, ~280 | Caps, keys, error codes, account layouts |
+
+All paths are under `programs/ProLeague-Tournament-SC/src/`.
+
+**Build and test**
 
 ```bash
-npm install @tanv33/pro-league @metaplex-foundation/umi @metaplex-foundation/mpl-toolbox
+anchor build                       # devnet operator and treasury keys (default)
+anchor build -- --features prod    # mainnet operator and treasury keys
+cargo test                         # fee-math unit tests
+yarn install && yarn build         # regenerate the TypeScript client from the IDL
+yarn test:tournamentAll            # integration suites (ts-mocha)
+yarn test:leaderboardAll
+yarn test:global
 ```
 
-`@metaplex-foundation/umi` is a peer dependency. `mpl-toolbox` is needed for associated-token-account helpers.
+Integration suites live in `tests/` and run against devnet. They read wallets and settings from a `.env` file (see `tests/helpers/contant.ts`); their setup helpers are in `tests/helpers`.
 
-## Setup
+## Known limitations
 
-Register the program as a Umi plugin:
+- **Not audited.** This is the version we are submitting for review.
+- **Single operator key**, compile-time, rotatable only by upgrade, with recovery powers over escrow (see [Trust model](#trust-model)).
+- **Winner reporting is trusted input**; the program does not verify match results.
+- **Mainnet runs an earlier build** than this repository; the upgrade is pending.
+- Built on Anchor 0.29 and `solana-program` 1.17, an older toolchain. `init_if_needed` is enabled and used for recipient token accounts and leaderboard participant/sponsor accounts.
 
-```ts
-import { createUmi } from '@metaplex-foundation/umi-bundle-defaults';
-import { mplToolbox } from '@metaplex-foundation/mpl-toolbox';
-import { keypairIdentity, UmiPlugin } from '@metaplex-foundation/umi';
-import { createTournamentProgram } from '@tanv33/pro-league';
+## SDK
 
-const proLeague = (): UmiPlugin => ({
-  install(umi) {
-    umi.use(mplToolbox());
-    umi.programs.add(createTournamentProgram(), false);
-  },
-});
+`js/` holds the generated TypeScript client, published as [`@tanv33/pro-league`](https://www.npmjs.com/package/@tanv33/pro-league). Usage and examples are in [SDK.md](SDK.md).
 
-const umi = createUmi('https://api.devnet.solana.com').use(proLeague());
-umi.use(keypairIdentity(driverKeypair));
-```
+## Security
 
-Most instructions must be signed by the program's **driver** key — the automated operator that advances a tournament. Account defaults (PDAs and associated token accounts) are resolved for you, so you generally pass wallets and the client derives the rest.
+Please report vulnerabilities privately to justin@proleague.gg, not in a public issue. Include the instruction, the account layout involved, and a reproduction if you have one.
 
-## Tournaments
+## Team
 
-### Lifecycle
-
-```
-initialize → sponsorTournament? → publishTournament → joinTournament / leaveTournament
-  → announceTournament → addWinner → markWinnerWonNextRound → sendPrize → closeTournament
-```
-
-Cancellation path: `pauseTournament → refundJoiningFees + refundSponsor → refundCreatorAndCancelTournament`.
-
-### Create and publish
-
-```ts
-import {
-  initialize,
-  publishTournament,
-  findTournamentPda,
-  findGlobalPda,
-} from '@tanv33/pro-league';
-
-const tournamentId = 'summer-cup-01'; // max 28 chars
-const tournament = findTournamentPda(umi, { tournamentId });
-
-await initialize(umi, {
-  driver,
-  creator,                       // signs; pays the fee for a non-whitelisted mint
-  creatorInfo: creator.publicKey,
-  global: findGlobalPda(umi),
-  tournamentId,
-  joiningFees: 10_000_000,       // entry fee per player, in base units
-  totalPlayers: 8,               // must be a power of two, >= 2
-  winningRounds: 2,
-  platformFeeBps: 2000,          // 20% — capped at 3000 (30%)
-  mint,
-}).sendAndConfirm(umi);
-
-// Sets the prize ladder. Index 0 is the champion, index 1 the runner-up tier,
-// index 2 pays 2 players, index 3 pays 4, and so on.
-// The creator must cover any shortfall between expected net entry fees and the
-// prizes promised — the program will not publish an underfunded pool.
-await publishTournament(umi, {
-  creator,                       // must match the recorded creator
-  tournament,
-  joiningFees: null,             // null keeps the fee set at initialize
-  roundPrizes: [40_000_000, 30_000_000],
-  mint,
-}).sendAndConfirm(umi);
-```
-
-`publishTournament` can only be called **once**, and the entry fee can no longer change after the first player joins.
-
-### Join, play, pay out
-
-```ts
-import {
-  joinTournament,
-  addWinner,
-  markWinnerWonNextRound,
-  sendPrize,
-  closeTournament,
-} from '@tanv33/pro-league';
-import { findAssociatedTokenPda } from '@metaplex-foundation/mpl-toolbox';
-
-await joinTournament(umi, {
-  driver,
-  player,                        // must sign when joiningFees > 0
-  playerInfo: player.publicKey,
-  // pass explicitly: this account is optional, so it is not auto-derived
-  playerTokenAccount: findAssociatedTokenPda(umi, {
-    mint,
-    owner: player.publicKey,
-  }),
-  tournament,
-  mint,
-}).sendAndConfirm(umi);
-
-// Record a result, then flag anyone who advanced so they cannot claim that
-// round's prize — they get paid for the round they are eliminated in.
-await addWinner(umi, { tournament, driver, winner, roundIndex: 0 })
-  .sendAndConfirm(umi);
-await markWinnerWonNextRound(umi, { tournament, driver, winner, roundIndex: 1 })
-  .sendAndConfirm(umi);
-
-await sendPrize(umi, { tournament, driver, winner, mint, roundIndex: 0 })
-  .sendAndConfirm(umi);
-
-// Sweeps the platform fee to the treasury, the remainder to the creator, and
-// closes the escrow. Every recorded entry must be paid or advanced first.
-await closeTournament(umi, {
-  tournament,
-  creatorTokenAccount: findAssociatedTokenPda(umi, {
-    mint,
-    owner: creator.publicKey,
-  }),
-  treasury,                      // must equal the program's treasury constant
-  driver,
-  mint,
-}).sendAndConfirm(umi);
-```
-
-### Reading state
-
-```ts
-import { safeFetchTournament } from '@tanv33/pro-league';
-
-const t = await safeFetchTournament(umi, tournament);
-t?.players;        // enrolled wallets
-t?.rounds;         // prize per round + winner/claim status
-t?.pendingFees;    // platform fee accrued, swept at close
-t?.platformFeeBps; // fixed for the life of the tournament
-```
-
-## Leaderboards
-
-A separate, time-boxed prize-pool product in the same program. All funds sit in one leaderboard-owned escrow; each inflow splits into the prize pool and the platform fee.
-
-```
-initializeLeaderboard → publishLeaderboard → joinLeaderboard / depositSponsorship
-  → concludeLeaderboard → sendPrizeLeaderboard (per slot) → closeLeaderboard
-```
-
-```ts
-import {
-  initializeLeaderboard,
-  joinLeaderboard,
-  concludeLeaderboard,
-  sendPrizeLeaderboard,
-  findLeaderboardPda,
-  safeFetchLeaderboard,
-  LeaderboardState,
-} from '@tanv33/pro-league';
-
-const leaderboard = findLeaderboardPda(umi, { leaderboardId });
-
-await initializeLeaderboard(umi, {
-  driver,
-  creator,
-  leaderboardId,                 // max 28 chars
-  startTimestamp,
-  endTimestamp,                  // 1 hour to 7 days after start
-  sponsorCutoff,
-  buyInAmount,
-  minParticipants,
-  maxParticipants,
-  payoutSlotsBps: [6000, 4000],  // must sum to 10000, max 10 slots
-  platformFeeBps: 2000,
-  mint,
-}).sendAndConfirm(umi);
-```
-
-Prizes must be paid in strict `slotIndex` order — `sendPrizeLeaderboard` rejects an out-of-order or already-paid slot.
-
-## Fees and refunds
-
-The platform fee is **booked on every inflow and paid once, at the end**:
-
-| Step | Effect |
-|---|---|
-| `joinTournament` / `sponsorTournament` | Full gross enters escrow; `pendingFees += floor(gross × bps / 10000)` |
-| `closeTournament` | `pendingFees` → treasury, remainder → creator, escrow closed |
-
-Because the fee is only booked until the event concludes, **refunds return the full gross**. `leaveTournament`, `refundJoiningFees` and `refundSponsor` each reverse the booked fee — a cancelled event earns the platform nothing.
-
-## Error handling
-
-Program errors are typed and parsed from transaction logs:
-
-```ts
-import { TournamentError, LeaderboardError } from '@tanv33/pro-league';
-```
-
-Codes worth handling explicitly:
-
-| Error | Meaning |
-|---|---|
-| `InvalidFee` | `platformFeeBps` above the 30% cap |
-| `InvalidPlayerCount` | `totalPlayers` not a power of two, or below 2 |
-| `TournamentPublished` | `publishTournament` called twice |
-| `WrongCreator` | signer is not the recorded creator |
-| `TournamentNotPublished` | `announceTournament` before publish |
-| `SponsorshipClosed` | sponsoring a tournament that is paused for cancellation |
-| `PrizeNotClaimed` | closing while a winner is still owed a prize |
-| `InvalidTreasury` | treasury account does not match the program constant |
-| `WinnerAlreadyPaid` | leaderboard slot already paid |
-
-Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because the participant/sponsor account is closed on a successful refund.
-
-## Breaking changes in 2.0.0
-
-- `initialize` now requires **`platformFeeBps`** (0–3000).
-- `closeTournament` now requires a **`treasury`** account matching the program constant.
-- `totalPlayers` must be a power of two and at least 2.
-- `publishTournament` is single-use and creator-bound.
-- `announceTournament` requires the tournament to be published first.
+Built by the ProLeague team. Program, backend, SDK and frontend engineering: Tanveer Khan ([@tanv33](https://x.com/tanv33)). Co-founder and CEO: ezbucko.
 
 ## License
 
 Proprietary. Copyright (c) 2023-2026 ProLeague. All rights reserved.
-No use, copying, modification or distribution without prior written
-permission. See [LICENSE](LICENSE).
+
+Reviewers may view, build, run and test the code for evaluation, auditing and security research, including on local validators and test networks. Any other use, copying, redistribution or production deployment needs written permission. See [LICENSE](LICENSE).
