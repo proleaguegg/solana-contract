@@ -1,6 +1,6 @@
 {
   "name": "@tanv33/pro-league",
-  "version": "2.1.1",
+  "version": "2.1.2",
   "description": "TypeScript client for the ProLeague tournament and leaderboard program on Solana: escrowed prize pools, automated payouts, and on-chain platform fees.",
   "keywords": [
     "solana",
