@@ -20,11 +20,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/proleaguegg/proleague-tournament-contract-main.git"
+    "url": "git+https://github.com/proleaguegg/solana-contract.git"
   },
-  "homepage": "https://github.com/proleaguegg/proleague-tournament-contract-main#readme",
+  "homepage": "https://github.com/proleaguegg/solana-contract#readme",
   "bugs": {
-    "url": "https://github.com/proleaguegg/proleague-tournament-contract-main/issues"
+    "url": "https://github.com/proleaguegg/solana-contract/issues"
   },
   "publishConfig": {
     "access": "public"
