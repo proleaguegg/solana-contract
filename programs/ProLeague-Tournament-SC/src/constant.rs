@@ -20,7 +20,7 @@ const IS_PROD: bool = false;
 pub const DRIVER: Pubkey = if IS_PROD {
     pubkey!("proL2SQUmHzNFRonxZBkSLkbAbpYhfX2z11XiUfkL4V")
 } else {
-    pubkey!("3W67tweAWfSFnv6W9ATPRBskBXcFMY7anVy1uyt2Hi65")
+    pubkey!("5dr5siu8axeYbruGQHMCLGrD2Wd45yXRrSgk4fmvwDu4")
 };
 
 // ===== Leaderboard =====
