@@ -620,6 +620,19 @@ export class PrizePoolRequiredError extends ProgramError {
 codeToErrorMap.set(0x179b, PrizePoolRequiredError);
 nameToErrorMap.set('PrizePoolRequired', PrizePoolRequiredError);
 
+/** InvalidMint: Mint does not match tournament mint */
+export class InvalidMintError extends ProgramError {
+  override readonly name: string = 'InvalidMint';
+
+  readonly code: number = 0x179c; // 6044
+
+  constructor(program: Program, cause?: Error) {
+    super('Mint does not match tournament mint', program, cause);
+  }
+}
+codeToErrorMap.set(0x179c, InvalidMintError);
+nameToErrorMap.set('InvalidMint', InvalidMintError);
+
 /**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors

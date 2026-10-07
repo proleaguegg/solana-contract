@@ -17,6 +17,8 @@ import {
   findAssociatedTokenPda,
   fetchToken,
   transferTokens,
+  createMintWithAssociatedToken,
+  createAssociatedToken,
 } from '@metaplex-foundation/mpl-toolbox';
 
 import { tournamentProgram } from '../plugin.test';
@@ -708,6 +710,50 @@ describe('Tournament — edge cases', function () {
       Number(acc!.pendingFees),
       0,
       'sponsorship funds the pool; fee is taken on the pool at publish, not here'
+    );
+  });
+
+  it('refuses a sponsorship paid in a mint other than the tournament mint', async function () {
+    // The attack this guards: sponsor in a worthless mint, then after a pause
+    // refund_sponsor pays the same sponsorAmount out in the REAL mint.
+    const t = await initTournament();
+    const fakeMint = generateSigner(umi);
+    umi.use(keypairIdentity(driver));
+    await sendConfirmBuilder(
+      umi,
+      driver,
+      createMintWithAssociatedToken(umi, {
+        mint: fakeMint,
+        owner: sponsor.publicKey,
+        amount: SMALL_FEE,
+        decimals: 9,
+      }).add(
+        // a tournament-owned account in the fake mint, so the tx gets past
+        // account loading and is rejected by the mint constraint itself
+        createAssociatedToken(umi, {
+          mint: fakeMint.publicKey,
+          owner: t.pda[0],
+        })
+      ),
+      'fake mint + accounts',
+      COMMIT
+    );
+    umi.use(keypairIdentity(sponsor));
+    await expectTxError(
+      () =>
+        sendConfirmBuilder(
+          umi,
+          sponsor,
+          sponsorTournament(umi, {
+            sponsor,
+            tournament: t.pda,
+            mint: fakeMint.publicKey,
+            sponsorAmount: SMALL_FEE,
+          }),
+          'sponsor in fake mint',
+          COMMIT
+        ),
+      ['InvalidMint', 'Mint does not match tournament mint', '0x179c']
     );
   });
 

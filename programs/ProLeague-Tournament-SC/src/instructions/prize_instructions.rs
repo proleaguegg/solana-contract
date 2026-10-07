@@ -34,7 +34,7 @@ pub struct SendPrize<'info> {
     )]
     pub winner_token_account: Account<'info, TokenAccount>,
 
-    #[account()]
+    #[account(address = tournament.mint @ TournamentError::InvalidMint)]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,

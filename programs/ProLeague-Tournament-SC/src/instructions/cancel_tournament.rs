@@ -61,7 +61,7 @@ pub struct RefundJoiningFees<'info> {
         constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),        
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account()]
+    #[account(address = tournament.mint @ TournamentError::InvalidMint)]
     pub mint: Account<'info, Mint>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -149,7 +149,7 @@ pub struct RefundSponsor<'info> {
         constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),        
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account()]
+    #[account(address = tournament.mint @ TournamentError::InvalidMint)]
     pub mint: Account<'info, Mint>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -230,7 +230,7 @@ pub struct RefundCreatorAndCancelTournament<'info> {
     #[account(constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
-    #[account()]
+    #[account(address = tournament.mint @ TournamentError::InvalidMint)]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,

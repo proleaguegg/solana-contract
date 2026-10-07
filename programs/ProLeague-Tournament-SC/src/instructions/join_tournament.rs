@@ -32,9 +32,11 @@ pub struct JoinTournament<'info> {
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
 
-    #[account(mut)]
+    #[account(mut,
+        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
+    )]
     pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account()]
+    #[account(address = tournament.mint @ TournamentError::InvalidMint)]
     pub mint: Account<'info, Mint>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
@@ -117,7 +119,7 @@ pub struct LeaveTournament<'info> {
         constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),        
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
-    #[account()]
+    #[account(address = tournament.mint @ TournamentError::InvalidMint)]
     pub mint: Account<'info, Mint>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,

@@ -90,6 +90,8 @@ pub enum TournamentError {
     InsufficientCreatorFunds,
     #[msg("A tournament that charges an entry fee must award a prize pool")]
     PrizePoolRequired,
+    #[msg("Mint does not match tournament mint")]
+    InvalidMint,
 }
 
 #[error_code]

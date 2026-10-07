@@ -139,7 +139,7 @@ pub struct PublishTournament<'info> {
        constraint = creator_token_account.mint == mint.key() && creator_token_account.owner == creator.key(),
     )]
     pub creator_token_account: Account<'info, TokenAccount>,
-    #[account()]
+    #[account(address = tournament.mint @ TournamentError::InvalidMint)]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -299,7 +299,7 @@ pub struct SponsorTournament<'info> {
        constraint = sponsor_token_account.mint == mint.key() && sponsor_token_account.owner == sponsor.key(),
     )]
     pub sponsor_token_account: Account<'info, TokenAccount>,
-    #[account()]
+    #[account(address = tournament.mint @ TournamentError::InvalidMint)]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -390,7 +390,7 @@ pub struct CloseTournament<'info> {
     #[account(mut, constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
-    #[account()]
+    #[account(address = tournament.mint @ TournamentError::InvalidMint)]
     pub mint: Account<'info, Mint>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
