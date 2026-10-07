@@ -121,7 +121,7 @@ Integration suites live in `tests/` and run against devnet. They read wallets an
 
 ## Security
 
-Please report vulnerabilities privately to justin@proleague.gg, not in a public issue. Include the instruction, the account layout involved, and a reproduction if you have one.
+Please report vulnerabilities privately to tanveer@proleague.gg, not in a public issue. Include the instruction, the account layout involved, and a reproduction if you have one.
 
 ## Team
 
