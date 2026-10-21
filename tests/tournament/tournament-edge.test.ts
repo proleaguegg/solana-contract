@@ -338,28 +338,6 @@ describe('Tournament — edge cases', function () {
     );
   });
 
-  it('refuses to change the entry fee once a player has joined', async function () {
-    // free tournament, one player joins, then a publish that tries to set a fee
-    const t = await initTournament();
-    const player = generateSigner(umi);
-    umi.use(keypairIdentity(driver));
-    await send(
-      joinTournament(umi, {
-        driver,
-        playerInfo: player.publicKey,
-        tournament: t.pda,
-        mint,
-      }),
-      'join before publish'
-    );
-    await expectTxError(
-      () => publish(t, [0, 0], creator, SMALL_FEE),
-      ['PlayerAlreadyJoined', 'Player Already joined', '0x1788']
-    );
-  });
-
-  // ---- announce lifecycle ---------------------------------------------------
-
   it('refuses to announce a tournament that is not published', async function () {
     const t = await initTournament();
     umi.use(keypairIdentity(driver));
@@ -404,6 +382,7 @@ describe('Tournament — edge cases', function () {
           umi,
           sponsor,
           sponsorTournament(umi, {
+            driver,
             sponsor,
             tournament: t.pda,
             mint,
@@ -694,6 +673,7 @@ describe('Tournament — edge cases', function () {
       umi,
       sponsor,
       sponsorTournament(umi, {
+        driver,
         sponsor,
         tournament: t.pda,
         mint,
@@ -745,6 +725,7 @@ describe('Tournament — edge cases', function () {
           umi,
           sponsor,
           sponsorTournament(umi, {
+            driver,
             sponsor,
             tournament: t.pda,
             mint: fakeMint.publicKey,
@@ -783,24 +764,76 @@ describe('Tournament — edge cases', function () {
     );
   });
 
-  it('refuses to publish once a player has joined', async function () {
-    // Entry money can still leave via leave_tournament, so it must never be
-    // counted as funding for the pool. Publish must come first.
+  it('refuses a join before the tournament is published', async function () {
+    // A pre-publish player would block publish_tournament, which requires an
+    // empty roster, so joins only open once the prize pool is funded.
     const t = await initTournament();
     const player = generateSigner(umi);
     umi.use(keypairIdentity(driver));
-    await send(
-      joinTournament(umi, {
-        driver,
-        playerInfo: player.publicKey,
-        tournament: t.pda,
-        mint,
-      }),
-      'join before publish'
-    );
     await expectTxError(
-      () => publish(t, [0, 0]),
-      ['PlayerAlreadyJoined', 'Player Already joined', '0x1788']
+      () =>
+        send(
+          joinTournament(umi, {
+            driver,
+            playerInfo: player.publicKey,
+            tournament: t.pda,
+            mint,
+          }),
+          'join before publish'
+        ),
+      ['TournamentNotPublished', '0x1796']
+    );
+  });
+
+  it('refuses a join once the bracket is announced', async function () {
+    // leave_tournament is blocked after announce, so a late player could
+    // never get their entry back out.
+    const t = await initTournament();
+    await publish(t, [0, 0]);
+    umi.use(keypairIdentity(driver));
+    await send(
+      announceTournament(umi, { driver, tournament: t.pda }),
+      'announce'
+    );
+    await pollT(t.pda, (a) => a.isAnnounced);
+    const player = generateSigner(umi);
+    await expectTxError(
+      () =>
+        send(
+          joinTournament(umi, {
+            driver,
+            playerInfo: player.publicKey,
+            tournament: t.pda,
+            mint,
+          }),
+          'join after announce'
+        ),
+      ['BracketsIsAnnounced', '0x1793']
+    );
+  });
+
+  it('refuses a sponsorship the driver did not co-sign', async function () {
+    // One sponsorship per tournament: without the driver gate anyone could
+    // squat the slot for 1 base unit and lock out the real sponsor.
+    const t = await initTournament();
+    const notDriver = generateSigner(umi);
+    umi.use(keypairIdentity(sponsor));
+    await expectTxError(
+      () =>
+        sendConfirmBuilder(
+          umi,
+          sponsor,
+          sponsorTournament(umi, {
+            driver: notDriver,
+            sponsor,
+            tournament: t.pda,
+            mint,
+            sponsorAmount: 1,
+          }),
+          'sponsor without driver',
+          COMMIT
+        ),
+      ['ConstraintRaw', 'A raw constraint was violated', '0x7d3']
     );
   });
 

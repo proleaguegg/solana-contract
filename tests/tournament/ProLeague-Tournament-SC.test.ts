@@ -242,6 +242,7 @@ describe('ProLeague-Tournament-SC', async function () {
       );
 
       const sdkFunc = sponsorTournament(umi, {
+        driver,
         sponsor,
         sponsorAmount,
         tournament,
@@ -958,6 +959,7 @@ describe.skip('Cancel Tournament', async function () {
       );
 
       const sdkFunc = sponsorTournament(umi, {
+        driver,
         sponsor,
         sponsorAmount,
         tournament,

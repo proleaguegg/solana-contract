@@ -284,6 +284,11 @@ pub fn publish_tournament(
 #[derive(Accounts)]
 #[instruction(data: ArgumentSponsorTournament)]
 pub struct SponsorTournament<'info> {
+    // A tournament takes a single sponsorship, so an open sponsor slot could be
+    // squatted by anyone for 1 base unit. The driver co-signs to vet sponsors.
+    #[account(constraint = driver.key().eq(&DRIVER))]
+    pub driver: Signer<'info>,
+
     #[account()]
     pub sponsor: Signer<'info>,
 

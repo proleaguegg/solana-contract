@@ -58,6 +58,12 @@ pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
     // re-blocks the final cancel step (which requires an empty player list).
     require!(!tournament.is_paused, TournamentError::TournamentIsPaused);
 
+    // Joins are only open between publish and announce. Before publish a
+    // player would block publish_tournament; after announce the bracket is
+    // locked and a late player could never leave.
+    require!(tournament.is_published, TournamentError::TournamentNotPublished);
+    require!(!tournament.is_announced, TournamentError::BracketsIsAnnounced);
+
     if tournament.players.len() >= tournament.total_players as usize {
         return Err(TournamentError::TournamentIsFull.into());
     }

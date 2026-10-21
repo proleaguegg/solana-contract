@@ -32,6 +32,7 @@ import {
 
 // Accounts.
 export type SponsorTournamentInstructionAccounts = {
+  driver: Signer;
   sponsor: Signer;
   tournament: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
@@ -95,31 +96,32 @@ export function sponsorTournament(
 
   // Accounts.
   const resolvedAccounts = {
-    sponsor: { index: 0, isWritable: false, value: input.sponsor ?? null },
-    tournament: { index: 1, isWritable: true, value: input.tournament ?? null },
+    driver: { index: 0, isWritable: false, value: input.driver ?? null },
+    sponsor: { index: 1, isWritable: false, value: input.sponsor ?? null },
+    tournament: { index: 2, isWritable: true, value: input.tournament ?? null },
     tournamentTokenAccount: {
-      index: 2,
+      index: 3,
       isWritable: true,
       value: input.tournamentTokenAccount ?? null,
     },
     sponsorTokenAccount: {
-      index: 3,
+      index: 4,
       isWritable: true,
       value: input.sponsorTokenAccount ?? null,
     },
-    mint: { index: 4, isWritable: false, value: input.mint ?? null },
+    mint: { index: 5, isWritable: false, value: input.mint ?? null },
     associatedTokenProgram: {
-      index: 5,
+      index: 6,
       isWritable: false,
       value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
-      index: 6,
+      index: 7,
       isWritable: false,
       value: input.tokenProgram ?? null,
     },
     systemProgram: {
-      index: 7,
+      index: 8,
       isWritable: false,
       value: input.systemProgram ?? null,
     },
