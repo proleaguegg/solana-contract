@@ -230,7 +230,8 @@ Codes worth handling explicitly:
 | `InvalidPlayerCount` | `totalPlayers` not a power of two, or below 2 |
 | `TournamentPublished` | `publishTournament` called twice |
 | `WrongCreator` | signer is not the recorded creator |
-| `TournamentNotPublished` | `announceTournament` before publish |
+| `TournamentNotPublished` | `announceTournament` or `joinTournament` before publish |
+| `BracketsIsAnnounced` | `joinTournament` or `leaveTournament` after announce |
 | `SponsorshipClosed` | sponsoring a tournament that is paused for cancellation |
 | `TournamentIsPaused` | join, payout or close on a tournament paused for cancellation |
 | `InsufficientCreatorFunds` | creator cannot cover `pool + fee` at publish |
@@ -240,6 +241,11 @@ Codes worth handling explicitly:
 | `WinnerAlreadyPaid` | leaderboard slot already paid |
 
 Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because the participant/sponsor account is closed on a successful refund.
+
+## Changes in 2.2.0
+
+- **Breaking:** `sponsorTournament` now requires the operator's signature. Pass `driver` (a `Signer`) alongside `sponsor`; both must sign.
+- `joinTournament` is only accepted between `publishTournament` and `announceTournament`. Joining before publish fails with `TournamentNotPublished` (6038), and after announce with `BracketsIsAnnounced` (6035).
 
 ## Changes in 2.1.1
 
