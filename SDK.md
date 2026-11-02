@@ -159,7 +159,7 @@ A separate, time-boxed prize-pool product in the same program. All funds sit in 
 
 ```
 initializeLeaderboard → publishLeaderboard → joinLeaderboard / depositSponsorship
-  → concludeLeaderboard → sendPrizeLeaderboard (per slot) → closeLeaderboard
+  → concludeLeaderboard → sendPrizeLeaderboard (per slot) → cleanupLeaderboard (batches) → closeLeaderboard
 ```
 
 ```ts
@@ -193,6 +193,16 @@ await initializeLeaderboard(umi, {
 ```
 
 Prizes must be paid in strict `slotIndex` order — `sendPrizeLeaderboard` rejects an out-of-order or already-paid slot, and a participant who already received a slot (`ParticipantAlreadyPaid`). Check that winners are distinct before sending.
+
+After the last slot is paid, close every `Participant` and `Sponsor` account with `cleanupLeaderboard` before `closeLeaderboard`; the rent returns to the driver. Pass up to ~30 addresses per transaction. Already-closed addresses are skipped, so a retried batch is safe. Progress is `closedParticipantCount` / `closedSponsorCount` against `participantCount` / `sponsorCount`.
+
+```ts
+await cleanupLeaderboard(umi, {
+  driver,
+  leaderboard,
+  accounts: [participantPdaA, participantPdaB, sponsorPda], // findParticipantPda / findSponsorPda
+}).sendAndConfirm(umi);
+```
 
 ## Fees and refunds
 
@@ -240,6 +250,7 @@ Codes worth handling explicitly:
 | `InvalidTreasury` | treasury account does not match the program constant |
 | `WinnerAlreadyPaid` | leaderboard slot already paid |
 | `ParticipantAlreadyPaid` | leaderboard participant already received a slot |
+| `CleanupNotComplete` | `closeLeaderboard` before every participant/sponsor account was cleaned up |
 
 Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because the participant/sponsor account is closed on a successful refund.
 
@@ -250,6 +261,8 @@ Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because 
 - `transposeTournamentPlayer` rejects a `newPlayer` already in the tournament with `PlayerAlreadyJoined` (6008).
 - `closeTournament` on an **unpublished** tournament that holds sponsor money fails with `SponsorAmountNotRefunded` (6021). Cancel it instead: `pauseTournament` → `refundSponsor` → `refundCreatorAndCancelTournament`. Published tournaments and unsponsored drafts close as before.
 - `sendPrizeLeaderboard` pays a participant at most one slot; a second slot to the same wallet fails with `ParticipantAlreadyPaid` (6031). A retry of an already-paid slot still returns `WinnerAlreadyPaid` first. `Participant` gains a `prizePaid` field.
+- New `cleanupLeaderboard` (driver): after all slots are paid on a concluded leaderboard, closes the `Participant` / `Sponsor` accounts passed as `accounts` and returns their rent to the driver. `closeLeaderboard` on a concluded leaderboard now fails with `CleanupNotComplete` (6032) until every one is closed.
+- **Breaking:** `Leaderboard.refundedPlayerCount` / `refundedSponsorCount` are renamed `closedParticipantCount` / `closedSponsorCount`. They count accounts closed by a refund (cancel path) or by `cleanupLeaderboard` (conclude path).
 
 ## Changes in 2.2.0
 

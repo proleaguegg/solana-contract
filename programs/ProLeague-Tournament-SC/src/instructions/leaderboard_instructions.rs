@@ -164,8 +164,8 @@ pub fn initialize_leaderboard(
     lb.participant_count = 0;
     lb.sponsor_count = 0;
     lb.paid_slots = 0;
-    lb.refunded_player_count = 0;
-    lb.refunded_sponsor_count = 0;
+    lb.closed_participant_count = 0;
+    lb.closed_sponsor_count = 0;
     lb.concluded_at = 0;
 
     Ok(())

@@ -4,8 +4,8 @@ use anchor_spl::{
 };
 
 use {
-    crate::{constant::*, errors::LeaderboardError, state::*},
-    anchor_lang::prelude::*,
+    crate::{constant::*, errors::LeaderboardError, instructions::close, state::*},
+    anchor_lang::{prelude::*, Discriminator},
 };
 
 // ----- conclude_leaderboard -----
@@ -292,8 +292,8 @@ pub fn refund_leaderboard_player(ctx: Context<RefundLeaderboardPlayer>) -> Resul
         .pending_fees
         .checked_sub(fee)
         .ok_or(LeaderboardError::OverFlow)?;
-    lb.refunded_player_count = lb
-        .refunded_player_count
+    lb.closed_participant_count = lb
+        .closed_participant_count
         .checked_add(1)
         .ok_or(LeaderboardError::OverFlow)?;
 
@@ -350,11 +350,16 @@ pub fn close_leaderboard(ctx: Context<CloseLeaderboard>) -> Result<()> {
                 lb.paid_slots as usize == lb.payout_slots_bps.len(),
                 LeaderboardError::PayoutsNotComplete
             );
+            require!(
+                lb.closed_participant_count == lb.participant_count
+                    && lb.closed_sponsor_count == lb.sponsor_count,
+                LeaderboardError::CleanupNotComplete
+            );
         }
         LeaderboardState::Cancelled => {
             require!(
-                lb.refunded_player_count == lb.participant_count
-                    && lb.refunded_sponsor_count == lb.sponsor_count,
+                lb.closed_participant_count == lb.participant_count
+                    && lb.closed_sponsor_count == lb.sponsor_count,
                 LeaderboardError::RefundsNotComplete
             );
         }
@@ -389,6 +394,76 @@ pub fn close_leaderboard(ctx: Context<CloseLeaderboard>) -> Result<()> {
         signer,
     );
     anchor_spl::token::close_account(cpi_ctx)?;
+
+    Ok(())
+}
+
+// ----- cleanup_leaderboard -----
+
+// Closes the Participant / Sponsor PDAs of a fully paid leaderboard in batches
+// (passed as remaining_accounts) so the driver gets their rent back. Accounts
+// already closed are skipped, so a batch can be retried safely. Must finish
+// before close_leaderboard, which also stops a reused leaderboard id from
+// inheriting stale participants.
+#[derive(Accounts)]
+pub struct CleanupLeaderboard<'info> {
+    #[account(mut, constraint = driver.key().eq(&DRIVER) @ LeaderboardError::Unauthorized)]
+    pub driver: Signer<'info>,
+
+    #[account(mut)]
+    pub leaderboard: Account<'info, Leaderboard>,
+}
+
+pub fn cleanup_leaderboard<'info>(
+    ctx: Context<'_, '_, '_, 'info, CleanupLeaderboard<'info>>,
+) -> Result<()> {
+    let lb = &mut ctx.accounts.leaderboard;
+    require!(
+        lb.state == LeaderboardState::Concluded,
+        LeaderboardError::LeaderboardNotConcluded
+    );
+    require!(
+        lb.paid_slots as usize == lb.payout_slots_bps.len(),
+        LeaderboardError::PayoutsNotComplete
+    );
+    let lb_key = lb.key();
+
+    for acc in ctx.remaining_accounts.iter() {
+        // Already closed (or never ours): nothing to reclaim.
+        if *acc.owner != crate::id() || acc.data_is_empty() {
+            continue;
+        }
+        require!(acc.is_writable, LeaderboardError::Unauthorized);
+
+        let is_participant = {
+            let data = acc.try_borrow_data()?;
+            if data.starts_with(&<Participant as Discriminator>::DISCRIMINATOR) {
+                let p = Participant::try_deserialize(&mut &data[..])?;
+                require_keys_eq!(p.leaderboard, lb_key, LeaderboardError::PlayerNotEnrolled);
+                true
+            } else if data.starts_with(&<Sponsor as Discriminator>::DISCRIMINATOR) {
+                let s = Sponsor::try_deserialize(&mut &data[..])?;
+                require_keys_eq!(s.leaderboard, lb_key, LeaderboardError::SponsorNotFound);
+                false
+            } else {
+                return Err(LeaderboardError::Unauthorized.into());
+            }
+        };
+
+        close(&mut acc.clone(), ctx.accounts.driver.to_account_info())?;
+
+        if is_participant {
+            lb.closed_participant_count = lb
+                .closed_participant_count
+                .checked_add(1)
+                .ok_or(LeaderboardError::OverFlow)?;
+        } else {
+            lb.closed_sponsor_count = lb
+                .closed_sponsor_count
+                .checked_add(1)
+                .ok_or(LeaderboardError::OverFlow)?;
+        }
+    }
 
     Ok(())
 }

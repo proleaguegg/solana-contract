@@ -79,7 +79,7 @@ fee  = floor(pool × platformFeeBps / 10,000)
 - `pending_fees` is paid to the treasury at `close_tournament`.
 - The fee math is checked arithmetic with unit tests in `src/utils/helper.rs`.
 
-**Leaderboards.** Each buy-in and sponsorship is split on arrival into prize pool and `pending_fees` at `platform_fee_bps`. Fees are swept to the treasury at `conclude_leaderboard`; a cancelled leaderboard refunds the full amount, fee included. Payout slots are paid in strict order, and rounding dust goes to the treasury at close.
+**Leaderboards.** Each buy-in and sponsorship is split on arrival into prize pool and `pending_fees` at `platform_fee_bps`. Fees are swept to the treasury at `conclude_leaderboard`; a cancelled leaderboard refunds the full amount, fee included. Payout slots are paid in strict order, and rounding dust goes to the treasury at close. Before close, the operator closes every participant and sponsor account (refund on cancel, `cleanup_leaderboard` after payout), so a leaderboard leaves no rent behind.
 
 ## Review guide
 

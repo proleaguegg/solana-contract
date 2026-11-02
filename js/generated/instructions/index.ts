@@ -9,6 +9,7 @@
 export * from './addWinner';
 export * from './announceTournament';
 export * from './cancelLeaderboard';
+export * from './cleanupLeaderboard';
 export * from './closeLeaderboard';
 export * from './closeTournament';
 export * from './concludeLeaderboard';

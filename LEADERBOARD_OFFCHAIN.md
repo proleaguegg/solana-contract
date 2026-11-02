@@ -84,8 +84,8 @@ Field names below are the **SDK (camelCase)** names. Fetch with `safeFetchLeader
 | `participantCount` | u16 | current joined players |
 | `sponsorCount` | u16 | distinct sponsors |
 | `paidSlots` | u16 | how many prize slots have been paid (payout cursor) |
-| `refundedPlayerCount` | u16 | refunds processed (cancel path) |
-| `refundedSponsorCount` | u16 | refunds processed (cancel path) |
+| `closedParticipantCount` | u16 | Participant PDAs closed (refund on cancel path, `cleanupLeaderboard` on concluded path) |
+| `closedSponsorCount` | u16 | Sponsor PDAs closed (same) |
 | `concludedAt` | i64 | unix ts of conclude (0 until concluded) |
 
 ### 3.2 `Participant` — PDA seeds `["PARTICIPANT", leaderboard, player]`
@@ -96,8 +96,10 @@ Field names below are the **SDK (camelCase)** names. Fetch with `safeFetchLeader
 | `grossContribution` | u64 | what they paid (buy-in) |
 | `netContribution` | u64 | net added to pool |
 | `joinedAt` | i64 | unix ts (non-zero once joined; `0` sentinel = not joined) |
+| `prizePaid` | bool | set when this participant is paid a slot; a second slot fails `ParticipantAlreadyPaid` |
 
-> Closed (account removed) when the player **leaves** or is **refunded**.
+> Closed (account removed) when the player **leaves**, is **refunded**, or by
+> `cleanupLeaderboard` after every slot is paid.
 
 ### 3.3 `Sponsor` — PDA seeds `["SPONSOR", leaderboard, sponsor]`
 | Field | Type | Meaning |
@@ -136,7 +138,8 @@ enforced on-chain (listed so you don't waste transactions). SDK builder names in
 | 8 | `refundLeaderboardSponsor` | — | Cancelled | sponsor exists | refunds full gross; closes Sponsor |
 | 9 | `concludeLeaderboard` | — (+treasury acct) | Open | `now ≥ end`, `participantCount ≥ min` | sweeps `pendingFees` → treasury; → Concluded |
 | 10 | `sendPrizeLeaderboard({slotIndex})` | — (+winner, participant) | Concluded | **`slotIndex == paidSlots`** (strict order), winner is enrolled | pays slot share to winner; `paidSlots++` |
-| 11 | `closeLeaderboard` | — (+treasury acct) | Concluded **or** Cancelled | Concluded: `paidSlots == slots`; Cancelled: all refunds done | sweeps dust → treasury; closes pool + Leaderboard |
+| 11 | `cleanupLeaderboard({accounts})` | — | Concluded | `paidSlots == slots`; `accounts` are this leaderboard's Participant/Sponsor PDAs (~25 per tx) | closes them, rent → driver; already-closed accounts are skipped |
+| 12 | `closeLeaderboard` | — (+treasury acct) | Concluded **or** Cancelled | `closedParticipantCount == participantCount && closedSponsorCount == sponsorCount`; Concluded also `paidSlots == slots` | sweeps dust → treasury; closes pool + Leaderboard |
 
 **`initializeLeaderboard` args:** `leaderboardId, startTimestamp, endTimestamp,
 sponsorCutoff, buyInAmount, minParticipants, maxParticipants, payoutSlotsBps, platformFeeBps`.
@@ -245,8 +248,8 @@ doesn't. Treat on-chain as source of truth for money fields; reconcile (see §10
   "participantCount": 0,
   "sponsorCount": 0,
   "paidSlots": 0,
-  "refundedPlayerCount": 0,
-  "refundedSponsorCount": 0,
+  "closedParticipantCount": 0,
+  "closedSponsorCount": 0,
   "concludedAt": null,
 
   // off-chain orchestration
@@ -382,11 +385,16 @@ serve from Mongo (fast) and can be reconciled against chain on demand.
      organizer approves ranking → build `prize_slots` (winner per slot, amounts).
 6. **Conclude** → `conclude` (Concluded). Fees swept to treasury.
 7. **Payout** → for `slotIndex = 0,1,2,…` in order, `sendPrize`. Each job is gated on
-   the previous confirming (chain requires `slotIndex == paidSlots`). Then **close**
-   once `paidSlots == payoutSlotsBps.length`.
+   the previous confirming (chain requires `slotIndex == paidSlots`). Check winners are
+   distinct first (chain rejects a second slot to the same wallet: `ParticipantAlreadyPaid`).
+   Once `paidSlots == payoutSlotsBps.length` → **cleanup**: list this leaderboard's
+   Participant/Sponsor PDAs (`getProgramAccounts`, memcmp on the account discriminator +
+   leaderboard pubkey at offset 9; fall back to Mongo), send `cleanupLeaderboard` in
+   batches of ~25, retry freely, repeat until none are left → **close**. Not user-facing:
+   prizes are already paid, so this can run as a background job.
 8. **Cancel path** → `cancel` → for each participant `refundLeaderboardPlayer`, each
    sponsor `refundLeaderboardSponsor` → `close` once
-   `refundedPlayerCount == participantCount && refundedSponsorCount == sponsorCount`.
+   `closedParticipantCount == participantCount && closedSponsorCount == sponsorCount`.
 
 **Fallback unlock** (product spec): if payout is stuck > 4h post-end, alert ops. There's
 no on-chain auto-unlock — funds stay safely escrowed until the driver pays or cancels.
@@ -411,7 +419,8 @@ your own state:
 contract). Other useful ones: `LeaderboardNotOpen`, `RegistrationClosed`,
 `SponsorshipClosed`, `LeaderboardNotEnded`, `BelowMinParticipants`,
 `ParticipantLimitReached`, `LeaderboardNotConcluded`, `LeaderboardNotCancelled`,
-`PayoutsNotComplete`, `RefundsNotComplete`, `Unauthorized`.
+`PayoutsNotComplete`, `RefundsNotComplete`, `CleanupNotComplete`,
+`ParticipantAlreadyPaid`, `Unauthorized`.
 
 **Every on-chain job carries an `idempotencyKey`** (e.g. `${id}:sendPrize:slot${i}`).
 Because the chain itself rejects duplicates, a job that "fails" as already-applied should

@@ -374,9 +374,9 @@ describe('Leaderboard — paid buy-ins', function () {
       i++;
       const lb = await poll(
         () => safeFetchLeaderboard(umi, leaderboard),
-        (v) => v?.refundedPlayerCount === i
+        (v) => v?.closedParticipantCount === i
       );
-      assert.equal(lb!.refundedPlayerCount, i);
+      assert.equal(lb!.closedParticipantCount, i);
       const t = await poll(
         () => safeFetchToken(umi, playerAta(p.publicKey)),
         (v) => v?.amount === BUYIN
@@ -384,7 +384,7 @@ describe('Leaderboard — paid buy-ins', function () {
       assert.equal(t!.amount, BUYIN, 'player should get full gross back');
     }
     const lb = await safeFetchLeaderboard(umi, leaderboard);
-    assert.equal(lb!.refundedPlayerCount, lb!.participantCount);
+    assert.equal(lb!.closedParticipantCount, lb!.participantCount);
     assert.equal(lb!.prizePool, 0n);
     assert.equal(lb!.pendingFees, 0n);
   });

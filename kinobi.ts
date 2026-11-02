@@ -101,6 +101,24 @@ kinobi.update(
   })
 );
 
+// cleanup_leaderboard closes Participant / Sponsor PDAs passed as remaining
+// accounts; expose them as a writable `accounts` list on the client.
+kinobi.update(
+  new k.UpdateInstructionsVisitor({
+    cleanupLeaderboard: {
+      remainingAccounts: k.remainingAccountsFromArg("accounts", true),
+      args: {
+        // The default only exists so kinobi 0.16 emits `resolvedArgs`, which
+        // its remaining-accounts template reads.
+        accounts: {
+          type: k.arrayTypeNode(k.publicKeyTypeNode()),
+          defaultsTo: k.valueDefault(k.vList([])),
+        },
+      },
+    },
+  })
+);
+
 kinobi.update(
   new k.SetInstructionAccountDefaultValuesVisitor([
     {

@@ -38,6 +38,7 @@ import {
   safeFetchSponsor,
   findGlobalPda,
   LeaderboardState,
+  cleanupLeaderboard,
 } from '../../js';
 import {
   clusterUrl,
@@ -564,9 +565,9 @@ describe('Leaderboard', function () {
       );
       const lb = await poll(
         () => safeFetchLeaderboard(umi, leaderboard),
-        (v) => v?.refundedSponsorCount === 1
+        (v) => v?.closedSponsorCount === 1
       );
-      assert.equal(lb!.refundedSponsorCount, 1);
+      assert.equal(lb!.closedSponsorCount, 1);
       assert.equal(lb!.pendingFees, 0n);
 
       const after = await poll(
@@ -630,10 +631,10 @@ describe('Leaderboard', function () {
       );
       const lb = await poll(
         () => safeFetchLeaderboard(umi, leaderboard),
-        (v) => v?.refundedPlayerCount === 1
+        (v) => v?.closedParticipantCount === 1
       );
-      assert.equal(lb!.refundedPlayerCount, 1);
-      assert.equal(lb!.refundedPlayerCount, lb!.participantCount);
+      assert.equal(lb!.closedParticipantCount, 1);
+      assert.equal(lb!.closedParticipantCount, lb!.participantCount);
     });
 
     it('closes the leaderboard once all refunds are done', async function () {
@@ -865,6 +866,54 @@ describe('Leaderboard', function () {
         (v) => v?.paidSlots === 2
       );
       assert.equal(lb!.paidSlots, 2);
+    });
+
+    it('refuses close until participant/sponsor PDAs are cleaned up', async function () {
+      await expectTxError(
+        () =>
+          sendConfirmBuilder(
+            umi,
+            driver,
+            closeLeaderboard(umi, {
+              driver,
+              treasury: DEV_TREASURY,
+              leaderboard,
+              mint,
+            }),
+            'close-before-cleanup',
+            COMMIT
+          ),
+        ['not cleaned up', 'CleanupNotComplete']
+      );
+      const accounts = [
+        ...[playerA, playerB].map(
+          (p) =>
+            findParticipantPda(umi, {
+              leaderboard: publicKey(leaderboard),
+              player: p.publicKey,
+            })[0]
+        ),
+        findSponsorPda(umi, {
+          leaderboard: publicKey(leaderboard),
+          sponsor: sponsor.publicKey,
+        })[0],
+      ];
+      // run twice: the retry must be a harmless no-op
+      for (const label of ['cleanup', 'cleanup-retry']) {
+        await sendConfirmBuilder(
+          umi,
+          driver,
+          cleanupLeaderboard(umi, { driver, leaderboard, accounts }),
+          label,
+          COMMIT
+        );
+      }
+      const lb = await poll(
+        () => safeFetchLeaderboard(umi, leaderboard),
+        (v) => v?.closedParticipantCount === 2 && v?.closedSponsorCount === 1
+      );
+      assert.equal(lb!.closedParticipantCount, 2);
+      assert.equal(lb!.closedSponsorCount, 1);
     });
 
     it('closes the concluded leaderboard', async function () {

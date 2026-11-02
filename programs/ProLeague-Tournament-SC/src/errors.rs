@@ -173,4 +173,6 @@ pub enum LeaderboardError {
     RefundsNotComplete,
     #[msg("Participant has already been paid a prize slot")]
     ParticipantAlreadyPaid,
+    #[msg("Participant and sponsor accounts not cleaned up")]
+    CleanupNotComplete,
 }

@@ -60,8 +60,8 @@ export type LeaderboardAccountData = {
   participantCount: number;
   sponsorCount: number;
   paidSlots: number;
-  refundedPlayerCount: number;
-  refundedSponsorCount: number;
+  closedParticipantCount: number;
+  closedSponsorCount: number;
   concludedAt: bigint;
 };
 
@@ -85,8 +85,8 @@ export type LeaderboardAccountDataArgs = {
   participantCount: number;
   sponsorCount: number;
   paidSlots: number;
-  refundedPlayerCount: number;
-  refundedSponsorCount: number;
+  closedParticipantCount: number;
+  closedSponsorCount: number;
   concludedAt: number | bigint;
 };
 
@@ -117,8 +117,8 @@ export function getLeaderboardAccountDataSerializer(): Serializer<
         ['participantCount', u16()],
         ['sponsorCount', u16()],
         ['paidSlots', u16()],
-        ['refundedPlayerCount', u16()],
-        ['refundedSponsorCount', u16()],
+        ['closedParticipantCount', u16()],
+        ['closedSponsorCount', u16()],
         ['concludedAt', i64()],
       ],
       { description: 'LeaderboardAccountData' }
@@ -217,8 +217,8 @@ export function getLeaderboardGpaBuilder(
       participantCount: number;
       sponsorCount: number;
       paidSlots: number;
-      refundedPlayerCount: number;
-      refundedSponsorCount: number;
+      closedParticipantCount: number;
+      closedSponsorCount: number;
       concludedAt: number | bigint;
     }>({
       discriminator: [0, array(u8(), { size: 8 })],
@@ -241,8 +241,8 @@ export function getLeaderboardGpaBuilder(
       participantCount: [null, u16()],
       sponsorCount: [null, u16()],
       paidSlots: [null, u16()],
-      refundedPlayerCount: [null, u16()],
-      refundedSponsorCount: [null, u16()],
+      closedParticipantCount: [null, u16()],
+      closedSponsorCount: [null, u16()],
       concludedAt: [null, i64()],
     })
     .deserializeUsing<Leaderboard>((account) => deserializeLeaderboard(account))

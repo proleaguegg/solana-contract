@@ -197,4 +197,10 @@ mod tournament {
     pub fn close_leaderboard(ctx: Context<CloseLeaderboard>) -> Result<()> {
         instructions::close_leaderboard(ctx)
     }
+
+    pub fn cleanup_leaderboard<'info>(
+        ctx: Context<'_, '_, '_, 'info, CleanupLeaderboard<'info>>,
+    ) -> Result<()> {
+        instructions::cleanup_leaderboard(ctx)
+    }
 }

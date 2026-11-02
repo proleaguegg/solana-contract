@@ -220,8 +220,8 @@ pub fn refund_leaderboard_sponsor(ctx: Context<RefundLeaderboardSponsor>) -> Res
         .pending_fees
         .checked_sub(fee)
         .ok_or(LeaderboardError::OverFlow)?;
-    lb.refunded_sponsor_count = lb
-        .refunded_sponsor_count
+    lb.closed_sponsor_count = lb
+        .closed_sponsor_count
         .checked_add(1)
         .ok_or(LeaderboardError::OverFlow)?;
 

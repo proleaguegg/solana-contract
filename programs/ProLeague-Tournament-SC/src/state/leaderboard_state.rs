@@ -45,8 +45,11 @@ pub struct Leaderboard {
     pub participant_count: u16,
     pub sponsor_count: u16,
     pub paid_slots: u16,
-    pub refunded_player_count: u16,
-    pub refunded_sponsor_count: u16,
+    // Participant / Sponsor PDAs closed so far, by refund (cancel path) or
+    // cleanup_leaderboard (concluded path). close_leaderboard waits for both
+    // to reach participant_count / sponsor_count.
+    pub closed_participant_count: u16,
+    pub closed_sponsor_count: u16,
     pub concluded_at: i64,
 }
 
@@ -71,8 +74,8 @@ impl Leaderboard {
     // 2  participant_count
     // 2  sponsor_count
     // 2  paid_slots
-    // 2  refunded_player_count
-    // 2  refunded_sponsor_count
+    // 2  closed_participant_count
+    // 2  closed_sponsor_count
     // 8  concluded_at
     pub const LEN: usize = 8
         + 1
