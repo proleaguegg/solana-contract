@@ -262,7 +262,7 @@ Codes worth handling explicitly:
 
 Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because the participant/sponsor account is closed on a successful refund.
 
-## Unreleased
+## Changes in 3.1.0
 
 - **Breaking:** leaderboard error codes move from 6000–6032 to **7000–7032** (same order, same names and messages). They used to share numbers with tournament errors, so the SDK reported leaderboard failures under tournament names (6011 `SponsorCutoffInvalid` surfaced as `PlayerMustBeSigner`). Every leaderboard error now has its own SDK error class. Code that compares leaderboard error numbers must add 1000; code that matches names or messages needs no change.
 

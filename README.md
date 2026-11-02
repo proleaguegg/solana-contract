@@ -4,7 +4,7 @@ On-chain tournament and leaderboard settlement for competitive gaming, built on 
 
 | | |
 |---|---|
-| **Release** | 3.0.0 |
+| **Release** | 3.1.0 |
 | **Program ID** | `matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR` |
 | **Framework** | Anchor 0.29.0 (Rust), `solana-program` 1.17.4 |
 | **Size** | ~3,700 lines of Rust, 31 instructions |
@@ -94,7 +94,7 @@ Suggested reading order, by where value moves:
 | `instructions/cancel_tournament.rs`, `destroy_tournament.rs` | 288, 156 | Refund and cancellation paths; authority-only recovery |
 | `instructions/winner_instructions.rs`, `transpose_tournament.rs` | 112, 113 | Winner reporting, `won_next_round`, authority-only wallet recovery |
 | `instructions/leaderboard_*.rs` | ~1,200 | Leaderboard lifecycle, sponsorship, conclude, payout slots, cleanup |
-| `constant.rs`, `errors.rs`, `state/` | 88, 178, ~290 | Caps, keys, error codes, account layouts |
+| `constant.rs`, `errors.rs`, `state/` | 88, 179, ~290 | Caps, keys, error codes, account layouts |
 
 All paths are under `programs/ProLeague-Tournament-SC/src/`.
 
