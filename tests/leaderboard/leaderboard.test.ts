@@ -666,6 +666,9 @@ describe('Leaderboard', function () {
   // =========================================================================
   // 3. conclude + payout happy path — GATED (needs a full >=1h window)
   //    Run with:  RUN_LONG=1 yarn test:leaderboard
+  //    Against a local build with a shorter MIN_LEADERBOARD_DURATION, set
+  //    LB_WINDOW_SECS (e.g. 30) and --grep 'conclude & payout' to run it in
+  //    minutes; the init-validation tests assume the real 1h minimum.
   // =========================================================================
   const longDescribe = process.env.RUN_LONG === '1' ? describe : describe.skip;
   longDescribe('conclude & payout path (long, ~1h)', function () {
@@ -684,7 +687,7 @@ describe('Leaderboard', function () {
 
     it('init + publish + join(2) + sponsor before the short start', async function () {
       const start = nowSec() + 150; // 2.5 min to get everyone in
-      endTs = start + 3600;
+      endTs = start + (Number(process.env.LB_WINDOW_SECS) || 3600);
       await sendConfirmBuilder(
         umi,
         driver,
@@ -695,6 +698,7 @@ describe('Leaderboard', function () {
             endTimestamp: endTs,
             payoutSlotsBps: [6000, 4000],
             minParticipants: 2,
+            sponsorCutoff: 0, // must be < window; 600 breaks LB_WINDOW_SECS runs
           })
         ),
         'init-long',
