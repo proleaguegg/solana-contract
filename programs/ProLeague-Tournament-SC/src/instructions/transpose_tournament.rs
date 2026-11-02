@@ -1,12 +1,20 @@
 use {
-    crate::{constant::*, errors::TournamentError, state::*},
+    crate::{errors::TournamentError, state::*},
     anchor_lang::prelude::*,
 };
 
 #[derive(Accounts)]
 pub struct TransposeTournamentCreator<'info> {
-    #[account(constraint = driver.key().eq(&DRIVER))]
-    pub driver: Signer<'info>,
+    /// Recovery tool: gated by the program upgrade authority in lib.rs.
+    pub authority: Signer<'info>,
+
+    /// CHECK: verified against the program account in assert_program_authority
+    #[account()]
+    pub program_data: AccountInfo<'info>,
+
+    /// CHECK: must be this program
+    #[account(address = crate::id())]
+    pub program: AccountInfo<'info>,
 
     /// CHECK: We are checking it in the body
     #[account()]
@@ -44,8 +52,16 @@ pub fn transpose_tournament_creator(
 
 #[derive(Accounts)]
 pub struct TransposeTournamentPlayer<'info> {
-    #[account(constraint = driver.key().eq(&DRIVER))]
-    pub driver: Signer<'info>,
+    /// Recovery tool: gated by the program upgrade authority in lib.rs.
+    pub authority: Signer<'info>,
+
+    /// CHECK: verified against the program account in assert_program_authority
+    #[account()]
+    pub program_data: AccountInfo<'info>,
+
+    /// CHECK: must be this program
+    #[account(address = crate::id())]
+    pub program: AccountInfo<'info>,
 
     /// CHECK: We are checking it in the body
     #[account()]
@@ -71,6 +87,13 @@ pub fn transpose_tournament_player(
     if !tournament.players.contains(&player.key()) {
         return Err(TournamentError::PlayerNotExist.into());
     }
+
+    // Winners are stored by position in `players`, so a duplicate entry would
+    // make the position lookup resolve to the wrong slot.
+    require!(
+        !tournament.players.contains(&new_player),
+        TournamentError::PlayerAlreadyJoined
+    );
 
     let index: usize = tournament
         .players

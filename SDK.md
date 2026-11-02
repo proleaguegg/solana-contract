@@ -90,7 +90,7 @@ await publishTournament(umi, {
 }).sendAndConfirm(umi);
 ```
 
-`publishTournament` can only be called **once**, and only while no player has joined. Every tournament instruction that moves tokens (except the operator-only `destroyTournament`) must be passed the tournament's own `mint`; any other mint fails with `InvalidMint`.
+`publishTournament` can only be called **once**, and only while no player has joined. Every tournament instruction that moves tokens (except the recovery-only `destroyTournament`) must be passed the tournament's own `mint`; any other mint fails with `InvalidMint`.
 
 ### Join, play, pay out
 
@@ -241,6 +241,12 @@ Codes worth handling explicitly:
 | `WinnerAlreadyPaid` | leaderboard slot already paid |
 
 Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because the participant/sponsor account is closed on a successful refund.
+
+## Changes in 3.0.0
+
+- **Breaking:** `destroyTournament`, `transposeTournamentCreator` and `transposeTournamentPlayer` are recovery tools for the program upgrade authority, no longer the driver. They take `authority`, `programData` and `program` (same as `initGlobal`) instead of `driver`. A non-authority signer fails with `Unauthorized` (6029).
+- `destroyTournament` only pays the escrow to the creator recorded on the tournament; any other `creator` fails with `WrongCreator` (6025). Account rent returns to the authority.
+- `transposeTournamentPlayer` rejects a `newPlayer` already in the tournament with `PlayerAlreadyJoined` (6008).
 
 ## Changes in 2.2.0
 

@@ -38,7 +38,14 @@ export type DestroyTournamentInstructionAccounts = {
   tournamentTokenAccount?: PublicKey | Pda;
   creator: PublicKey | Pda;
   creatorTokenAccount?: PublicKey | Pda;
-  driver: Signer;
+  /**
+   * Recovery tool: gated by the program upgrade authority in lib.rs, not the
+   * hot DRIVER key, so a leaked driver key cannot tear down live escrows.
+   */
+
+  authority?: Signer;
+  programData: PublicKey | Pda;
+  program: PublicKey | Pda;
   mint: PublicKey | Pda;
   associatedTokenProgram?: PublicKey | Pda;
   tokenProgram?: PublicKey | Pda;
@@ -90,7 +97,7 @@ export type DestroyTournamentInstructionArgs =
 
 // Instruction.
 export function destroyTournament(
-  context: Pick<Context, 'eddsa' | 'programs'>,
+  context: Pick<Context, 'eddsa' | 'identity' | 'programs'>,
   input: DestroyTournamentInstructionAccounts & DestroyTournamentInstructionArgs
 ): TransactionBuilder {
   // Program ID.
@@ -113,20 +120,26 @@ export function destroyTournament(
       isWritable: true,
       value: input.creatorTokenAccount ?? null,
     },
-    driver: { index: 4, isWritable: false, value: input.driver ?? null },
-    mint: { index: 5, isWritable: false, value: input.mint ?? null },
+    authority: { index: 4, isWritable: true, value: input.authority ?? null },
+    programData: {
+      index: 5,
+      isWritable: false,
+      value: input.programData ?? null,
+    },
+    program: { index: 6, isWritable: false, value: input.program ?? null },
+    mint: { index: 7, isWritable: false, value: input.mint ?? null },
     associatedTokenProgram: {
-      index: 6,
+      index: 8,
       isWritable: false,
       value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
-      index: 7,
+      index: 9,
       isWritable: false,
       value: input.tokenProgram ?? null,
     },
     systemProgram: {
-      index: 8,
+      index: 10,
       isWritable: false,
       value: input.systemProgram ?? null,
     },
@@ -149,6 +162,9 @@ export function destroyTournament(
         owner: expectPublicKey(resolvedAccounts.tournament.value),
       }
     );
+  }
+  if (!resolvedAccounts.authority.value) {
+    resolvedAccounts.authority.value = context.identity;
   }
   if (!resolvedAccounts.associatedTokenProgram.value) {
     resolvedAccounts.associatedTokenProgram.value =

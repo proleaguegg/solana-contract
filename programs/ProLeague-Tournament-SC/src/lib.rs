@@ -84,6 +84,11 @@ mod tournament {
         ctx: Context<DestroyTournament>,
         args: DestroyTournamentArgs,
     ) -> Result<()> {
+        assert_program_authority(
+            ctx.accounts.program.to_account_info(),
+            ctx.accounts.program_data.to_account_info(),
+            ctx.accounts.authority.key,
+        )?;
         instructions::destroy_tournament(ctx, args)
     }
 
@@ -95,6 +100,11 @@ mod tournament {
         ctx: Context<TransposeTournamentCreator>,
         args: ArgumentTransposeTournamentCreator,
     ) -> Result<()> {
+        assert_program_authority(
+            ctx.accounts.program.to_account_info(),
+            ctx.accounts.program_data.to_account_info(),
+            ctx.accounts.authority.key,
+        )?;
         instructions::transpose_tournament_creator(ctx, args)
     }
 
@@ -102,6 +112,11 @@ mod tournament {
         ctx: Context<TransposeTournamentPlayer>,
         args: ArgumentTransposeTournamentPlayer,
     ) -> Result<()> {
+        assert_program_authority(
+            ctx.accounts.program.to_account_info(),
+            ctx.accounts.program_data.to_account_info(),
+            ctx.accounts.authority.key,
+        )?;
         instructions::transpose_tournament_player(ctx, args)
     }
 

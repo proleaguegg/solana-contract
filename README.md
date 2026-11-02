@@ -51,7 +51,7 @@ Cancellation: `pause → refund_joining_fees + refund_sponsor → refund_creator
 - No prize can be paid while a tournament is paused, so escrow owed back to players cannot be drained mid-cancellation.
 - Players can only join between `publish_tournament` and `announce_tournament` (2.2.0), so a join can't block publish and nobody is locked into an announced bracket they can't leave.
 - A tournament takes one sponsorship, and `sponsor_tournament` requires the operator's co-signature (2.2.0), so the sponsor slot can't be squatted by a third party.
-- Every tournament token instruction except the operator-only `destroy_tournament` is pinned to the mint recorded at `initialize`; any other mint fails with `InvalidMint` (2.1.1). The escrow token account must be owned by the tournament PDA, and transfers are signed with the PDA's seeds.
+- Every tournament token instruction except the recovery-only `destroy_tournament` is pinned to the mint recorded at `initialize`; any other mint fails with `InvalidMint` (2.1.1). The escrow token account must be owned by the tournament PDA, and transfers are signed with the PDA's seeds.
 - Leaderboard escrow must be the leaderboard's associated token account, and every leaderboard token instruction is bound to the leaderboard's mint.
 - The platform fee is capped at 30% (`PLATFORM_FEE_BPS_MAX`), `close_tournament` and the leaderboard sweeps pay fees only to the hardcoded treasury, and release builds compile with `overflow-checks = true`.
 
@@ -59,9 +59,10 @@ Cancellation: `pause → refund_joining_fees + refund_sponsor → refund_creator
 
 - A single **operator ("driver") key** reports winners and triggers payouts. It is a compile-time constant in `constant.rs`, selected by the `prod` Cargo feature. Rotating it requires a program upgrade.
 - The program does **not** verify match outcomes. Winners are reported by the operator, so result integrity depends on that key and on the off-chain system behind it.
-- `send_prize` only pays a wallet the operator recorded as a winner from the enrolled players. The operator also holds recovery instructions that can move escrow on its own authority: `transpose_tournament_player` / `transpose_tournament_creator` replace a player's or the creator's wallet, and `destroy_tournament` sweeps a tournament's whole escrow (including any booked fee) to a creator account it is given and closes it. A compromised operator key could use these to redirect funds.
+- `send_prize` only pays a wallet the operator recorded as a winner from the enrolled players.
+- Recovery instructions are held by the **program upgrade authority**, not the operator key (3.0.0): `transpose_tournament_player` / `transpose_tournament_creator` replace a player's or the creator's wallet, and `destroy_tournament` sweeps a tournament's whole escrow (including any booked fee) to the creator recorded on the tournament and closes it. A leaked operator key cannot call them.
 - `send_prize_leaderboard` pays slots in strict order but does not stop the operator from paying the same participant more than one slot; correct slot assignment is part of trusting the operator with results.
-- The program upgrade authority is a single key per cluster.
+- The program upgrade authority can replace the program and holds the recovery instructions above. Mainnet is planned to put it behind a multisig.
 
 ## Fee model
 

@@ -4,7 +4,15 @@ use anchor_spl::{
     token::{CloseAccount, Mint, Token, TokenAccount, Transfer},
 };
 
-use {crate::constant::*, anchor_lang::prelude::*};
+use {
+    crate::{constant::*, errors::TournamentError},
+    anchor_lang::prelude::*,
+};
+
+// Tournament layout starts with discriminator (8) + bump (1) + creator (32).
+// Read the creator from raw bytes so recovery still works on an account whose
+// later fields no longer deserialize after a layout change.
+const CREATOR_OFFSET: usize = 8 + 1;
 
 #[derive(Accounts)]
 pub struct DestroyTournament<'info> {
@@ -26,8 +34,18 @@ pub struct DestroyTournament<'info> {
     )]
     pub creator_token_account: Option<Account<'info, TokenAccount>>,
 
-    #[account(constraint = driver.key().eq(&DRIVER))]
-    pub driver: Signer<'info>,
+    /// Recovery tool: gated by the program upgrade authority in lib.rs, not the
+    /// hot DRIVER key, so a leaked driver key cannot tear down live escrows.
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
+    /// CHECK: verified against the program account in assert_program_authority
+    #[account()]
+    pub program_data: AccountInfo<'info>,
+
+    /// CHECK: must be this program
+    #[account(address = crate::id())]
+    pub program: AccountInfo<'info>,
 
     #[account()]
     pub mint: Account<'info, Mint>,
@@ -52,14 +70,36 @@ pub fn destroy_tournament(
         &[data.bump],
     ];
 
-    let tournament_key = Pubkey::create_program_address(tournament_seed, ctx.program_id).unwrap();
-    if !tournament_key.eq(&tournament_acc_info.key) {
-        panic!(
-            "Tournament key mismatch, expected {}, derived {}",
-            tournament_acc_info.key, tournament_key
+    let tournament_key = Pubkey::create_program_address(tournament_seed, ctx.program_id)
+        .map_err(|_| TournamentError::InvalidProgram)?;
+    require_keys_eq!(
+        tournament_key,
+        *tournament_acc_info.key,
+        TournamentError::InvalidProgram
+    );
+    require_keys_eq!(
+        *tournament_acc_info.owner,
+        crate::id(),
+        TournamentError::InvalidProgram
+    );
+
+    // Escrow may only go back to the creator recorded on the tournament.
+    let recorded_creator = {
+        let data = tournament_acc_info.try_borrow_data()?;
+        require!(
+            data.len() >= CREATOR_OFFSET + 32,
+            TournamentError::InvalidProgram
         );
-    }
-    let driver = &mut ctx.accounts.driver;
+        Pubkey::try_from(&data[CREATOR_OFFSET..CREATOR_OFFSET + 32])
+            .map_err(|_| TournamentError::InvalidProgram)?
+    };
+    require_keys_eq!(
+        ctx.accounts.creator.key(),
+        recorded_creator,
+        TournamentError::WrongCreator
+    );
+
+    let authority = &mut ctx.accounts.authority;
     let tournament_token_account = &mut ctx.accounts.tournament_token_account;
     let creator_token_account = &mut ctx.accounts.creator_token_account;
     let remaining_balance = tournament_token_account.amount;
@@ -86,7 +126,7 @@ pub fn destroy_tournament(
         ctx.accounts.token_program.to_account_info().clone(),
         CloseAccount {
             account: tournament_token_account.to_account_info(),
-            destination: driver.to_account_info(),
+            destination: authority.to_account_info(),
             authority: tournament_acc_info.to_account_info(),
         },
         cpi_signer,
@@ -94,7 +134,7 @@ pub fn destroy_tournament(
     anchor_spl::token::close_account(cpi_ctx)?;
 
     // Close Tournament Account
-    close(tournament_acc_info, driver.to_account_info())
+    close(tournament_acc_info, authority.to_account_info())
         .map_err(|e| e.with_account_name("tournament"))?;
     msg!("Tournament Refund and Close Sucessfully.");
 

@@ -10,6 +10,7 @@ import {
   PublicKey,
   KeypairSigner,
   TransactionBuilder,
+  publicKeyBytes,
 } from '@metaplex-foundation/umi';
 import { createUmi as BaseCreateUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { web3JsRpc } from '@metaplex-foundation/umi-rpc-web3js';
@@ -37,6 +38,7 @@ import {
   findTournamentPda,
   safeFetchTournament,
   findGlobalPda,
+  TOURNAMENT_PROGRAM_ID,
 } from '../../js';
 import {
   clusterUrl,
@@ -61,8 +63,9 @@ dotenv.config();
 // full 8-player happy path in ProLeague-Tournament-SC.test.ts.
 //
 // Balance-safe: every tournament created here is torn down in the after-hook
-// via destroy_tournament (driver-only, works from any lifecycle state) so the
-// driver reclaims account rent and the creator gets any escrowed tokens back.
+// via destroy_tournament (upgrade-authority only, works from any lifecycle
+// state). On devnet the upgrade authority is the driver key, so the driver
+// reclaims account rent and the creator gets any escrowed tokens back.
 //
 // Most cases use joiningFees = 0 so no SPL tokens move at all. The two fee
 // accounting cases use a deliberately tiny buy-in and are refunded by leaving.
@@ -269,7 +272,12 @@ describe('Tournament — edge cases', function () {
               mint,
               owner: creator.publicKey,
             }),
-            driver,
+            authority: driver,
+            programData: umi.eddsa.findPda(
+              publicKey('BPFLoaderUpgradeab1e11111111111111111111111'),
+              [publicKeyBytes(TOURNAMENT_PROGRAM_ID)]
+            ),
+            program: TOURNAMENT_PROGRAM_ID,
             mint,
             bump: pda[1],
             tournamentId,

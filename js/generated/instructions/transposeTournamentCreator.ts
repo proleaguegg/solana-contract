@@ -30,7 +30,10 @@ import {
 
 // Accounts.
 export type TransposeTournamentCreatorInstructionAccounts = {
-  driver: Signer;
+  /** Recovery tool: gated by the program upgrade authority in lib.rs. */
+  authority?: Signer;
+  programData: PublicKey | Pda;
+  program: PublicKey | Pda;
   creator: PublicKey | Pda;
   tournament: PublicKey | Pda;
 };
@@ -77,7 +80,7 @@ export type TransposeTournamentCreatorInstructionArgs =
 
 // Instruction.
 export function transposeTournamentCreator(
-  context: Pick<Context, 'programs'>,
+  context: Pick<Context, 'identity' | 'programs'>,
   input: TransposeTournamentCreatorInstructionAccounts &
     TransposeTournamentCreatorInstructionArgs
 ): TransactionBuilder {
@@ -89,13 +92,24 @@ export function transposeTournamentCreator(
 
   // Accounts.
   const resolvedAccounts = {
-    driver: { index: 0, isWritable: false, value: input.driver ?? null },
-    creator: { index: 1, isWritable: false, value: input.creator ?? null },
-    tournament: { index: 2, isWritable: true, value: input.tournament ?? null },
+    authority: { index: 0, isWritable: false, value: input.authority ?? null },
+    programData: {
+      index: 1,
+      isWritable: false,
+      value: input.programData ?? null,
+    },
+    program: { index: 2, isWritable: false, value: input.program ?? null },
+    creator: { index: 3, isWritable: false, value: input.creator ?? null },
+    tournament: { index: 4, isWritable: true, value: input.tournament ?? null },
   } satisfies ResolvedAccountsWithIndices;
 
   // Arguments.
   const resolvedArgs: TransposeTournamentCreatorInstructionArgs = { ...input };
+
+  // Default values.
+  if (!resolvedAccounts.authority.value) {
+    resolvedAccounts.authority.value = context.identity;
+  }
 
   // Accounts in order.
   const orderedAccounts: ResolvedAccount[] = Object.values(
