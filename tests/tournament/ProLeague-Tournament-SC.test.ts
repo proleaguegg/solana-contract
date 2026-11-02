@@ -678,12 +678,15 @@ describe('ProLeague-Tournament-SC', async function () {
       owner: DEV_TREASURY,
     });
 
-    // snapshot both destinations and the escrow so the sweep can be verified
+    // snapshot both destinations and the escrow so the sweep can be verified.
+    // Read at 'confirmed': this umi defaults to 'finalized', which trails the
+    // close by ~32 slots and returns the pre-close balances.
+    const confirmed = { commitment: 'confirmed' as const };
     const readAmount = async (ata: Pda) => {
-      const acc = await safeFetchToken(umi, ata);
+      const acc = await safeFetchToken(umi, ata, confirmed);
       return acc ? Number(acc.amount) : 0; // 0 when the ATA does not exist yet
     };
-    const before = await safeFetchTournament(umi, tournament);
+    const before = await safeFetchTournament(umi, tournament, confirmed);
     const owedToTreasury = Number(before!.pendingFees);
     const escrowTotal = await readAmount(
       findAssociatedTokenPda(umi, { mint, owner: tournament[0] })
@@ -704,10 +707,9 @@ describe('ProLeague-Tournament-SC', async function () {
       umi,
       driver,
       sdkFunc,
-      'concluding match'
+      'concluding match',
+      'confirmed'
     );
-
-    await new Promise((resolve) => setTimeout(resolve, 10000));
 
     // treasury receives exactly the booked fees; the creator receives the rest
     const treasuryAfter = await readAmount(treasuryTokenAccount);
@@ -723,7 +725,7 @@ describe('ProLeague-Tournament-SC', async function () {
       'creator received the remainder of the escrow'
     );
     assert.isNull(
-      await safeFetchTournament(umi, tournament),
+      await safeFetchTournament(umi, tournament, confirmed),
       'tournament account closed'
     );
     return sdkFuncTx;
