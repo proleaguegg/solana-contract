@@ -4,7 +4,7 @@ On-chain tournament and leaderboard settlement for competitive gaming, built on 
 
 | | |
 |---|---|
-| **Release** | 2.2.0 |
+| **Release** | 3.0.0 |
 | **Program ID** | `matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR` |
 | **Framework** | Anchor 0.29.0 (Rust), `solana-program` 1.17.4 |
 | **Size** | ~3,700 lines of Rust, 31 instructions |
