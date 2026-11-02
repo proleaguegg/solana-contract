@@ -247,6 +247,7 @@ Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because 
 - **Breaking:** `destroyTournament`, `transposeTournamentCreator` and `transposeTournamentPlayer` are recovery tools for the program upgrade authority, no longer the driver. They take `authority`, `programData` and `program` (same as `initGlobal`) instead of `driver`. A non-authority signer fails with `Unauthorized` (6029).
 - `destroyTournament` only pays the escrow to the creator recorded on the tournament; any other `creator` fails with `WrongCreator` (6025). Account rent returns to the authority.
 - `transposeTournamentPlayer` rejects a `newPlayer` already in the tournament with `PlayerAlreadyJoined` (6008).
+- `closeTournament` on an **unpublished** tournament that holds sponsor money fails with `SponsorAmountNotRefunded` (6021). Cancel it instead: `pauseTournament` → `refundSponsor` → `refundCreatorAndCancelTournament`. Published tournaments and unsponsored drafts close as before.
 
 ## Changes in 2.2.0
 

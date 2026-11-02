@@ -51,6 +51,7 @@ Cancellation: `pause → refund_joining_fees + refund_sponsor → refund_creator
 - No prize can be paid while a tournament is paused, so escrow owed back to players cannot be drained mid-cancellation.
 - Players can only join between `publish_tournament` and `announce_tournament` (2.2.0), so a join can't block publish and nobody is locked into an announced bracket they can't leave.
 - A tournament takes one sponsorship, and `sponsor_tournament` requires the operator's co-signature (2.2.0), so the sponsor slot can't be squatted by a third party.
+- `close_tournament` refuses an unpublished tournament that holds sponsor money (3.0.0), so a sponsorship that never funded a prize can't be swept to the creator; it goes back through the cancel path.
 - Every tournament token instruction except the recovery-only `destroy_tournament` is pinned to the mint recorded at `initialize`; any other mint fails with `InvalidMint` (2.1.1). The escrow token account must be owned by the tournament PDA, and transfers are signed with the PDA's seeds.
 - Leaderboard escrow must be the leaderboard's associated token account, and every leaderboard token instruction is bound to the leaderboard's mint.
 - The platform fee is capped at 30% (`PLATFORM_FEE_BPS_MAX`), `close_tournament` and the leaderboard sweeps pay fees only to the hardcoded treasury, and release builds compile with `overflow-checks = true`.

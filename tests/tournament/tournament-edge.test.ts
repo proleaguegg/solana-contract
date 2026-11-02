@@ -612,6 +612,44 @@ describe('Tournament — edge cases', function () {
     );
   });
 
+  it('refuses to close an unpublished tournament holding sponsor money', async function () {
+    // An unpublished tournament has no rounds, so close would sweep the
+    // sponsorship to the creator. It must go back via the cancel path.
+    const t = await initTournament();
+    umi.use(keypairIdentity(sponsor));
+    await sendConfirmBuilder(
+      umi,
+      sponsor,
+      sponsorTournament(umi, {
+        driver,
+        sponsor,
+        tournament: t.pda,
+        mint,
+        sponsorAmount: SMALL_FEE,
+      }),
+      'sponsor unpublished',
+      COMMIT
+    );
+    umi.use(keypairIdentity(driver));
+    await expectTxError(
+      () =>
+        send(
+          closeTournament(umi, {
+            tournament: t.pda,
+            creatorTokenAccount: findAssociatedTokenPda(umi, {
+              mint,
+              owner: creator.publicKey,
+            }),
+            treasury: DEV_TREASURY,
+            driver,
+            mint,
+          }),
+          'close unpublished sponsored'
+        ),
+      ['SponsorAmountNotRefunded', 'Sponsor Amount is not refunded', '0x1785']
+    );
+  });
+
   // ---- fee accounting -------------------------------------------------------
 
   it('does not fee entry fees — pendingFees is unchanged by join and leave', async function () {

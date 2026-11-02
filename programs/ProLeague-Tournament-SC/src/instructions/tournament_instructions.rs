@@ -414,6 +414,15 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
     // sweep to the treasury and creator with players still owed their entry fees.
     require!(!tournament.is_paused, TournamentError::TournamentIsPaused);
 
+    // An unpublished tournament has no rounds, so the winner checks below pass
+    // on nothing and the whole escrow would sweep to the creator — including
+    // sponsor money that never funded a prize. That money goes back through
+    // pause_tournament -> refund_sponsor -> refund_creator_and_cancel.
+    require!(
+        tournament.is_published || tournament.sponsor_amount == 0,
+        TournamentError::SponsorAmountNotRefunded
+    );
+
     // Loop through each round
     for round in tournament.rounds.iter() {
         // Check each winner's claimed status
