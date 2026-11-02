@@ -11,9 +11,11 @@ import {
 import { publicKey as publicKeySerializer } from '@metaplex-foundation/umi/serializers';
 
 import { web3JsRpc } from '@metaplex-foundation/umi-rpc-web3js';
+import { findAssociatedTokenPda } from '@metaplex-foundation/mpl-toolbox';
 import { createUmi as BaseCreateUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { tournamentProgram } from '../plugin.test';
 import {
+  closeTournament,
   safeFetchTournament,
   findTournamentPda,
   initialize,
@@ -94,9 +96,9 @@ describe('Global', async function () {
     }
 
     // Initializing values
-    umi = BaseCreateUmi(solanaRpc, 'finalized')
+    umi = BaseCreateUmi(solanaRpc, 'confirmed')
       .use(tournamentProgram())
-      .use(web3JsRpc(solanaRpc));
+      .use(web3JsRpc(solanaRpc, 'confirmed'));
     tournament = findTournamentPda(umi, { tournamentId });
     global = findGlobalPda(umi);
     creator = createSignerFromKeypair(
@@ -207,5 +209,28 @@ describe('Global', async function () {
     const tournamentObj = await safeFetchTournament(umi, tournament);
     console.dir(tournamentObj, { depth: null });
     return tournamentObj;
+  });
+
+  // The tournament above is never published, so close it to return its rent
+  // instead of leaving one open on devnet per run.
+  this.afterAll(async function () {
+    if (!(await safeFetchTournament(umi, tournament))) return;
+    umi.use(keypairIdentity(driver));
+    await sendConfirmBuilder(
+      umi,
+      driver,
+      closeTournament(umi, {
+        tournament,
+        creatorTokenAccount: findAssociatedTokenPda(umi, {
+          mint,
+          owner: creator.publicKey,
+        }),
+        treasury: publicKey('9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj'), // dev TREASURY
+        driver,
+        mint,
+      }),
+      'Close test tournament',
+      'confirmed'
+    );
   });
 });

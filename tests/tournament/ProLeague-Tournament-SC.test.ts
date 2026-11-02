@@ -123,9 +123,9 @@ describe('ProLeague-Tournament-SC', async function () {
     }
 
     // Initializing values
-    umi = BaseCreateUmi(solanaRpc, 'finalized')
+    umi = BaseCreateUmi(solanaRpc, 'confirmed')
       .use(tournamentProgram())
-      .use(web3JsRpc(solanaRpc));
+      .use(web3JsRpc(solanaRpc, 'confirmed'));
     tournament = findTournamentPda(umi, { tournamentId });
     global = findGlobalPda(umi);
     creator = createSignerFromKeypair(
@@ -678,15 +678,12 @@ describe('ProLeague-Tournament-SC', async function () {
       owner: DEV_TREASURY,
     });
 
-    // snapshot both destinations and the escrow so the sweep can be verified.
-    // Read at 'confirmed': this umi defaults to 'finalized', which trails the
-    // close by ~32 slots and returns the pre-close balances.
-    const confirmed = { commitment: 'confirmed' as const };
+    // snapshot both destinations and the escrow so the sweep can be verified
     const readAmount = async (ata: Pda) => {
-      const acc = await safeFetchToken(umi, ata, confirmed);
+      const acc = await safeFetchToken(umi, ata);
       return acc ? Number(acc.amount) : 0; // 0 when the ATA does not exist yet
     };
-    const before = await safeFetchTournament(umi, tournament, confirmed);
+    const before = await safeFetchTournament(umi, tournament);
     const owedToTreasury = Number(before!.pendingFees);
     const escrowTotal = await readAmount(
       findAssociatedTokenPda(umi, { mint, owner: tournament[0] })
@@ -725,7 +722,7 @@ describe('ProLeague-Tournament-SC', async function () {
       'creator received the remainder of the escrow'
     );
     assert.isNull(
-      await safeFetchTournament(umi, tournament, confirmed),
+      await safeFetchTournament(umi, tournament),
       'tournament account closed'
     );
     return sdkFuncTx;
@@ -844,9 +841,9 @@ describe.skip('Cancel Tournament', async function () {
     }
 
     // Initializing values
-    umi = BaseCreateUmi(solanaRpc, 'finalized')
+    umi = BaseCreateUmi(solanaRpc, 'confirmed')
       .use(tournamentProgram())
-      .use(web3JsRpc(solanaRpc));
+      .use(web3JsRpc(solanaRpc, 'confirmed'));
     tournament = findTournamentPda(umi, { tournamentId });
     global = findGlobalPda(umi);
     creator = createSignerFromKeypair(
@@ -1233,9 +1230,9 @@ describe.skip('Join Tournament Manual', async function () {
     }
 
     // Initializing values
-    umi = BaseCreateUmi(solanaRpc, 'finalized')
+    umi = BaseCreateUmi(solanaRpc, 'confirmed')
       .use(tournamentProgram())
-      .use(web3JsRpc(solanaRpc));
+      .use(web3JsRpc(solanaRpc, 'confirmed'));
     tournament = findTournamentPda(umi, { tournamentId });
     driver = createSignerFromKeypair(
       umi,
