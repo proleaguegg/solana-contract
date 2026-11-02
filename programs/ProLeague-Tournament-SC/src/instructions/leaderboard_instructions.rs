@@ -85,7 +85,10 @@ pub fn initialize_leaderboard(
         LeaderboardError::LeaderboardIdTooLong
     );
 
-    require!(now < args.start_timestamp, LeaderboardError::StartTimeInPast);
+    require!(
+        now < args.start_timestamp,
+        LeaderboardError::StartTimeInPast
+    );
 
     let duration = args
         .end_timestamp
@@ -107,7 +110,10 @@ pub fn initialize_leaderboard(
         LeaderboardError::PayoutSlotsTooMany
     );
     let bps_sum: u32 = args.payout_slots_bps.iter().map(|b| *b as u32).sum();
-    require!(bps_sum == TOTAL_BPS as u32, LeaderboardError::PayoutSumMismatch);
+    require!(
+        bps_sum == TOTAL_BPS as u32,
+        LeaderboardError::PayoutSumMismatch
+    );
 
     require!(
         args.min_participants > 0
@@ -240,10 +246,7 @@ pub fn cancel_leaderboard(ctx: Context<CancelLeaderboard>) -> Result<()> {
             .creator
             .as_ref()
             .ok_or(LeaderboardError::Unauthorized)?;
-        require!(
-            creator.key() == lb.creator,
-            LeaderboardError::Unauthorized
-        );
+        require!(creator.key() == lb.creator, LeaderboardError::Unauthorized);
     } else {
         require!(under_min, LeaderboardError::Unauthorized);
     }

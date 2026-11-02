@@ -5,9 +5,7 @@ use anchor_spl::{
 
 use {
     crate::{
-        constant::*,
-        errors::LeaderboardError,
-        instructions::leaderboard_instructions::compute_fee,
+        constant::*, errors::LeaderboardError, instructions::leaderboard_instructions::compute_fee,
         state::*,
     },
     anchor_lang::prelude::*,

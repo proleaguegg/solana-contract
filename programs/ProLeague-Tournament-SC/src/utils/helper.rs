@@ -167,7 +167,7 @@ mod fee_math_tests {
         let pool = weighted_pool(&[40, 30, 20, 10]).unwrap(); // 150
         let fee = compute_fee_bps(pool, 700, TOTAL).unwrap();
         assert_eq!(fee, 10); // floor(150 * 700 / 10000)
-        // creator funds pool + fee; the pool itself is untouched
+                             // creator funds pool + fee; the pool itself is untouched
         assert_eq!(pool + fee, 160);
     }
 

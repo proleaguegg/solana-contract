@@ -58,7 +58,10 @@ pub fn conclude_leaderboard(ctx: Context<ConcludeLeaderboard>) -> Result<()> {
     }
 
     let now = Clock::get()?.unix_timestamp;
-    require!(now >= lb.end_timestamp, LeaderboardError::LeaderboardNotEnded);
+    require!(
+        now >= lb.end_timestamp,
+        LeaderboardError::LeaderboardNotEnded
+    );
     require!(
         lb.participant_count >= lb.min_participants,
         LeaderboardError::BelowMinParticipants
@@ -154,7 +157,10 @@ pub fn send_prize_leaderboard(
     );
 
     let slot_count = lb.payout_slots_bps.len() as u16;
-    require!(args.slot_index < slot_count, LeaderboardError::SlotIndexOutOfOrder);
+    require!(
+        args.slot_index < slot_count,
+        LeaderboardError::SlotIndexOutOfOrder
+    );
 
     if args.slot_index < lb.paid_slots {
         return Err(LeaderboardError::WinnerAlreadyPaid.into());

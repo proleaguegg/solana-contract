@@ -61,8 +61,14 @@ pub fn join_tournament(ctx: Context<JoinTournament>) -> Result<()> {
     // Joins are only open between publish and announce. Before publish a
     // player would block publish_tournament; after announce the bracket is
     // locked and a late player could never leave.
-    require!(tournament.is_published, TournamentError::TournamentNotPublished);
-    require!(!tournament.is_announced, TournamentError::BracketsIsAnnounced);
+    require!(
+        tournament.is_published,
+        TournamentError::TournamentNotPublished
+    );
+    require!(
+        !tournament.is_announced,
+        TournamentError::BracketsIsAnnounced
+    );
 
     if tournament.players.len() >= tournament.total_players as usize {
         return Err(TournamentError::TournamentIsFull.into());
@@ -120,9 +126,9 @@ pub struct LeaveTournament<'info> {
 
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
-    
+
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),        
+        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
     #[account(address = tournament.mint @ TournamentError::InvalidMint)]
@@ -149,7 +155,6 @@ pub fn leave_tournament(ctx: Context<LeaveTournament>) -> Result<()> {
 
     // Only transfer the joining fee if it is greater than zero
     if tournament.joining_fees > 0 {
-
         let staker_seeds = &[
             TOURNAMENT_TAG.as_ref(),
             &tournament.tournament_id.as_ref(),
@@ -164,7 +169,7 @@ pub fn leave_tournament(ctx: Context<LeaveTournament>) -> Result<()> {
                 to: player_token_account.to_account_info(),
                 authority: tournament.to_account_info(),
             },
-            cpi_signer
+            cpi_signer,
         );
         // No fee was booked on the entry, so nothing to unwind: pending_fees is
         // the prize-pool fee fixed at publish and must not move here.

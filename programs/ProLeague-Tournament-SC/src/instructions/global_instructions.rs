@@ -8,7 +8,7 @@ use {
 pub struct InitGlobal<'info> {
     /// Public info account
     #[account(
-      init, 
+      init,
       seeds = [GLOBAL_TAG.as_ref(), crate::id().as_ref()],
       bump,
       payer = authority,
@@ -41,7 +41,7 @@ pub struct InitGlobalArgs {
 
 pub fn init_global(ctx: Context<InitGlobal>, args: InitGlobalArgs) -> Result<()> {
     let global = &mut ctx.accounts.global;
-     global.bump = ctx.bumps.global;
+    global.bump = ctx.bumps.global;
     global.whitelist_mint = args.list;
     Ok(())
 }
@@ -50,7 +50,7 @@ pub fn init_global(ctx: Context<InitGlobal>, args: InitGlobalArgs) -> Result<()>
 #[instruction(args: UpdateGlobalArgs)]
 pub struct UpdateGlobal<'info> {
     /// Public info account
-   #[account(mut,seeds = [GLOBAL_TAG.as_ref(), crate::id().as_ref()],bump)]
+    #[account(mut,seeds = [GLOBAL_TAG.as_ref(), crate::id().as_ref()],bump)]
     pub global: Account<'info, Global>,
 
     /// The update authority of the program
@@ -70,11 +70,10 @@ pub struct UpdateGlobal<'info> {
     /// The system program.
     pub system_program: Program<'info, System>,
     pub rent_sysvar: Sysvar<'info, Rent>,
-
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, Debug, PartialEq)]
-pub enum  UpdateGlobalArgs {
+pub enum UpdateGlobalArgs {
     Add(Pubkey),
     Remove(Pubkey),
 }
@@ -83,28 +82,28 @@ pub fn update_global(ctx: Context<UpdateGlobal>, args: UpdateGlobalArgs) -> Resu
     let global = &mut ctx.accounts.global;
     let authority = &mut ctx.accounts.authority;
     let pre_size = global.whitelist_mint.len() as isize;
-    
+
     match args {
         UpdateGlobalArgs::Add(pubkey) => {
             // Add the new Pubkey to the whitelist_mint vector if it does not already exist
             if !global.whitelist_mint.contains(&pubkey) {
-            global.whitelist_mint.push(pubkey);
+                global.whitelist_mint.push(pubkey);
             } else {
                 return Err(TournamentError::PubkeyAlreadyExists.into());
             }
-        },
+        }
         UpdateGlobalArgs::Remove(pubkey) => {
             // Remove the Pubkey from the whitelist_mint vector if it exists
             if global.whitelist_mint.contains(&pubkey) {
                 global.whitelist_mint.retain(|&x| x != pubkey);
             } else {
                 return Err(TournamentError::PubkeyNotFound.into());
-            }   
-        },
+            }
+        }
     }
     let new_size = global.whitelist_mint.len() as isize;
-    
-    if  pre_size != new_size {
+
+    if pre_size != new_size {
         reallocate_bytes(
             (new_size - pre_size) * 32, // Pubkey size
             global.to_account_info(),

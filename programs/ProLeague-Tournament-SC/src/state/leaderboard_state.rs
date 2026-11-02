@@ -40,8 +40,8 @@ pub struct Leaderboard {
 
     // running state
     pub state: LeaderboardState,
-    pub prize_pool: u64,    // net portion held in pool ATA, drives payout math
-    pub pending_fees: u64,  // 20% portion held in pool ATA until conclude
+    pub prize_pool: u64,   // net portion held in pool ATA, drives payout math
+    pub pending_fees: u64, // 20% portion held in pool ATA until conclude
     pub participant_count: u16,
     pub sponsor_count: u16,
     pub paid_slots: u16,
@@ -79,7 +79,8 @@ impl Leaderboard {
     // 8  concluded_at
     pub const LEN: usize = 8
         + 1
-        + 4 + LEADERBOARD_ID_MAX_LEN as usize
+        + 4
+        + LEADERBOARD_ID_MAX_LEN as usize
         + 32
         + 32
         + 8
@@ -90,7 +91,8 @@ impl Leaderboard {
         + 2
         + 2
         + 2
-        + 4 + (MAX_PAYOUT_SLOTS as usize * 2)
+        + 4
+        + (MAX_PAYOUT_SLOTS as usize * 2)
         + 1
         + 8
         + 8

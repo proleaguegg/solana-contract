@@ -5,9 +5,7 @@ use anchor_spl::{
 
 use {
     crate::{
-        constant::*,
-        errors::LeaderboardError,
-        instructions::leaderboard_instructions::compute_fee,
+        constant::*, errors::LeaderboardError, instructions::leaderboard_instructions::compute_fee,
         state::*,
     },
     anchor_lang::prelude::*,
@@ -77,7 +75,10 @@ pub fn join_leaderboard(ctx: Context<JoinLeaderboard>) -> Result<()> {
     );
 
     let now = Clock::get()?.unix_timestamp;
-    require!(now < lb.start_timestamp, LeaderboardError::RegistrationClosed);
+    require!(
+        now < lb.start_timestamp,
+        LeaderboardError::RegistrationClosed
+    );
 
     require!(
         lb.participant_count < lb.max_participants,
@@ -183,7 +184,10 @@ pub fn leave_leaderboard(ctx: Context<LeaveLeaderboard>) -> Result<()> {
         LeaderboardError::LeaderboardNotOpen
     );
     let now = Clock::get()?.unix_timestamp;
-    require!(now < lb.start_timestamp, LeaderboardError::RegistrationClosed);
+    require!(
+        now < lb.start_timestamp,
+        LeaderboardError::RegistrationClosed
+    );
 
     let participant = &ctx.accounts.participant;
     let gross = participant.gross_contribution;

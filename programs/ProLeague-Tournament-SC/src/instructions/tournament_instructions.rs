@@ -4,7 +4,7 @@ use anchor_lang::solana_program::program::invoke;
 use anchor_lang::solana_program::system_instruction::transfer;
 use anchor_spl::{
     associated_token::AssociatedToken,
-    token::{Mint, Token, TokenAccount, Transfer, CloseAccount},
+    token::{CloseAccount, Mint, Token, TokenAccount, Transfer},
 };
 
 use {
@@ -29,7 +29,7 @@ pub struct Initialize<'info> {
     /// Public info account
     #[account(seeds = [GLOBAL_TAG.as_ref(), crate::id().as_ref()],bump)]
     pub global: Account<'info, Global>,
-  
+
     #[account(
         init,
         seeds = [TOURNAMENT_TAG.as_ref(), data.tournament_id.as_ref()],
@@ -83,24 +83,20 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
         TournamentError::InvalidPlayerCount
     );
 
-    if !global.whitelist_mint.contains(&mint.key()){
+    if !global.whitelist_mint.contains(&mint.key()) {
         require!(creator.is_signer, TournamentError::CreatorMustBeSigner);
         // Instruction handler to perform the SOL transfer
-        let ix = transfer(
-            &creator.key(),
-            &driver.key(),
-            NON_WHITELISTED_CREATION_FEE,
-        );
+        let ix = transfer(&creator.key(), &driver.key(), NON_WHITELISTED_CREATION_FEE);
         invoke(
             &ix,
             &[
                 creator.to_account_info(),
                 driver.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
-                ],
+            ],
         )?;
     }
-        
+
     tournament.mint = mint.key();
     // Update tournament details
     tournament.bump = ctx.bumps.tournament;
@@ -234,7 +230,12 @@ pub fn publish_tournament(
     for i in 0..num_rounds {
         tournament.rounds.push(Round {
             reverse_index: i as u8,
-            winning_price: data.round_prizes.get(i).clone().map(|x| x.to_owned()).unwrap_or(0u64), // Or any default value you want
+            winning_price: data
+                .round_prizes
+                .get(i)
+                .clone()
+                .map(|x| x.to_owned())
+                .unwrap_or(0u64), // Or any default value you want
             winners_and_collected_status: HashMap::new(),
         });
     }
@@ -370,15 +371,14 @@ pub struct CloseTournament<'info> {
     pub tournament: Account<'info, Tournament>,
 
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),        
+        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
-
 
     #[account(mut,
         constraint = creator_token_account.mint == mint.key() && creator_token_account.owner == tournament.creator.key(),
      )]
-     pub creator_token_account: Account<'info, TokenAccount>,
+    pub creator_token_account: Account<'info, TokenAccount>,
 
     /// CHECK: must equal the program's TREASURY constant
     #[account(constraint = treasury.key() == TREASURY @ TournamentError::InvalidTreasury)]
@@ -428,12 +428,15 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
         // Check each winner's claimed status
         if round.winning_price > 0 {
             let expected_length = if round.reverse_index > 0 {
-            2u32.pow((round.reverse_index)as u32) as usize
+                2u32.pow((round.reverse_index) as u32) as usize
             } else {
-            1
+                1
             };
-            msg!("expected_length: {}",expected_length);
-            msg!("winners_and_collected_status.len: {}",round.winners_and_collected_status.len());
+            msg!("expected_length: {}", expected_length);
+            msg!(
+                "winners_and_collected_status.len: {}",
+                round.winners_and_collected_status.len()
+            );
             if expected_length != round.winners_and_collected_status.len() {
                 return Err(TournamentError::ExpectedWinnerLength.into()); // Define YourError as needed
             }
@@ -483,7 +486,6 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
     }
 
     if remaining_balance > 0 {
-
         // Transfer the escrow balance from the tournament to the creator (vault)
         let cpi_ctx = CpiContext::new_with_signer(
             ctx.accounts.token_program.to_account_info().clone(),
@@ -492,20 +494,19 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
                 to: creator_token_account.to_account_info(),
                 authority: tournament.to_account_info(),
             },
-            cpi_signer
+            cpi_signer,
         );
         anchor_spl::token::transfer(cpi_ctx, remaining_balance)?;
-
     }
     // Close Tournament Token Account
     let cpi_ctx = CpiContext::new_with_signer(
         ctx.accounts.token_program.to_account_info().clone(),
         CloseAccount {
-            account:tournament_token_account.to_account_info(),
+            account: tournament_token_account.to_account_info(),
             destination: driver.to_account_info(),
-            authority: tournament.to_account_info(), 
+            authority: tournament.to_account_info(),
         },
-        cpi_signer
+        cpi_signer,
     );
     anchor_spl::token::close_account(cpi_ctx)?;
 
@@ -518,14 +519,12 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
 pub struct AnnounceTournament<'info> {
     #[account(constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
-    
+
     #[account(mut)]
     pub tournament: Account<'info, Tournament>,
 }
 
-pub fn announce_tournament(
-    ctx: Context<AnnounceTournament>
-) -> Result<()> {
+pub fn announce_tournament(ctx: Context<AnnounceTournament>) -> Result<()> {
     let tournament = &mut ctx.accounts.tournament;
 
     // Announcing locks the roster (leave_tournament is blocked afterwards), so
