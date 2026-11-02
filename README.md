@@ -88,13 +88,13 @@ Suggested reading order, by where value moves:
 | File | Lines | Why |
 |---|---|---|
 | `instructions/prize_instructions.rs` | 107 | `send_prize`: the payout path and its once-only guard |
-| `instructions/tournament_instructions.rs` | 528 | `publish` (pool, fee, funding) and `close` (fee sweep, remainder) |
+| `instructions/tournament_instructions.rs` | 541 | `publish` (pool, fee, funding) and `close` (fee sweep, remainder) |
 | `utils/helper.rs` | 227 | Weighted pool and fee math, with unit tests |
-| `instructions/join_tournament.rs` | 182 | Entry, leave, and fee unwinding |
-| `instructions/cancel_tournament.rs`, `destroy_tournament.rs` | 297, 116 | Refund and cancellation paths |
-| `instructions/winner_instructions.rs`, `transpose_tournament.rs` | 112, 90 | Winner reporting, `won_next_round`, operator recovery |
-| `instructions/leaderboard_*.rs` | ~1,100 | Leaderboard lifecycle, sponsorship, conclude, payout slots |
-| `constant.rs`, `errors.rs`, `state/` | 88, 174, ~280 | Caps, keys, error codes, account layouts |
+| `instructions/join_tournament.rs` | 193 | Entry, leave, and fee unwinding |
+| `instructions/cancel_tournament.rs`, `destroy_tournament.rs` | 288, 156 | Refund and cancellation paths; authority-only recovery |
+| `instructions/winner_instructions.rs`, `transpose_tournament.rs` | 112, 113 | Winner reporting, `won_next_round`, authority-only wallet recovery |
+| `instructions/leaderboard_*.rs` | ~1,200 | Leaderboard lifecycle, sponsorship, conclude, payout slots, cleanup |
+| `constant.rs`, `errors.rs`, `state/` | 88, 178, ~290 | Caps, keys, error codes, account layouts |
 
 All paths are under `programs/ProLeague-Tournament-SC/src/`.
 
@@ -115,9 +115,10 @@ Integration suites live in `tests/` and run against devnet. They read wallets an
 ## Known limitations
 
 - **Not audited.** This is the version we are submitting for review.
-- **Single operator key**, compile-time, rotatable only by upgrade, with recovery powers over escrow (see [Trust model](#trust-model)).
+- **Single operator key**, compile-time and rotatable only by upgrade. It reports winners and triggers payouts, so a leaked key can misdirect prizes, but it has no recovery powers (see [Trust model](#trust-model)).
+- **The upgrade authority is the last line of recovery.** It can replace the program and holds `destroy_tournament` / `transpose_*`. Until it moves behind a multisig, it is a single key.
 - **Winner reporting is trusted input**; the program does not verify match results.
-- **Mainnet runs an earlier build** than this repository; the upgrade is pending.
+- **Mainnet runs an earlier build** than this repository. This version ships to mainnet as a fresh deployment under a new program ID, not as an upgrade, so existing mainnet accounts are not migrated.
 - Built on Anchor 0.29 and `solana-program` 1.17, an older toolchain. `init_if_needed` is enabled and used for recipient token accounts and leaderboard participant/sponsor accounts.
 
 ## SDK
