@@ -30,6 +30,29 @@ const idlDir = path.join(__dirname, "./target/idl");
 const idlPath = path.join(idlDir, "tournament.json");
 
 const idl = idlModifier(require(idlPath));
+
+// Anchor 0.29 puts only the first #[error_code] enum in the IDL. Append
+// LeaderboardError (offset 7000) from the Rust source so the SDK can name it.
+const leaderboardErrors = (() => {
+  const src = fs.readFileSync(
+    path.join(__dirname, "programs/ProLeague-Tournament-SC/src/errors.rs"),
+    "utf8"
+  );
+  const m = src.match(
+    /#\[error_code\(offset = (\d+)\)\]\s*pub enum LeaderboardError \{([\s\S]*?)\n\}/
+  );
+  if (!m) throw new Error("LeaderboardError enum not found in errors.rs");
+  const variants = [...m[2].matchAll(/#\[msg\("([^"]*)"\)\]\s*(\w+),/g)];
+  // Names shared with TournamentError get a Leaderboard prefix in the SDK
+  // only; the on-chain name (in the logs) is unchanged.
+  const taken = new Set(idl.errors.map((e) => e.name));
+  return variants.map(([, msg, name], i) => ({
+    code: Number(m[1]) + i,
+    name: taken.has(name) ? `Leaderboard${name}` : name,
+    msg,
+  }));
+})();
+idl.errors = [...idl.errors, ...leaderboardErrors];
 idl.metadata = {
   origin: "anchor",
   address: "matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR",

@@ -225,11 +225,19 @@ Winners receive the full advertised prize. Refunds (`leaveTournament`, `refundJo
 
 ## Error handling
 
-Program errors are typed and parsed from transaction logs:
+A failed transaction throws the matching error class (`<Name>Error`, with `code` and `name`). Tournament errors use codes 6000+, leaderboard errors 7000+:
 
 ```ts
-import { TournamentError, LeaderboardError } from '@tanv33/pro-league';
+import { SponsorCutoffInvalidError, WinnerAlreadyPaidError } from '@tanv33/pro-league';
+
+try {
+  await builder.sendAndConfirm(umi);
+} catch (e) {
+  if (e instanceof WinnerAlreadyPaidError) { /* slot already paid: treat as done */ }
+}
 ```
+
+Leaderboard errors whose name also exists in the tournament list carry a `Leaderboard` prefix in the SDK only (`LeaderboardInvalidMintError`, `LeaderboardPlayerAlreadyJoinedError`, `LeaderboardUnauthorizedError`, `LeaderboardInvalidFeeError`, `LeaderboardInvalidTreasuryError`, `LeaderboardSponsorshipClosedError`, `LeaderboardOverFlowError`). The program log keeps the plain name, e.g. `Error Code: InvalidMint. Error Number: 7025.`
 
 Codes worth handling explicitly:
 
@@ -253,6 +261,10 @@ Codes worth handling explicitly:
 | `CleanupNotComplete` | `closeLeaderboard` before every participant/sponsor account was cleaned up |
 
 Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because the participant/sponsor account is closed on a successful refund.
+
+## Unreleased
+
+- **Breaking:** leaderboard error codes move from 6000–6032 to **7000–7032** (same order, same names and messages). They used to share numbers with tournament errors, so the SDK reported leaderboard failures under tournament names (6011 `SponsorCutoffInvalid` surfaced as `PlayerMustBeSigner`). Every leaderboard error now has its own SDK error class. Code that compares leaderboard error numbers must add 1000; code that matches names or messages needs no change.
 
 ## Changes in 3.0.0
 

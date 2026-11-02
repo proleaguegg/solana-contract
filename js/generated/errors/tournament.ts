@@ -633,6 +633,457 @@ export class InvalidMintError extends ProgramError {
 codeToErrorMap.set(0x179c, InvalidMintError);
 nameToErrorMap.set('InvalidMint', InvalidMintError);
 
+/** LeaderboardNotOpen: Leaderboard is not in Open state */
+export class LeaderboardNotOpenError extends ProgramError {
+  override readonly name: string = 'LeaderboardNotOpen';
+
+  readonly code: number = 0x1b58; // 7000
+
+  constructor(program: Program, cause?: Error) {
+    super('Leaderboard is not in Open state', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b58, LeaderboardNotOpenError);
+nameToErrorMap.set('LeaderboardNotOpen', LeaderboardNotOpenError);
+
+/** LeaderboardNotConcluded: Leaderboard is not in Concluded state */
+export class LeaderboardNotConcludedError extends ProgramError {
+  override readonly name: string = 'LeaderboardNotConcluded';
+
+  readonly code: number = 0x1b59; // 7001
+
+  constructor(program: Program, cause?: Error) {
+    super('Leaderboard is not in Concluded state', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b59, LeaderboardNotConcludedError);
+nameToErrorMap.set('LeaderboardNotConcluded', LeaderboardNotConcludedError);
+
+/** LeaderboardNotCancelled: Leaderboard is not in Cancelled state */
+export class LeaderboardNotCancelledError extends ProgramError {
+  override readonly name: string = 'LeaderboardNotCancelled';
+
+  readonly code: number = 0x1b5a; // 7002
+
+  constructor(program: Program, cause?: Error) {
+    super('Leaderboard is not in Cancelled state', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b5a, LeaderboardNotCancelledError);
+nameToErrorMap.set('LeaderboardNotCancelled', LeaderboardNotCancelledError);
+
+/** LeaderboardAlreadyPublished: Leaderboard already published */
+export class LeaderboardAlreadyPublishedError extends ProgramError {
+  override readonly name: string = 'LeaderboardAlreadyPublished';
+
+  readonly code: number = 0x1b5b; // 7003
+
+  constructor(program: Program, cause?: Error) {
+    super('Leaderboard already published', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b5b, LeaderboardAlreadyPublishedError);
+nameToErrorMap.set(
+  'LeaderboardAlreadyPublished',
+  LeaderboardAlreadyPublishedError
+);
+
+/** LeaderboardAlreadyCancelled: Leaderboard already cancelled */
+export class LeaderboardAlreadyCancelledError extends ProgramError {
+  override readonly name: string = 'LeaderboardAlreadyCancelled';
+
+  readonly code: number = 0x1b5c; // 7004
+
+  constructor(program: Program, cause?: Error) {
+    super('Leaderboard already cancelled', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b5c, LeaderboardAlreadyCancelledError);
+nameToErrorMap.set(
+  'LeaderboardAlreadyCancelled',
+  LeaderboardAlreadyCancelledError
+);
+
+/** LeaderboardAlreadyConcluded: Leaderboard already concluded */
+export class LeaderboardAlreadyConcludedError extends ProgramError {
+  override readonly name: string = 'LeaderboardAlreadyConcluded';
+
+  readonly code: number = 0x1b5d; // 7005
+
+  constructor(program: Program, cause?: Error) {
+    super('Leaderboard already concluded', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b5d, LeaderboardAlreadyConcludedError);
+nameToErrorMap.set(
+  'LeaderboardAlreadyConcluded',
+  LeaderboardAlreadyConcludedError
+);
+
+/** RegistrationClosed: Leaderboard registration window has closed */
+export class RegistrationClosedError extends ProgramError {
+  override readonly name: string = 'RegistrationClosed';
+
+  readonly code: number = 0x1b5e; // 7006
+
+  constructor(program: Program, cause?: Error) {
+    super('Leaderboard registration window has closed', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b5e, RegistrationClosedError);
+nameToErrorMap.set('RegistrationClosed', RegistrationClosedError);
+
+/** LeaderboardSponsorshipClosed: Leaderboard sponsorship window has closed */
+export class LeaderboardSponsorshipClosedError extends ProgramError {
+  override readonly name: string = 'LeaderboardSponsorshipClosed';
+
+  readonly code: number = 0x1b5f; // 7007
+
+  constructor(program: Program, cause?: Error) {
+    super('Leaderboard sponsorship window has closed', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b5f, LeaderboardSponsorshipClosedError);
+nameToErrorMap.set(
+  'LeaderboardSponsorshipClosed',
+  LeaderboardSponsorshipClosedError
+);
+
+/** LeaderboardNotEnded: Leaderboard end time has not been reached */
+export class LeaderboardNotEndedError extends ProgramError {
+  override readonly name: string = 'LeaderboardNotEnded';
+
+  readonly code: number = 0x1b60; // 7008
+
+  constructor(program: Program, cause?: Error) {
+    super('Leaderboard end time has not been reached', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b60, LeaderboardNotEndedError);
+nameToErrorMap.set('LeaderboardNotEnded', LeaderboardNotEndedError);
+
+/** StartTimeInPast: Start time must be in the future */
+export class StartTimeInPastError extends ProgramError {
+  override readonly name: string = 'StartTimeInPast';
+
+  readonly code: number = 0x1b61; // 7009
+
+  constructor(program: Program, cause?: Error) {
+    super('Start time must be in the future', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b61, StartTimeInPastError);
+nameToErrorMap.set('StartTimeInPast', StartTimeInPastError);
+
+/** InvalidTimeWindow: Invalid time window */
+export class InvalidTimeWindowError extends ProgramError {
+  override readonly name: string = 'InvalidTimeWindow';
+
+  readonly code: number = 0x1b62; // 7010
+
+  constructor(program: Program, cause?: Error) {
+    super('Invalid time window', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b62, InvalidTimeWindowError);
+nameToErrorMap.set('InvalidTimeWindow', InvalidTimeWindowError);
+
+/** SponsorCutoffInvalid: Sponsor cutoff is invalid */
+export class SponsorCutoffInvalidError extends ProgramError {
+  override readonly name: string = 'SponsorCutoffInvalid';
+
+  readonly code: number = 0x1b63; // 7011
+
+  constructor(program: Program, cause?: Error) {
+    super('Sponsor cutoff is invalid', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b63, SponsorCutoffInvalidError);
+nameToErrorMap.set('SponsorCutoffInvalid', SponsorCutoffInvalidError);
+
+/** ParticipantLimitReached: Participant limit reached */
+export class ParticipantLimitReachedError extends ProgramError {
+  override readonly name: string = 'ParticipantLimitReached';
+
+  readonly code: number = 0x1b64; // 7012
+
+  constructor(program: Program, cause?: Error) {
+    super('Participant limit reached', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b64, ParticipantLimitReachedError);
+nameToErrorMap.set('ParticipantLimitReached', ParticipantLimitReachedError);
+
+/** BelowMinParticipants: Below minimum participants */
+export class BelowMinParticipantsError extends ProgramError {
+  override readonly name: string = 'BelowMinParticipants';
+
+  readonly code: number = 0x1b65; // 7013
+
+  constructor(program: Program, cause?: Error) {
+    super('Below minimum participants', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b65, BelowMinParticipantsError);
+nameToErrorMap.set('BelowMinParticipants', BelowMinParticipantsError);
+
+/** PayoutSlotsTooMany: Too many payout slots */
+export class PayoutSlotsTooManyError extends ProgramError {
+  override readonly name: string = 'PayoutSlotsTooMany';
+
+  readonly code: number = 0x1b66; // 7014
+
+  constructor(program: Program, cause?: Error) {
+    super('Too many payout slots', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b66, PayoutSlotsTooManyError);
+nameToErrorMap.set('PayoutSlotsTooMany', PayoutSlotsTooManyError);
+
+/** PayoutSumMismatch: Payout bps must sum to 10000 */
+export class PayoutSumMismatchError extends ProgramError {
+  override readonly name: string = 'PayoutSumMismatch';
+
+  readonly code: number = 0x1b67; // 7015
+
+  constructor(program: Program, cause?: Error) {
+    super('Payout bps must sum to 10000', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b67, PayoutSumMismatchError);
+nameToErrorMap.set('PayoutSumMismatch', PayoutSumMismatchError);
+
+/** InvalidMinMaxParticipants: min_participants must be > 0 and <= max_participants */
+export class InvalidMinMaxParticipantsError extends ProgramError {
+  override readonly name: string = 'InvalidMinMaxParticipants';
+
+  readonly code: number = 0x1b68; // 7016
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'min_participants must be > 0 and <= max_participants',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x1b68, InvalidMinMaxParticipantsError);
+nameToErrorMap.set('InvalidMinMaxParticipants', InvalidMinMaxParticipantsError);
+
+/** LeaderboardInvalidFee: Platform fee out of range */
+export class LeaderboardInvalidFeeError extends ProgramError {
+  override readonly name: string = 'LeaderboardInvalidFee';
+
+  readonly code: number = 0x1b69; // 7017
+
+  constructor(program: Program, cause?: Error) {
+    super('Platform fee out of range', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b69, LeaderboardInvalidFeeError);
+nameToErrorMap.set('LeaderboardInvalidFee', LeaderboardInvalidFeeError);
+
+/** LeaderboardIdTooLong: Leaderboard id too long */
+export class LeaderboardIdTooLongError extends ProgramError {
+  override readonly name: string = 'LeaderboardIdTooLong';
+
+  readonly code: number = 0x1b6a; // 7018
+
+  constructor(program: Program, cause?: Error) {
+    super('Leaderboard id too long', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b6a, LeaderboardIdTooLongError);
+nameToErrorMap.set('LeaderboardIdTooLong', LeaderboardIdTooLongError);
+
+/** WinnerAlreadyPaid: Winner already paid for this slot */
+export class WinnerAlreadyPaidError extends ProgramError {
+  override readonly name: string = 'WinnerAlreadyPaid';
+
+  readonly code: number = 0x1b6b; // 7019
+
+  constructor(program: Program, cause?: Error) {
+    super('Winner already paid for this slot', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b6b, WinnerAlreadyPaidError);
+nameToErrorMap.set('WinnerAlreadyPaid', WinnerAlreadyPaidError);
+
+/** LeaderboardPlayerAlreadyJoined: Player already joined */
+export class LeaderboardPlayerAlreadyJoinedError extends ProgramError {
+  override readonly name: string = 'LeaderboardPlayerAlreadyJoined';
+
+  readonly code: number = 0x1b6c; // 7020
+
+  constructor(program: Program, cause?: Error) {
+    super('Player already joined', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b6c, LeaderboardPlayerAlreadyJoinedError);
+nameToErrorMap.set(
+  'LeaderboardPlayerAlreadyJoined',
+  LeaderboardPlayerAlreadyJoinedError
+);
+
+/** SlotIndexOutOfOrder: Slot index out of order */
+export class SlotIndexOutOfOrderError extends ProgramError {
+  override readonly name: string = 'SlotIndexOutOfOrder';
+
+  readonly code: number = 0x1b6d; // 7021
+
+  constructor(program: Program, cause?: Error) {
+    super('Slot index out of order', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b6d, SlotIndexOutOfOrderError);
+nameToErrorMap.set('SlotIndexOutOfOrder', SlotIndexOutOfOrderError);
+
+/** PlayerNotEnrolled: Player is not enrolled */
+export class PlayerNotEnrolledError extends ProgramError {
+  override readonly name: string = 'PlayerNotEnrolled';
+
+  readonly code: number = 0x1b6e; // 7022
+
+  constructor(program: Program, cause?: Error) {
+    super('Player is not enrolled', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b6e, PlayerNotEnrolledError);
+nameToErrorMap.set('PlayerNotEnrolled', PlayerNotEnrolledError);
+
+/** SponsorNotFound: Sponsor not found */
+export class SponsorNotFoundError extends ProgramError {
+  override readonly name: string = 'SponsorNotFound';
+
+  readonly code: number = 0x1b6f; // 7023
+
+  constructor(program: Program, cause?: Error) {
+    super('Sponsor not found', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b6f, SponsorNotFoundError);
+nameToErrorMap.set('SponsorNotFound', SponsorNotFoundError);
+
+/** WinnerNotEnrolled: Winner is not enrolled */
+export class WinnerNotEnrolledError extends ProgramError {
+  override readonly name: string = 'WinnerNotEnrolled';
+
+  readonly code: number = 0x1b70; // 7024
+
+  constructor(program: Program, cause?: Error) {
+    super('Winner is not enrolled', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b70, WinnerNotEnrolledError);
+nameToErrorMap.set('WinnerNotEnrolled', WinnerNotEnrolledError);
+
+/** LeaderboardInvalidMint: Mint does not match leaderboard mint */
+export class LeaderboardInvalidMintError extends ProgramError {
+  override readonly name: string = 'LeaderboardInvalidMint';
+
+  readonly code: number = 0x1b71; // 7025
+
+  constructor(program: Program, cause?: Error) {
+    super('Mint does not match leaderboard mint', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b71, LeaderboardInvalidMintError);
+nameToErrorMap.set('LeaderboardInvalidMint', LeaderboardInvalidMintError);
+
+/** LeaderboardInvalidTreasury: Invalid treasury account */
+export class LeaderboardInvalidTreasuryError extends ProgramError {
+  override readonly name: string = 'LeaderboardInvalidTreasury';
+
+  readonly code: number = 0x1b72; // 7026
+
+  constructor(program: Program, cause?: Error) {
+    super('Invalid treasury account', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b72, LeaderboardInvalidTreasuryError);
+nameToErrorMap.set(
+  'LeaderboardInvalidTreasury',
+  LeaderboardInvalidTreasuryError
+);
+
+/** LeaderboardUnauthorized: Unauthorized */
+export class LeaderboardUnauthorizedError extends ProgramError {
+  override readonly name: string = 'LeaderboardUnauthorized';
+
+  readonly code: number = 0x1b73; // 7027
+
+  constructor(program: Program, cause?: Error) {
+    super('Unauthorized', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b73, LeaderboardUnauthorizedError);
+nameToErrorMap.set('LeaderboardUnauthorized', LeaderboardUnauthorizedError);
+
+/** LeaderboardOverFlow: Arithmetic overflow */
+export class LeaderboardOverFlowError extends ProgramError {
+  override readonly name: string = 'LeaderboardOverFlow';
+
+  readonly code: number = 0x1b74; // 7028
+
+  constructor(program: Program, cause?: Error) {
+    super('Arithmetic overflow', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b74, LeaderboardOverFlowError);
+nameToErrorMap.set('LeaderboardOverFlow', LeaderboardOverFlowError);
+
+/** PayoutsNotComplete: Payouts not complete */
+export class PayoutsNotCompleteError extends ProgramError {
+  override readonly name: string = 'PayoutsNotComplete';
+
+  readonly code: number = 0x1b75; // 7029
+
+  constructor(program: Program, cause?: Error) {
+    super('Payouts not complete', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b75, PayoutsNotCompleteError);
+nameToErrorMap.set('PayoutsNotComplete', PayoutsNotCompleteError);
+
+/** RefundsNotComplete: Refunds not complete */
+export class RefundsNotCompleteError extends ProgramError {
+  override readonly name: string = 'RefundsNotComplete';
+
+  readonly code: number = 0x1b76; // 7030
+
+  constructor(program: Program, cause?: Error) {
+    super('Refunds not complete', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b76, RefundsNotCompleteError);
+nameToErrorMap.set('RefundsNotComplete', RefundsNotCompleteError);
+
+/** ParticipantAlreadyPaid: Participant has already been paid a prize slot */
+export class ParticipantAlreadyPaidError extends ProgramError {
+  override readonly name: string = 'ParticipantAlreadyPaid';
+
+  readonly code: number = 0x1b77; // 7031
+
+  constructor(program: Program, cause?: Error) {
+    super('Participant has already been paid a prize slot', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b77, ParticipantAlreadyPaidError);
+nameToErrorMap.set('ParticipantAlreadyPaid', ParticipantAlreadyPaidError);
+
+/** CleanupNotComplete: Participant and sponsor accounts not cleaned up */
+export class CleanupNotCompleteError extends ProgramError {
+  override readonly name: string = 'CleanupNotComplete';
+
+  readonly code: number = 0x1b78; // 7032
+
+  constructor(program: Program, cause?: Error) {
+    super('Participant and sponsor accounts not cleaned up', program, cause);
+  }
+}
+codeToErrorMap.set(0x1b78, CleanupNotCompleteError);
+nameToErrorMap.set('CleanupNotComplete', CleanupNotCompleteError);
+
 /**
  * Attempts to resolve a custom program error from the provided error code.
  * @category Errors

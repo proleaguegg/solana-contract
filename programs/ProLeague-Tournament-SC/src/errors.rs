@@ -94,7 +94,8 @@ pub enum TournamentError {
     InvalidMint,
 }
 
-#[error_code]
+// Own range so leaderboard codes never collide with TournamentError (6000+).
+#[error_code(offset = 7000)]
 pub enum LeaderboardError {
     // ----- state / timing -----
     #[msg("Leaderboard is not in Open state")]
