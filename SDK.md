@@ -192,7 +192,7 @@ await initializeLeaderboard(umi, {
 }).sendAndConfirm(umi);
 ```
 
-Prizes must be paid in strict `slotIndex` order — `sendPrizeLeaderboard` rejects an out-of-order or already-paid slot.
+Prizes must be paid in strict `slotIndex` order — `sendPrizeLeaderboard` rejects an out-of-order or already-paid slot, and a participant who already received a slot (`ParticipantAlreadyPaid`). Check that winners are distinct before sending.
 
 ## Fees and refunds
 
@@ -239,6 +239,7 @@ Codes worth handling explicitly:
 | `PrizeNotClaimed` | closing while a winner is still owed a prize |
 | `InvalidTreasury` | treasury account does not match the program constant |
 | `WinnerAlreadyPaid` | leaderboard slot already paid |
+| `ParticipantAlreadyPaid` | leaderboard participant already received a slot |
 
 Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because the participant/sponsor account is closed on a successful refund.
 
@@ -248,6 +249,7 @@ Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because 
 - `destroyTournament` only pays the escrow to the creator recorded on the tournament; any other `creator` fails with `WrongCreator` (6025). Account rent returns to the authority.
 - `transposeTournamentPlayer` rejects a `newPlayer` already in the tournament with `PlayerAlreadyJoined` (6008).
 - `closeTournament` on an **unpublished** tournament that holds sponsor money fails with `SponsorAmountNotRefunded` (6021). Cancel it instead: `pauseTournament` → `refundSponsor` → `refundCreatorAndCancelTournament`. Published tournaments and unsponsored drafts close as before.
+- `sendPrizeLeaderboard` pays a participant at most one slot; a second slot to the same wallet fails with `ParticipantAlreadyPaid` (6031). A retry of an already-paid slot still returns `WinnerAlreadyPaid` first. `Participant` gains a `prizePaid` field.
 
 ## Changes in 2.2.0
 

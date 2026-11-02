@@ -115,7 +115,7 @@ export function sendPrizeLeaderboard(
     },
     participant: {
       index: 5,
-      isWritable: false,
+      isWritable: true,
       value: input.participant ?? null,
     },
     mint: { index: 6, isWritable: false, value: input.mint ?? null },

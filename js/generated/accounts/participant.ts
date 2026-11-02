@@ -22,6 +22,7 @@ import {
 import {
   Serializer,
   array,
+  bool,
   i64,
   mapSerializer,
   publicKey as publicKeySerializer,
@@ -41,6 +42,7 @@ export type ParticipantAccountData = {
   grossContribution: bigint;
   netContribution: bigint;
   joinedAt: bigint;
+  prizePaid: boolean;
 };
 
 export type ParticipantAccountDataArgs = {
@@ -50,6 +52,7 @@ export type ParticipantAccountDataArgs = {
   grossContribution: number | bigint;
   netContribution: number | bigint;
   joinedAt: number | bigint;
+  prizePaid: boolean;
 };
 
 export function getParticipantAccountDataSerializer(): Serializer<
@@ -66,6 +69,7 @@ export function getParticipantAccountDataSerializer(): Serializer<
         ['grossContribution', u64()],
         ['netContribution', u64()],
         ['joinedAt', i64()],
+        ['prizePaid', bool()],
       ],
       { description: 'ParticipantAccountData' }
     ),
@@ -150,6 +154,7 @@ export function getParticipantGpaBuilder(
       grossContribution: number | bigint;
       netContribution: number | bigint;
       joinedAt: number | bigint;
+      prizePaid: boolean;
     }>({
       discriminator: [0, array(u8(), { size: 8 })],
       bump: [8, u8()],
@@ -158,6 +163,7 @@ export function getParticipantGpaBuilder(
       grossContribution: [73, u64()],
       netContribution: [81, u64()],
       joinedAt: [89, i64()],
+      prizePaid: [97, bool()],
     })
     .deserializeUsing<Participant>((account) => deserializeParticipant(account))
     .whereField('discriminator', [32, 142, 108, 79, 247, 179, 54, 6]);

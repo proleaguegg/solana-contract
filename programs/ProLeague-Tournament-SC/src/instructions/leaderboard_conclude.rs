@@ -123,6 +123,7 @@ pub struct SendLeaderboardPrize<'info> {
     pub leaderboard_token_account: Account<'info, TokenAccount>,
 
     #[account(
+        mut,
         seeds = [
             PARTICIPANT_TAG.as_ref(),
             leaderboard.key().as_ref(),
@@ -162,6 +163,12 @@ pub fn send_prize_leaderboard(
         args.slot_index == lb.paid_slots,
         LeaderboardError::SlotIndexOutOfOrder
     );
+    // Checked in the body, after the slot checks, so a retry of an already
+    // paid slot still reports WinnerAlreadyPaid (workers string-match it).
+    require!(
+        !ctx.accounts.participant.prize_paid,
+        LeaderboardError::ParticipantAlreadyPaid
+    );
 
     let bps = lb.payout_slots_bps[args.slot_index as usize];
     // All slots use the same formula. Any rounding dust is swept to TREASURY at close.
@@ -192,6 +199,8 @@ pub fn send_prize_leaderboard(
         .paid_slots
         .checked_add(1)
         .ok_or(LeaderboardError::OverFlow)?;
+    // Set even for a zero share: the slot still counts as this wallet's payout.
+    ctx.accounts.participant.prize_paid = true;
 
     Ok(())
 }

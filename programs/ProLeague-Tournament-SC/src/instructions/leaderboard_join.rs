@@ -120,6 +120,7 @@ pub fn join_leaderboard(ctx: Context<JoinLeaderboard>) -> Result<()> {
     participant.gross_contribution = gross;
     participant.net_contribution = net;
     participant.joined_at = now;
+    participant.prize_paid = false;
 
     Ok(())
 }

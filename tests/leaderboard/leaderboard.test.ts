@@ -825,6 +825,26 @@ describe('Leaderboard', function () {
         ['already paid', 'WinnerAlreadyPaid']
       );
 
+      // one wallet can't take a second slot
+      await expectTxError(
+        () =>
+          sendConfirmBuilder(
+            umi,
+            driver,
+            sendPrizeLeaderboard(umi, {
+              driver,
+              winner: playerA.publicKey,
+              participant: participantOf(playerA),
+              leaderboard,
+              mint,
+              slotIndex: 1,
+            }),
+            'slot1-same-wallet',
+            COMMIT
+          ),
+        ['already been paid a prize slot', 'ParticipantAlreadyPaid']
+      );
+
       // slot 1
       await sendConfirmBuilder(
         umi,

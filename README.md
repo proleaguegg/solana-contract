@@ -62,7 +62,7 @@ Cancellation: `pause → refund_joining_fees + refund_sponsor → refund_creator
 - The program does **not** verify match outcomes. Winners are reported by the operator, so result integrity depends on that key and on the off-chain system behind it.
 - `send_prize` only pays a wallet the operator recorded as a winner from the enrolled players.
 - Recovery instructions are held by the **program upgrade authority**, not the operator key (3.0.0): `transpose_tournament_player` / `transpose_tournament_creator` replace a player's or the creator's wallet, and `destroy_tournament` sweeps a tournament's whole escrow (including any booked fee) to the creator recorded on the tournament and closes it. A leaked operator key cannot call them.
-- `send_prize_leaderboard` pays slots in strict order but does not stop the operator from paying the same participant more than one slot; correct slot assignment is part of trusting the operator with results.
+- `send_prize_leaderboard` pays slots in strict order, only to enrolled participants, and at most one slot per participant (3.0.0, `prize_paid` flag). Which participant gets which slot is still the operator's call. The operator co-signs joins, so it could enroll several wallets of its own; that is part of trusting the operator key.
 - The program upgrade authority can replace the program and holds the recovery instructions above. Mainnet is planned to put it behind a multisig.
 
 ## Fee model

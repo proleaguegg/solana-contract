@@ -40,6 +40,7 @@ export enum LeaderboardError {
   OverFlow,
   PayoutsNotComplete,
   RefundsNotComplete,
+  ParticipantAlreadyPaid,
 }
 
 export type LeaderboardErrorArgs = LeaderboardError;
