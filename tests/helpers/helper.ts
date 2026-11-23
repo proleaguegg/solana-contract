@@ -3,6 +3,7 @@ import base58 from 'bs58';
 import {
   Commitment,
   Context,
+  createSignerFromKeypair,
   KeypairSigner,
   Pda,
   PublicKey,
@@ -259,6 +260,23 @@ export const sendConfirmBuilderArr = async (
 // Utility function to create a Keypair from a secret key
 export const createKeypairFromSecret = (secret) => {
   return new Uint8Array(base58.decode(secret));
+};
+
+/**
+ * Signer for upgrade-authority-gated calls (init/update Global, destroy and
+ * transpose). Reads AUTHORITY_KEYPAIR or devnet-upgrade-authority-keypair.json
+ * (a JSON keypair file, gitignored). With no file, returns `fallback` — on a
+ * local validator the driver deploys the program and is the authority.
+ */
+export const loadProgramAuthority = (umi: Umi, fallback: Signer): Signer => {
+  const path =
+    process.env.AUTHORITY_KEYPAIR ?? 'devnet-upgrade-authority-keypair.json';
+  if (!fs.existsSync(path)) return fallback;
+  const secret = Uint8Array.from(JSON.parse(fs.readFileSync(path, 'utf8')));
+  return createSignerFromKeypair(
+    umi,
+    umi.eddsa.createKeypairFromSecretKey(secret)
+  );
 };
 
 export const createTokenAccount = async (

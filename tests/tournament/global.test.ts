@@ -1,6 +1,7 @@
 import dotenv from 'dotenv';
 import {
   keypairIdentity,
+  signerIdentity,
   createSignerFromKeypair,
   publicKey,
   Umi,
@@ -34,7 +35,11 @@ import {
   tokenMint,
   tourId,
 } from '../helpers/contant';
-import { createKeypairFromSecret, sendConfirmBuilder } from '../helpers/helper';
+import {
+  createKeypairFromSecret,
+  loadProgramAuthority,
+  sendConfirmBuilder,
+} from '../helpers/helper';
 import { randomStringGenerator } from '../helpers/randomString';
 import { LAMPORTS_PER_SOL } from '@solana/web3.js';
 dotenv.config();
@@ -59,12 +64,12 @@ describe('Global', async function () {
   ];
   let global: Pda;
   let list: PublicKey[] = [
-    publicKey('2jYyeN8DfzWvJaHZNUGYwP77Qavt2eJVYbUX9f3VW1CQ'), // Dev-net Dev Coin
-    publicKey('8j7eMMBwJRjuCKXBp7KyhJ3Kk3wRKgQshJcbx9rifPDB'), // Dev-net BONK
+    publicKey('2F4uD7RhmARJ4rbYhF82ix9AR87PDBzrxn4qSq8b8ZrC'), // Dev-net USDC
+    publicKey('9nHTAWgaRV4aproeDqFjKnTmAQJhn9fxeLojYif3L6LM'), // Dev-net BONK
   ];
   let updateArgs: UpdateGlobalArgs = {
     __kind: 'Add',
-    fields: [publicKey('8j7eMMBwJRjuCKXBp7KyhJ3Kk3wRKgQshJcbx9rifPDB')],
+    fields: [publicKey('9nHTAWgaRV4aproeDqFjKnTmAQJhn9fxeLojYif3L6LM')],
   };
 
   this.beforeAll((done) => {
@@ -118,7 +123,9 @@ describe('Global', async function () {
   });
 
   it.skip('Init Global', async function () {
-    umi.use(keypairIdentity(driver));
+    // Global admin calls are signed by the program upgrade authority.
+    const authority = loadProgramAuthority(umi, driver);
+    umi.use(signerIdentity(authority));
 
     const programId = umi.programs.getPublicKey(
       'tournament',
@@ -138,7 +145,7 @@ describe('Global', async function () {
     });
     const sdkFuncTx = await sendConfirmBuilder(
       umi,
-      driver,
+      authority,
       sdkFunc,
       'Init Golbal',
       'finalized'
@@ -146,7 +153,9 @@ describe('Global', async function () {
   });
 
   it.skip('Update Global', async function () {
-    umi.use(keypairIdentity(driver));
+    // Global admin calls are signed by the program upgrade authority.
+    const authority = loadProgramAuthority(umi, driver);
+    umi.use(signerIdentity(authority));
 
     const programId = umi.programs.getPublicKey(
       'tournament',
@@ -166,7 +175,7 @@ describe('Global', async function () {
     });
     const sdkFuncTx = await sendConfirmBuilder(
       umi,
-      driver,
+      authority,
       sdkFunc,
       'Update Golbal',
       'finalized'

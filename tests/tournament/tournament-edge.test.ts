@@ -9,6 +9,7 @@ import {
   Pda,
   PublicKey,
   KeypairSigner,
+  Signer,
   TransactionBuilder,
   publicKeyBytes,
 } from '@metaplex-foundation/umi';
@@ -57,6 +58,7 @@ import {
 import {
   createKeypairFromSecret,
   createTokenAccount,
+  loadProgramAuthority,
   sendConfirmBuilder,
 } from '../helpers/helper';
 import { randomStringGenerator } from '../helpers/randomString';
@@ -69,8 +71,9 @@ dotenv.config();
 //
 // Balance-safe: every tournament created here is torn down in the after-hook
 // via destroy_tournament (upgrade-authority only, works from any lifecycle
-// state). On devnet the upgrade authority is the driver key, so the driver
-// reclaims account rent and the creator gets any escrowed tokens back.
+// state), signed by the upgrade authority (loadProgramAuthority: the
+// devnet authority key file, or the driver on a local validator). The driver
+// still pays and reclaims account rent and the creator gets any escrowed tokens back.
 //
 // Most cases use joiningFees = 0 so no SPL tokens move at all. The two fee
 // accounting cases use a deliberately tiny buy-in and are refunded by leaving.
@@ -134,6 +137,7 @@ describe('Tournament — edge cases', function () {
   let mint: PublicKey;
   let global: Pda;
   let driver: KeypairSigner;
+  let authority: Signer; // program upgrade authority (destroy_tournament)
   let creator: KeypairSigner;
   let sponsor: KeypairSigner;
 
@@ -190,6 +194,7 @@ describe('Tournament — edge cases', function () {
         createKeypairFromSecret(driverAccount)
       )
     );
+    authority = loadProgramAuthority(umi, driver);
     creator = createSignerFromKeypair(
       umi,
       umi.eddsa.createKeypairFromSecretKey(
@@ -281,7 +286,7 @@ describe('Tournament — edge cases', function () {
               mint,
               owner: creator.publicKey,
             }),
-            authority: driver,
+            authority,
             programData: umi.eddsa.findPda(
               publicKey('BPFLoaderUpgradeab1e11111111111111111111111'),
               [publicKeyBytes(TOURNAMENT_PROGRAM_ID)]
@@ -1291,7 +1296,7 @@ describe('Tournament — edge cases', function () {
             destroyTournament(umi, {
               tournament: t.pda,
               creator: creator.publicKey,
-              authority: driver,
+              authority,
               programData: umi.eddsa.findPda(
                 publicKey('BPFLoaderUpgradeab1e11111111111111111111111'),
                 [publicKeyBytes(TOURNAMENT_PROGRAM_ID)]

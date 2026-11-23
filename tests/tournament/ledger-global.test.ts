@@ -41,7 +41,7 @@ describe('GlobalLedger', async function () {
   ];
   let updateArgs: UpdateGlobalArgs = {
     __kind: 'Remove',
-    fields: [publicKey('8j7eMMBwJRjuCKXBp7KyhJ3Kk3wRKgQshJcbx9rifPDB')],
+    fields: [publicKey('9nHTAWgaRV4aproeDqFjKnTmAQJhn9fxeLojYif3L6LM')],
   };
 
   this.beforeAll(async () => {
