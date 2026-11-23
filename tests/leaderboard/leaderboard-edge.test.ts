@@ -13,6 +13,10 @@ import {
 } from '@metaplex-foundation/umi';
 import { createUmi as BaseCreateUmi } from '@metaplex-foundation/umi-bundle-defaults';
 import { web3JsRpc } from '@metaplex-foundation/umi-rpc-web3js';
+import {
+  createAssociatedToken,
+  createMintWithAssociatedToken,
+} from '@metaplex-foundation/mpl-toolbox';
 
 import { tournamentProgram } from '../plugin.test';
 import {
@@ -50,8 +54,8 @@ dotenv.config();
 // paths in leaderboard.test.ts (cancel/refund) and leaderboard-paid.test.ts.
 //
 // Balance-safe: every leaderboard that moves tokens is cancelled + refunded +
-// closed; Draft-only cases are reclaimed by publishing then cancel+close in
-// teardown (a Draft leaderboard otherwise has no close path).
+// closed; Draft-only cases are cancelled by the driver and closed in teardown
+// (driver-only Draft cancel since 4.0.0, L-04).
 //
 // Sponsor tests use SPONSOR_ACCOUNT and (as a 2nd distinct sponsor)
 // CREATOR_ACCOUNT — both must hold a little TOKEN_MINT.
@@ -192,6 +196,7 @@ describe('Leaderboard — edge cases', function () {
     const pda = findLeaderboardPda(umi, { leaderboardId: a.leaderboardId });
     await send(
       initializeLeaderboard(umi, {
+        treasury: publicKey('9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj'), // dev TREASURY (creation fee)
         driver,
         creator,
         creatorInfo: creator.publicKey,
@@ -234,7 +239,10 @@ describe('Leaderboard — edge cases', function () {
     try {
       const lb = await safeFetchLeaderboard(umi, pda);
       if (!lb) return;
-      if (lb.state === LeaderboardState.Open) {
+      if (
+        lb.state === LeaderboardState.Open ||
+        lb.state === LeaderboardState.Draft
+      ) {
         await send(
           cancelLeaderboard(umi, { driver, creator, leaderboard: pda }),
           'td-cancel'
@@ -295,23 +303,33 @@ describe('Leaderboard — edge cases', function () {
           ),
         ['not in Open state', 'LeaderboardNotOpen']
       );
-      // reclaim: Draft has no close path, so publish then cancel+close
-      await publish(pda);
       await teardown(pda);
     });
 
-    it('rejects cancel while Draft (not Open)', async function () {
+    it('lets the driver alone cancel and close a Draft (L-04)', async function () {
       const pda = await initFree();
-      await expectTxError(
-        () =>
-          send(
-            cancelLeaderboard(umi, { driver, creator, leaderboard: pda }),
-            'cancel-draft'
-          ),
-        ['not in Open state', 'LeaderboardNotOpen']
+      // no creator signature: a Draft holds no funds
+      await send(
+        cancelLeaderboard(umi, { driver, leaderboard: pda }),
+        'cancel-draft'
       );
-      await publish(pda);
-      await teardown(pda);
+      await poll(
+        () => safeFetchLeaderboard(umi, pda),
+        (v) => v?.state === LeaderboardState.Cancelled
+      );
+      await send(
+        closeLeaderboard(umi, {
+          driver,
+          treasury: DEV_TREASURY,
+          leaderboard: pda,
+          mint,
+        }),
+        'close-draft'
+      );
+      await poll(
+        () => safeFetchLeaderboard(umi, pda),
+        (v) => v == null
+      );
     });
 
     it('rejects cancel by a non-creator', async function () {
@@ -559,6 +577,114 @@ describe('Leaderboard — edge cases', function () {
       assert.equal(lb!.prizePool, 160n, '2 × net(80)');
       assert.equal(lb!.pendingFees, 40n, '2 × fee(20)');
       await teardown(pda, [], [sponsor.publicKey, creator.publicKey]);
+    });
+  });
+
+  // ===========================================================================
+  // 4.0.0 — regressions for the Adevar pre-audit findings
+  // ===========================================================================
+  describe('audit fixes (4.0.0)', function () {
+    const initIx = (
+      a: any,
+      mintKey: PublicKey = mint,
+      treasury: PublicKey = DEV_TREASURY
+    ) =>
+      initializeLeaderboard(umi, {
+        treasury,
+        driver,
+        creator,
+        creatorInfo: creator.publicKey,
+        global,
+        mint: mintKey,
+        ...a,
+      });
+
+    it('L-06: initializes over a leaderboard escrow ATA someone created first', async function () {
+      const a = args();
+      const pda = findLeaderboardPda(umi, { leaderboardId: a.leaderboardId });
+      umi.use(keypairIdentity(sponsor));
+      await sendConfirmBuilder(
+        umi,
+        sponsor,
+        createAssociatedToken(umi, { mint, owner: pda[0] }),
+        'griefer pre-creates leaderboard ATA',
+        COMMIT
+      );
+      umi.use(keypairIdentity(driver));
+      await send(initIx(a), 'init over pre-created ATA');
+      const lb = await poll(
+        () => safeFetchLeaderboard(umi, pda),
+        (v) => v != null
+      );
+      assert.equal(lb!.state, LeaderboardState.Draft);
+      await teardown(pda);
+    });
+
+    it('refuses to publish once the start time has passed', async function () {
+      const start = nowSec() + 8;
+      const pda = await initFree({
+        startTimestamp: start,
+        endTimestamp: start + 3600,
+      });
+      await new Promise((r) => setTimeout(r, 15_000));
+      await expectTxError(
+        () =>
+          send(
+            publishLeaderboard(umi, { driver, creator, leaderboard: pda }),
+            'publish after start'
+          ),
+        ['StartTimeInPast', 'Start time must be in the future']
+      );
+      await teardown(pda);
+    });
+
+    it('charges a non-whitelisted mint 0.1 SOL, paid to the treasury', async function () {
+      const otherMint = generateSigner(umi);
+      umi.use(keypairIdentity(driver));
+      await send(
+        createMintWithAssociatedToken(umi, {
+          mint: otherMint,
+          owner: creator.publicKey,
+          amount: 0,
+          decimals: 9,
+        }),
+        'non-whitelisted mint'
+      );
+      const a = args();
+      const pda = findLeaderboardPda(umi, { leaderboardId: a.leaderboardId });
+      const before = await umi.rpc.getBalance(DEV_TREASURY, {
+        commitment: 'processed',
+      });
+      await send(initIx(a, otherMint.publicKey), 'init non-whitelisted');
+      const after = await umi.rpc.getBalance(DEV_TREASURY, {
+        commitment: 'processed',
+      });
+      assert.equal(
+        Number(after.basisPoints - before.basisPoints),
+        100_000_000,
+        'treasury receives exactly 0.1 SOL'
+      );
+      // Draft: the driver alone cancels, then close reclaims rent
+      await send(
+        cancelLeaderboard(umi, { driver, leaderboard: pda }),
+        'cancel'
+      );
+      await send(
+        closeLeaderboard(umi, {
+          driver,
+          treasury: DEV_TREASURY,
+          leaderboard: pda,
+          mint: otherMint.publicKey,
+        }),
+        'close'
+      );
+    });
+
+    it('rejects a creation fee sent anywhere but the treasury', async function () {
+      await expectTxError(
+        () => send(initIx(args(), mint, driver.publicKey), 'wrong treasury'),
+        ['InvalidTreasury', 'Invalid treasury account']
+      );
     });
   });
 });

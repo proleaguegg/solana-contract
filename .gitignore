@@ -29,3 +29,13 @@ local/
 
 # Claude Code local session config
 .claude/
+
+# local-validator test helpers (kept locally, not shipped)
+scripts/localnet-test.sh
+tests/localnet/
+
+# internal notes, kept locally (only README.md and SDK.md ship)
+CLAUDE.md
+LEADERBOARD.md
+LEADERBOARD_OFFCHAIN.md
+MIGRATION_4.0.0.md

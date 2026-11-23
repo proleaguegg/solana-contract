@@ -54,6 +54,17 @@ mod tournament {
         instructions::mark_winner_won_next_round(ctx, args)
     }
 
+    pub fn unmark_winner_won_next_round(
+        ctx: Context<MarkWinnerWonNextRound>,
+        args: MarkWinnerWonNextRoundArgs,
+    ) -> Result<()> {
+        instructions::unmark_winner_won_next_round(ctx, args)
+    }
+
+    pub fn remove_winner(ctx: Context<AddWinnerToRound>, args: AddWinnerToRoundArgs) -> Result<()> {
+        instructions::remove_winner(ctx, args)
+    }
+
     pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {
         instructions::send_prize(ctx, args)
     }

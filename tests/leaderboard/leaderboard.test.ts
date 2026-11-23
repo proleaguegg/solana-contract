@@ -136,6 +136,10 @@ describe('Leaderboard', function () {
   this.timeout(2_000_000);
 
   let umi: Umi;
+  // The program checks the cluster clock, which can trail the wall clock
+  // (a local validator after the machine sleeps, or devnet drift).
+  const chainNow = async () =>
+    Number(await umi.rpc.getBlockTime(await umi.rpc.getSlot()));
   let mint: PublicKey;
   let global: Pda;
   let driver: KeypairSigner;
@@ -203,6 +207,7 @@ describe('Leaderboard', function () {
 
   function initIx(args: any) {
     return initializeLeaderboard(umi, {
+      treasury: publicKey('9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj'), // dev TREASURY (creation fee)
       driver,
       creator,
       creatorInfo: creator.publicKey,
@@ -686,7 +691,7 @@ describe('Leaderboard', function () {
     });
 
     it('init + publish + join(2) + sponsor before the short start', async function () {
-      const start = nowSec() + 150; // 2.5 min to get everyone in
+      const start = (await chainNow()) + 150; // 2.5 min to get everyone in
       endTs = start + (Number(process.env.LB_WINDOW_SECS) || 3600);
       await sendConfirmBuilder(
         umi,
@@ -738,9 +743,9 @@ describe('Leaderboard', function () {
     it('waits for the window to end, then concludes', async function () {
       // The window is >= 1h; allow up to ~75 min for this single test.
       this.timeout(4_500_000);
-      while (nowSec() < endTs + 5) {
-        await new Promise((r) => setTimeout(r, 15_000));
-        console.log(`  waiting for end… ${endTs - nowSec()}s left`);
+      while ((await chainNow()) < endTs + 2) {
+        await sleep(5_000);
+        console.log(`  waiting for end… ${endTs - (await chainNow())}s left`);
       }
       await sendConfirmBuilder(
         umi,

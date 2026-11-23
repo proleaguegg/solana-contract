@@ -633,6 +633,235 @@ export class InvalidMintError extends ProgramError {
 codeToErrorMap.set(0x179c, InvalidMintError);
 nameToErrorMap.set('InvalidMint', InvalidMintError);
 
+/** PrizeSeatsFull: Every funded prize seat in this round is already paid */
+export class PrizeSeatsFullError extends ProgramError {
+  override readonly name: string = 'PrizeSeatsFull';
+
+  readonly code: number = 0x179d; // 6045
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'Every funded prize seat in this round is already paid',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x179d, PrizeSeatsFullError);
+nameToErrorMap.set('PrizeSeatsFull', PrizeSeatsFullError);
+
+/** PrizeSeatsNotPaid: Not every funded prize seat in this round has been paid */
+export class PrizeSeatsNotPaidError extends ProgramError {
+  override readonly name: string = 'PrizeSeatsNotPaid';
+
+  readonly code: number = 0x179e; // 6046
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'Not every funded prize seat in this round has been paid',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x179e, PrizeSeatsNotPaidError);
+nameToErrorMap.set('PrizeSeatsNotPaid', PrizeSeatsNotPaidError);
+
+/** AdvanceLimitReached: This round already has its full number of advancing winners */
+export class AdvanceLimitReachedError extends ProgramError {
+  override readonly name: string = 'AdvanceLimitReached';
+
+  readonly code: number = 0x179f; // 6047
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'This round already has its full number of advancing winners',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x179f, AdvanceLimitReachedError);
+nameToErrorMap.set('AdvanceLimitReached', AdvanceLimitReachedError);
+
+/** CannotAdvanceFromFinal: The winner of the final cannot advance */
+export class CannotAdvanceFromFinalError extends ProgramError {
+  override readonly name: string = 'CannotAdvanceFromFinal';
+
+  readonly code: number = 0x17a0; // 6048
+
+  constructor(program: Program, cause?: Error) {
+    super('The winner of the final cannot advance', program, cause);
+  }
+}
+codeToErrorMap.set(0x17a0, CannotAdvanceFromFinalError);
+nameToErrorMap.set('CannotAdvanceFromFinal', CannotAdvanceFromFinalError);
+
+/** PrizeAlreadyPaid: A prize has been paid, so the tournament can no longer be cancelled */
+export class PrizeAlreadyPaidError extends ProgramError {
+  override readonly name: string = 'PrizeAlreadyPaid';
+
+  readonly code: number = 0x17a1; // 6049
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'A prize has been paid, so the tournament can no longer be cancelled',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x17a1, PrizeAlreadyPaidError);
+nameToErrorMap.set('PrizeAlreadyPaid', PrizeAlreadyPaidError);
+
+/** SponsoredPrizePoolRequired: A sponsored tournament must award a prize pool */
+export class SponsoredPrizePoolRequiredError extends ProgramError {
+  override readonly name: string = 'SponsoredPrizePoolRequired';
+
+  readonly code: number = 0x17a2; // 6050
+
+  constructor(program: Program, cause?: Error) {
+    super('A sponsored tournament must award a prize pool', program, cause);
+  }
+}
+codeToErrorMap.set(0x17a2, SponsoredPrizePoolRequiredError);
+nameToErrorMap.set(
+  'SponsoredPrizePoolRequired',
+  SponsoredPrizePoolRequiredError
+);
+
+/** WinnersRecorded: Winners are recorded, so players can no longer leave */
+export class WinnersRecordedError extends ProgramError {
+  override readonly name: string = 'WinnersRecorded';
+
+  readonly code: number = 0x17a3; // 6051
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'Winners are recorded, so players can no longer leave',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x17a3, WinnersRecordedError);
+nameToErrorMap.set('WinnersRecorded', WinnersRecordedError);
+
+/** InsufficientPlayers: Not enough players to fill every prize round */
+export class InsufficientPlayersError extends ProgramError {
+  override readonly name: string = 'InsufficientPlayers';
+
+  readonly code: number = 0x17a4; // 6052
+
+  constructor(program: Program, cause?: Error) {
+    super('Not enough players to fill every prize round', program, cause);
+  }
+}
+codeToErrorMap.set(0x17a4, InsufficientPlayersError);
+nameToErrorMap.set('InsufficientPlayers', InsufficientPlayersError);
+
+/** TournamentIdTooLong: Tournament id is too long */
+export class TournamentIdTooLongError extends ProgramError {
+  override readonly name: string = 'TournamentIdTooLong';
+
+  readonly code: number = 0x17a5; // 6053
+
+  constructor(program: Program, cause?: Error) {
+    super('Tournament id is too long', program, cause);
+  }
+}
+codeToErrorMap.set(0x17a5, TournamentIdTooLongError);
+nameToErrorMap.set('TournamentIdTooLong', TournamentIdTooLongError);
+
+/** InvalidSponsorAmount: Sponsorship amount must be greater than zero */
+export class InvalidSponsorAmountError extends ProgramError {
+  override readonly name: string = 'InvalidSponsorAmount';
+
+  readonly code: number = 0x17a6; // 6054
+
+  constructor(program: Program, cause?: Error) {
+    super('Sponsorship amount must be greater than zero', program, cause);
+  }
+}
+codeToErrorMap.set(0x17a6, InvalidSponsorAmountError);
+nameToErrorMap.set('InvalidSponsorAmount', InvalidSponsorAmountError);
+
+/** CreatorTokenAccountRequired: Creator token account is required while the escrow holds tokens */
+export class CreatorTokenAccountRequiredError extends ProgramError {
+  override readonly name: string = 'CreatorTokenAccountRequired';
+
+  readonly code: number = 0x17a7; // 6055
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'Creator token account is required while the escrow holds tokens',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x17a7, CreatorTokenAccountRequiredError);
+nameToErrorMap.set(
+  'CreatorTokenAccountRequired',
+  CreatorTokenAccountRequiredError
+);
+
+/** EscrowShortOfFee: Escrow holds less than the platform fee owed */
+export class EscrowShortOfFeeError extends ProgramError {
+  override readonly name: string = 'EscrowShortOfFee';
+
+  readonly code: number = 0x17a8; // 6056
+
+  constructor(program: Program, cause?: Error) {
+    super('Escrow holds less than the platform fee owed', program, cause);
+  }
+}
+codeToErrorMap.set(0x17a8, EscrowShortOfFeeError);
+nameToErrorMap.set('EscrowShortOfFee', EscrowShortOfFeeError);
+
+/** TournamentNotAnnounced: Tournament is not announced */
+export class TournamentNotAnnouncedError extends ProgramError {
+  override readonly name: string = 'TournamentNotAnnounced';
+
+  readonly code: number = 0x17a9; // 6057
+
+  constructor(program: Program, cause?: Error) {
+    super('Tournament is not announced', program, cause);
+  }
+}
+codeToErrorMap.set(0x17a9, TournamentNotAnnouncedError);
+nameToErrorMap.set('TournamentNotAnnounced', TournamentNotAnnouncedError);
+
+/** WinnerInNextRound: Winner is recorded in the next round; remove them there first */
+export class WinnerInNextRoundError extends ProgramError {
+  override readonly name: string = 'WinnerInNextRound';
+
+  readonly code: number = 0x17aa; // 6058
+
+  constructor(program: Program, cause?: Error) {
+    super(
+      'Winner is recorded in the next round; remove them there first',
+      program,
+      cause
+    );
+  }
+}
+codeToErrorMap.set(0x17aa, WinnerInNextRoundError);
+nameToErrorMap.set('WinnerInNextRound', WinnerInNextRoundError);
+
+/** WinnerAdvanced: Winner is marked as advancing; unmark them first */
+export class WinnerAdvancedError extends ProgramError {
+  override readonly name: string = 'WinnerAdvanced';
+
+  readonly code: number = 0x17ab; // 6059
+
+  constructor(program: Program, cause?: Error) {
+    super('Winner is marked as advancing; unmark them first', program, cause);
+  }
+}
+codeToErrorMap.set(0x17ab, WinnerAdvancedError);
+nameToErrorMap.set('WinnerAdvanced', WinnerAdvancedError);
+
 /** LeaderboardNotOpen: Leaderboard is not in Open state */
 export class LeaderboardNotOpenError extends ProgramError {
   override readonly name: string = 'LeaderboardNotOpen';

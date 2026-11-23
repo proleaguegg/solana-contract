@@ -21,7 +21,8 @@ pub struct SendPrize<'info> {
     pub driver: Signer<'info>,
 
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
+        associated_token::mint = mint,
+        associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
 
@@ -57,14 +58,19 @@ pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {
         .players
         .iter()
         .position(|address| address.eq(&winner))
-        .unwrap() as u32;
+        .ok_or(TournamentError::PlayerNotFound)? as u32;
 
     // Paying a prize while the tournament is being cancelled would drain escrow
     // that is owed back to players, leaving refund_joining_fees short.
     require!(!tournament.is_paused, TournamentError::TournamentIsPaused);
 
     // Check if winner exists in this round
-    let round = &mut tournament.rounds[round_index as usize];
+    let round = tournament
+        .rounds
+        .get_mut(round_index as usize)
+        .ok_or(TournamentError::InvalidRound)?;
+    // M-02: never pay out more seats than publish funded for this round.
+    let seat_free = round.claimed_count() < round.funded_seats();
     if let Some(winner_status) = round.winners_and_collected_status.get_mut(&winner_index) {
         // Validate if the winner hasn't sended already
         if winner_status.claimed {
@@ -75,6 +81,8 @@ pub fn send_prize(ctx: Context<SendPrize>, args: SendPrizeArgs) -> Result<()> {
         if winner_status.won_next_round {
             return Err(TournamentError::WonNextRound.into());
         }
+
+        require!(seat_free, TournamentError::PrizeSeatsFull);
 
         // Mark as sended
         winner_status.claimed = true;

@@ -183,6 +183,7 @@ describe('Global', async function () {
   it('Initialize Tournament', async function () {
     umi.use(keypairIdentity(driver));
     const sdkFunc = initialize(umi, {
+      treasury: publicKey('9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj'), // dev TREASURY (creation fee)
       driver: driver,
       creatorInfo: creator.publicKey,
       tournamentId,

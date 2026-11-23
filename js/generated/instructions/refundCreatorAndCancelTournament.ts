@@ -95,7 +95,7 @@ export function refundCreatorAndCancelTournament(
       isWritable: true,
       value: input.creatorTokenAccount ?? null,
     },
-    driver: { index: 3, isWritable: false, value: input.driver ?? null },
+    driver: { index: 3, isWritable: true, value: input.driver ?? null },
     mint: { index: 4, isWritable: false, value: input.mint ?? null },
     associatedTokenProgram: {
       index: 5,

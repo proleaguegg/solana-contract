@@ -15,6 +15,7 @@ import { createUmi as BaseCreateUmi } from '@metaplex-foundation/umi-bundle-defa
 import { tournamentProgram } from '../plugin.test';
 import {
   addWinner,
+  announceTournament,
   sendPrize,
   closeTournament,
   safeFetchTournament,
@@ -74,7 +75,7 @@ describe('ProLeague-Tournament-SC', async function () {
   let sponsor: KeypairSigner;
   let joiningFees: number = 10 * LAMPORTS_PER_SOL;
   // let joiningFees: number = 0;
-  let totalPlayers: number = 8;
+  let totalPlayers: number = Number(process.env.TOTAL_PLAYERS) || 8; // TOTAL_PLAYERS=128 for the large bracket
   const roundPrizes: number[] = [
     40 * LAMPORTS_PER_SOL,
     30 * LAMPORTS_PER_SOL,
@@ -173,6 +174,7 @@ describe('ProLeague-Tournament-SC', async function () {
   it('Initialize Tournament', async function () {
     umi.use(keypairIdentity(driver));
     const sdkFunc = initialize(umi, {
+      treasury: publicKey('9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj'), // dev TREASURY (creation fee)
       driver: driver,
       creatorInfo: creator.publicKey,
       tournamentId,
@@ -496,6 +498,17 @@ describe('ProLeague-Tournament-SC', async function () {
     }
   });
 
+  it('Announce Tournament', async function () {
+    // 4.0.0: winners can only be recorded once the roster is locked.
+    umi.use(keypairIdentity(driver));
+    return sendConfirmBuilder(
+      umi,
+      driver,
+      announceTournament(umi, { driver, tournament }),
+      'Announce Tournament'
+    );
+  });
+
   it('Add Winner', async function () {
     let tempPlayers = [...players].slice(0, totalPlayers / 2);
     let round = Math.log2(totalPlayers);
@@ -787,7 +800,10 @@ describe('ProLeague-Tournament-SC', async function () {
 });
 
 // Cancel Tournament Test Suite
-describe.skip('Cancel Tournament', async function () {
+// 64 paid joins: off by default on devnet, on for scripts/localnet-test.sh.
+const cancelDescribe =
+  process.env.RUN_CANCEL === '1' ? describe : describe.skip;
+cancelDescribe('Cancel Tournament', async function () {
   // Pre - Check
   let isSponsored: boolean = true;
   // Constant
@@ -800,7 +816,7 @@ describe.skip('Cancel Tournament', async function () {
   let sponsor: KeypairSigner;
   let joiningFees: number = 10 * LAMPORTS_PER_SOL;
   // let joiningFees: number = 0;
-  let totalPlayers: number = 64;
+  let totalPlayers: number = Number(process.env.TOTAL_PLAYERS) || 64;
   const platformFeeBps: number = 2000; // 20%, matches the Leaderboard product's rate
   const roundPrizes: number[] = [
     40 * LAMPORTS_PER_SOL,
@@ -891,6 +907,7 @@ describe.skip('Cancel Tournament', async function () {
   it('Initialize Tournament', async function () {
     umi.use(keypairIdentity(driver));
     const sdkFunc = initialize(umi, {
+      treasury: publicKey('9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj'), // dev TREASURY (creation fee)
       driver: driver,
       creatorInfo: creator.publicKey,
       tournamentId,

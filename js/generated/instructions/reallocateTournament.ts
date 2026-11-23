@@ -79,7 +79,7 @@ export function reallocateTournament(
 
   // Accounts.
   const resolvedAccounts = {
-    driver: { index: 0, isWritable: false, value: input.driver ?? null },
+    driver: { index: 0, isWritable: true, value: input.driver ?? null },
     tournament: { index: 1, isWritable: true, value: input.tournament ?? null },
     rentSysvar: {
       index: 2,

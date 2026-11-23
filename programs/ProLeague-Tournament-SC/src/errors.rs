@@ -92,6 +92,37 @@ pub enum TournamentError {
     PrizePoolRequired,
     #[msg("Mint does not match tournament mint")]
     InvalidMint,
+    // 4.0.0 (Adevar pre-audit). Appended so earlier codes keep their numbers.
+    #[msg("Every funded prize seat in this round is already paid")]
+    PrizeSeatsFull,
+    #[msg("Not every funded prize seat in this round has been paid")]
+    PrizeSeatsNotPaid,
+    #[msg("This round already has its full number of advancing winners")]
+    AdvanceLimitReached,
+    #[msg("The winner of the final cannot advance")]
+    CannotAdvanceFromFinal,
+    #[msg("A prize has been paid, so the tournament can no longer be cancelled")]
+    PrizeAlreadyPaid,
+    #[msg("A sponsored tournament must award a prize pool")]
+    SponsoredPrizePoolRequired,
+    #[msg("Winners are recorded, so players can no longer leave")]
+    WinnersRecorded,
+    #[msg("Not enough players to fill every prize round")]
+    InsufficientPlayers,
+    #[msg("Tournament id is too long")]
+    TournamentIdTooLong,
+    #[msg("Sponsorship amount must be greater than zero")]
+    InvalidSponsorAmount,
+    #[msg("Creator token account is required while the escrow holds tokens")]
+    CreatorTokenAccountRequired,
+    #[msg("Escrow holds less than the platform fee owed")]
+    EscrowShortOfFee,
+    #[msg("Tournament is not announced")]
+    TournamentNotAnnounced,
+    #[msg("Winner is recorded in the next round; remove them there first")]
+    WinnerInNextRound,
+    #[msg("Winner is marked as advancing; unmark them first")]
+    WinnerAdvanced,
 }
 
 // Own range so leaderboard codes never collide with TournamentError (6000+).

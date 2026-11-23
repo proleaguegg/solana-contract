@@ -33,7 +33,8 @@ pub struct JoinTournament<'info> {
     pub tournament: Account<'info, Tournament>,
 
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
+        associated_token::mint = mint,
+        associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
     #[account(address = tournament.mint @ TournamentError::InvalidMint)]
@@ -128,7 +129,8 @@ pub struct LeaveTournament<'info> {
     pub tournament: Account<'info, Tournament>,
 
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
+        associated_token::mint = mint,
+        associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
     #[account(address = tournament.mint @ TournamentError::InvalidMint)]
@@ -148,6 +150,14 @@ pub fn leave_tournament(ctx: Context<LeaveTournament>) -> Result<()> {
     if tournament.is_announced {
         return Err(TournamentError::BracketsIsAnnounced.into());
     }
+    // M-04: removing a player shifts indices that recorded winners point at.
+    require!(
+        tournament
+            .rounds
+            .iter()
+            .all(|r| r.winners_and_collected_status.is_empty()),
+        TournamentError::WinnersRecorded
+    );
     // Check the player exist in the players
     if !tournament.players.contains(&player.key()) {
         return Err(TournamentError::PlayerNotExist.into());

@@ -279,6 +279,17 @@ kinobi.update(
 //   },
 //   },
 // }
+// add_winner/remove_winner and mark/unmark share an args struct, so kinobi no
+// longer inlines it by itself. Inline + flatten to keep the flat
+// `{ winner, roundIndex }` API callers already use.
+kinobi.update(
+  new k.UnwrapDefinedTypesVisitor([
+    "addWinnerToRoundArgs",
+    "markWinnerWonNextRoundArgs",
+  ])
+);
+kinobi.update(new k.FlattenInstructionArgsStructVisitor());
+
 // Render JavaScript.
 const jsDir = path.join(clientDir, "js", "generated");
 // const prettier = require(path.join(clientDir, "js", ".prettierrc.json"));

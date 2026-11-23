@@ -20,6 +20,7 @@ import {
   transferTokens,
   createMintWithAssociatedToken,
   createAssociatedToken,
+  createToken,
 } from '@metaplex-foundation/mpl-toolbox';
 
 import { tournamentProgram } from '../plugin.test';
@@ -35,6 +36,10 @@ import {
   sendPrize,
   closeTournament,
   destroyTournament,
+  markWinnerWonNextRound,
+  unmarkWinnerWonNextRound,
+  removeWinner,
+  refundCreatorAndCancelTournament,
   findTournamentPda,
   safeFetchTournament,
   findGlobalPda,
@@ -75,6 +80,9 @@ const TOTAL_BPS = 10_000;
 const FEE_BPS = 2000; // 20%, the rate we plan to ship
 const FEE_BPS_MAX = 3000; // PLATFORM_FEE_BPS_MAX in constant.rs
 const COMMIT = 'confirmed' as const;
+// Balance checks read the processed bank: a 'confirmed' read straight after a
+// confirmed send can still return the previous state on solana-test-validator.
+const READ = { commitment: 'processed' as const };
 const DEV_TREASURY = publicKey('9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj');
 
 // tiny buy-in for the accounting cases (mint is 9-decimals in dev)
@@ -217,6 +225,7 @@ describe('Tournament — edge cases', function () {
     umi.use(keypairIdentity(driver));
     await send(
       initialize(umi, {
+        treasury: publicKey('9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj'), // dev TREASURY (creation fee)
         driver,
         creator,
         creatorInfo: creator.publicKey,
@@ -421,6 +430,10 @@ describe('Tournament — edge cases', function () {
       'join before pause'
     );
     await send(
+      announceTournament(umi, { driver, tournament: t.pda }),
+      'announce'
+    );
+    await send(
       addWinner(umi, {
         tournament: t.pda,
         driver,
@@ -510,6 +523,10 @@ describe('Tournament — edge cases', function () {
       'join'
     );
     await send(
+      announceTournament(umi, { driver, tournament: t.pda }),
+      'announce'
+    );
+    await send(
       addWinner(umi, {
         tournament: t.pda,
         driver,
@@ -557,6 +574,10 @@ describe('Tournament — edge cases', function () {
         mint,
       }),
       'free join'
+    );
+    await send(
+      announceTournament(umi, { driver, tournament: t.pda }),
+      'announce'
     );
     await send(
       addWinner(umi, {
@@ -898,5 +919,556 @@ describe('Tournament — edge cases', function () {
     await publish(t, [0, 0]);
     const acc = await pollT(t.pda, (a) => a.isPublished);
     assert.equal(Number(acc!.pendingFees), 0, 'no pool means no fee');
+  });
+
+  // ===========================================================================
+  // 4.0.0 — regressions for the Adevar pre-audit findings
+  // ===========================================================================
+  describe('audit fixes (4.0.0)', function () {
+    const joinFree = async (t: { pda: Pda }, n: number) => {
+      const players = Array.from({ length: n }, () => generateSigner(umi));
+      umi.use(keypairIdentity(driver));
+      for (const p of players) {
+        await send(
+          joinTournament(umi, {
+            driver,
+            playerInfo: p.publicKey,
+            tournament: t.pda,
+            mint,
+          }),
+          'join'
+        );
+      }
+      return players;
+    };
+    const announce = (t: { pda: Pda }) =>
+      send(announceTournament(umi, { driver, tournament: t.pda }), 'announce');
+    const addW = (t: { pda: Pda }, p: KeypairSigner, roundIndex: number) =>
+      send(
+        addWinner(umi, {
+          tournament: t.pda,
+          driver,
+          winner: p.publicKey,
+          roundIndex,
+        }),
+        `add winner r${roundIndex}`
+      );
+    const pay = (t: { pda: Pda }, p: KeypairSigner, roundIndex: number) =>
+      send(
+        sendPrize(umi, {
+          tournament: t.pda,
+          winner: p.publicKey,
+          driver,
+          mint,
+          roundIndex,
+        }),
+        `send prize r${roundIndex}`
+      );
+    const mark = (t: { pda: Pda }, p: KeypairSigner, roundIndex: number) =>
+      send(
+        markWinnerWonNextRound(umi, {
+          tournament: t.pda,
+          driver,
+          winner: p.publicKey,
+          roundIndex,
+        }),
+        `mark r${roundIndex}`
+      );
+    const unmark = (t: { pda: Pda }, p: KeypairSigner, roundIndex: number) =>
+      send(
+        unmarkWinnerWonNextRound(umi, {
+          tournament: t.pda,
+          driver,
+          winner: p.publicKey,
+          roundIndex,
+        }),
+        `unmark r${roundIndex}`
+      );
+    const remove = (t: { pda: Pda }, p: KeypairSigner, roundIndex: number) =>
+      send(
+        removeWinner(umi, {
+          tournament: t.pda,
+          driver,
+          winner: p.publicKey,
+          roundIndex,
+        }),
+        `remove winner r${roundIndex}`
+      );
+    const sponsorBuilder = (t: { pda: Pda }, amount: number) => {
+      umi.use(keypairIdentity(sponsor));
+      return sendConfirmBuilder(
+        umi,
+        sponsor,
+        sponsorTournament(umi, {
+          driver,
+          sponsor,
+          tournament: t.pda,
+          mint,
+          sponsorAmount: amount,
+        }),
+        'sponsor',
+        COMMIT
+      );
+    };
+    const closeIx = (t: { pda: Pda }) =>
+      closeTournament(umi, {
+        tournament: t.pda,
+        creatorTokenAccount: findAssociatedTokenPda(umi, {
+          mint,
+          owner: creator.publicKey,
+        }),
+        treasury: DEV_TREASURY,
+        driver,
+        mint,
+      });
+    const tokenBalance = async (owner: PublicKey) => {
+      const acc = await fetchToken(
+        umi,
+        findAssociatedTokenPda(umi, { mint, owner }),
+        READ
+      ).catch(() => null);
+      return acc ? Number(acc.amount) : 0;
+    };
+
+    // ---- M-01: the champion is always paid ---------------------------------
+
+    it('M-01: refuses to mark the champion as advancing out of the final', async function () {
+      const t = await initTournament();
+      await publish(t, [0, 0]);
+      const [a] = await joinFree(t, 4);
+      await announce(t);
+      await addW(t, a, 0);
+      await expectTxError(
+        () => mark(t, a, 0),
+        ['CannotAdvanceFromFinal', 'cannot advance', '0x17a0']
+      );
+    });
+
+    it('M-01: refuses to mark a paid winner as advancing', async function () {
+      const t = await initTournament();
+      await publish(t, [0, 0]);
+      const [a, b] = await joinFree(t, 4);
+      await announce(t);
+      await addW(t, a, 1);
+      await addW(t, b, 1);
+      await pay(t, b, 1);
+      await expectTxError(
+        () => mark(t, b, 1),
+        ['AlreadyClaimed', 'already been claimed', '0x1776']
+      );
+    });
+
+    it('M-01: caps advancing winners at half the round, re-marking is a no-op', async function () {
+      const t = await initTournament();
+      await publish(t, [0, 0]);
+      const [a, b] = await joinFree(t, 4);
+      await announce(t);
+      await addW(t, a, 1);
+      await addW(t, b, 1);
+      await mark(t, a, 1);
+      await mark(t, a, 1); // retry of an already-advanced winner succeeds
+      await expectTxError(
+        () => mark(t, b, 1),
+        ['AdvanceLimitReached', 'advancing winners', '0x179f']
+      );
+    });
+
+    // ---- corrections: undo a wrong result without a double payout ----------
+
+    it('corrects a wrong promotion: remove from the next round, unmark, promote the right player', async function () {
+      const t = await initTournament();
+      await publish(t, [0, 0]);
+      const [a, b] = await joinFree(t, 4);
+      await announce(t);
+      await addW(t, a, 1);
+      await addW(t, b, 1);
+      await mark(t, a, 1); // wrong player promoted
+      await addW(t, a, 0); // and recorded in the final
+      await expectTxError(
+        () => unmark(t, a, 1),
+        ['WinnerInNextRound', 'next round', '0x17aa']
+      );
+      await remove(t, a, 0);
+      await remove(t, a, 0); // retry of a removal is a no-op
+      await unmark(t, a, 1);
+      await unmark(t, a, 1); // retry of an unmark is a no-op
+      await mark(t, b, 1); // the advancing seat is free again
+      await addW(t, b, 0);
+      await pay(t, b, 0);
+      await pay(t, a, 1);
+    });
+
+    it('refuses to remove a paid or advancing winner, or to unmark one recorded in the next round', async function () {
+      const t = await initTournament();
+      await publish(t, [0, 0]);
+      const [a, b] = await joinFree(t, 4);
+      await announce(t);
+      await addW(t, a, 1);
+      await addW(t, b, 1);
+      await mark(t, a, 1);
+      await addW(t, a, 0);
+      await pay(t, a, 0);
+      await expectTxError(
+        () => remove(t, a, 1),
+        ['WinnerAdvanced', 'unmark them first', '0x17ab']
+      );
+      await expectTxError(
+        () => remove(t, a, 0),
+        ['AlreadyClaimed', 'already been claimed', '0x1776']
+      );
+      await expectTxError(
+        () => unmark(t, a, 1),
+        ['WinnerInNextRound', 'next round', '0x17aa']
+      );
+      await pay(t, b, 1);
+      await expectTxError(
+        () => remove(t, b, 1),
+        ['AlreadyClaimed', 'already been claimed', '0x1776']
+      );
+    });
+
+    // ---- M-02: never pay more seats than publish funded -------------------
+
+    it('M-02: refuses a second prize in a round that funds one seat', async function () {
+      const t = await initTournament();
+      await createTokenAccount(umi, mint, driver, creator.publicKey);
+      await publish(t, [SMALL_FEE, SMALL_FEE]); // round 1 funds 1 seat
+      const [a, b] = await joinFree(t, 4);
+      await announce(t);
+      await addW(t, a, 1);
+      await addW(t, b, 1);
+      await pay(t, b, 1);
+      await expectTxError(
+        () => pay(t, a, 1),
+        ['PrizeSeatsFull', 'already paid', '0x179d']
+      );
+      // a retry of the paid seat still reports AlreadyClaimed first
+      await expectTxError(
+        () => pay(t, b, 1),
+        ['AlreadyClaimed', 'already been claimed', '0x1776']
+      );
+    });
+
+    it('M-01/M-02: a correctly settled bracket closes with the exact fee', async function () {
+      const t = await initTournament();
+      await createTokenAccount(umi, mint, driver, creator.publicKey);
+      await createTokenAccount(umi, mint, driver, DEV_TREASURY);
+      await publish(t, [2 * SMALL_FEE, SMALL_FEE]); // pool = 2 + 1 = 3
+      const published = await pollT(t.pda, (x) => x.isPublished);
+      const fee = Number(published!.pendingFees);
+      assert.equal(fee, feeOf(3 * SMALL_FEE, FEE_BPS));
+
+      const [champ, runnerUp] = await joinFree(t, 4);
+      await announce(t);
+      await addW(t, champ, 1);
+      await addW(t, runnerUp, 1);
+      await addW(t, champ, 0);
+      await mark(t, champ, 1);
+      await pay(t, champ, 0);
+      await pay(t, runnerUp, 1);
+      assert.equal(await tokenBalance(champ.publicKey), 2 * SMALL_FEE);
+      assert.equal(await tokenBalance(runnerUp.publicKey), SMALL_FEE);
+
+      const treasuryBefore = await tokenBalance(DEV_TREASURY);
+      umi.use(keypairIdentity(driver));
+      await send(closeIx(t), 'close settled bracket');
+      assert.equal(
+        (await tokenBalance(DEV_TREASURY)) - treasuryBefore,
+        fee,
+        'treasury receives exactly pendingFees'
+      );
+      assert.isNull(
+        await safeFetchTournament(umi, t.pda, READ),
+        'account closed'
+      );
+    });
+
+    // ---- M-03: escrow must be the tournament's ATA -------------------------
+
+    it('M-03: rejects a tournament-owned token account that is not its ATA', async function () {
+      const t = await initTournament();
+      const rogue = generateSigner(umi);
+      umi.use(keypairIdentity(driver));
+      await send(
+        createToken(umi, { token: rogue, mint, owner: t.pda[0] }),
+        'non-ATA tournament token account'
+      );
+      umi.use(keypairIdentity(sponsor));
+      await expectTxError(
+        () =>
+          sendConfirmBuilder(
+            umi,
+            sponsor,
+            sponsorTournament(umi, {
+              driver,
+              sponsor,
+              tournament: t.pda,
+              tournamentTokenAccount: rogue.publicKey,
+              mint,
+              sponsorAmount: SMALL_FEE,
+            }),
+            'sponsor into non-ATA escrow',
+            COMMIT
+          ),
+        ['ConstraintAssociated', 'associated constraint', '0x7d9']
+      );
+    });
+
+    // ---- M-04: results only after the roster is locked ---------------------
+
+    it('M-04: refuses to record a winner before announce', async function () {
+      const t = await initTournament();
+      await publish(t, [0, 0]);
+      const [a] = await joinFree(t, 1);
+      await expectTxError(
+        () => addW(t, a, 0),
+        ['TournamentNotAnnounced', 'not announced', '0x17a9']
+      );
+    });
+
+    // ---- M-05: no cancellation or sponsorship once a prize is out ----------
+
+    it('M-05: refuses pause and sponsorship after a prize is paid', async function () {
+      const t = await initTournament();
+      await createTokenAccount(umi, mint, driver, creator.publicKey);
+      await publish(t, [SMALL_FEE, 0]);
+      const [a] = await joinFree(t, 2);
+      await announce(t);
+      await addW(t, a, 0);
+      await pay(t, a, 0);
+      umi.use(keypairIdentity(driver));
+      await expectTxError(
+        () =>
+          send(
+            pauseTournament(umi, { driver, tournament: t.pda, creator }),
+            'pause after prize'
+          ),
+        ['PrizeAlreadyPaid', 'no longer be cancelled', '0x17a1']
+      );
+      await expectTxError(
+        () => sponsorBuilder(t, SMALL_FEE),
+        ['PrizeAlreadyPaid', 'no longer be cancelled', '0x17a1']
+      );
+    });
+
+    // ---- M-06: sponsor money must fund prizes --------------------------------
+
+    it('M-06: refuses to publish a sponsored tournament with no prize pool', async function () {
+      const t = await initTournament();
+      await sponsorBuilder(t, SMALL_FEE);
+      await expectTxError(
+        () => publish(t, [0, 0]),
+        ['SponsoredPrizePoolRequired', 'sponsored tournament', '0x17a2']
+      );
+    });
+
+    it('M-06: refuses to sponsor a published tournament with no prizes', async function () {
+      const t = await initTournament();
+      await publish(t, [0, 0]);
+      await expectTxError(
+        () => sponsorBuilder(t, SMALL_FEE),
+        ['SponsoredPrizePoolRequired', 'sponsored tournament', '0x17a2']
+      );
+    });
+
+    it('refuses a zero sponsorship', async function () {
+      const t = await initTournament();
+      await expectTxError(
+        () => sponsorBuilder(t, 0),
+        ['InvalidSponsorAmount', 'greater than zero', '0x17a6']
+      );
+    });
+
+    // ---- L-01: recovery never closes an escrow that still holds tokens -----
+
+    it('L-01: destroy refuses a funded escrow without the creator token account', async function () {
+      const t = await initTournament();
+      await sponsorBuilder(t, SMALL_FEE);
+      umi.use(keypairIdentity(driver));
+      await expectTxError(
+        () =>
+          send(
+            destroyTournament(umi, {
+              tournament: t.pda,
+              creator: creator.publicKey,
+              authority: driver,
+              programData: umi.eddsa.findPda(
+                publicKey('BPFLoaderUpgradeab1e11111111111111111111111'),
+                [publicKeyBytes(TOURNAMENT_PROGRAM_ID)]
+              ),
+              program: TOURNAMENT_PROGRAM_ID,
+              mint,
+              bump: t.pda[1],
+              tournamentId: t.tournamentId,
+            }),
+            'destroy without creator account'
+          ),
+        ['CreatorTokenAccountRequired', 'escrow holds tokens', '0x17a7']
+      );
+      // teardown passes the creator account and returns the sponsorship
+    });
+
+    // ---- L-02: id length -----------------------------------------------------
+
+    it('L-02: rejects a tournament id over 28 bytes', async function () {
+      umi.use(keypairIdentity(driver));
+      await expectTxError(
+        () =>
+          send(
+            initialize(umi, {
+              treasury: DEV_TREASURY,
+              driver,
+              creator,
+              creatorInfo: creator.publicKey,
+              global,
+              mint,
+              ...initArgs({ tournamentId: 'x'.repeat(29) }),
+            }),
+            '29-byte id'
+          ),
+        ['TournamentIdTooLong', 'id is too long', '0x17a5']
+      );
+    });
+
+    // ---- L-03: announce needs enough players for every prize round ---------
+
+    it('L-03: refuses to announce with fewer players than a prize round seats', async function () {
+      const t = await initTournament();
+      await createTokenAccount(umi, mint, driver, creator.publicKey);
+      await publish(t, [0, SMALL_FEE]); // round 1 seats 2 players
+      await joinFree(t, 1);
+      await expectTxError(
+        () => announce(t),
+        ['InsufficientPlayers', 'Not enough players', '0x17a4']
+      );
+      await joinFree(t, 1);
+      await announce(t);
+    });
+
+    // ---- L-05: driver writable when it is not the fee payer ------------------
+
+    it('L-05: cancels with the creator paying fees and the driver receiving rent', async function () {
+      const t = await initTournament();
+      await createTokenAccount(umi, mint, driver, creator.publicKey);
+      umi.use(keypairIdentity(creator));
+      await sendConfirmBuilder(
+        umi,
+        creator,
+        pauseTournament(umi, { driver, tournament: t.pda, creator }),
+        'pause (creator pays)',
+        COMMIT
+      );
+      const driverBefore = await umi.rpc.getBalance(driver.publicKey, READ);
+      await sendConfirmBuilder(
+        umi,
+        creator,
+        refundCreatorAndCancelTournament(umi, {
+          tournament: t.pda,
+          creatorTokenAccount: findAssociatedTokenPda(umi, {
+            mint,
+            owner: creator.publicKey,
+          }),
+          driver,
+          mint,
+        }),
+        'cancel (creator pays)',
+        COMMIT
+      );
+      const driverAfter = await umi.rpc.getBalance(driver.publicKey, READ);
+      assert.isTrue(
+        driverAfter.basisPoints > driverBefore.basisPoints,
+        'driver receives the closed tournament rent'
+      );
+      assert.isNull(await safeFetchTournament(umi, t.pda, READ));
+      umi.use(keypairIdentity(driver));
+    });
+
+    // ---- L-06: a pre-created escrow ATA does not block initialize ----------
+
+    it('L-06: initializes over an escrow ATA someone created first', async function () {
+      const tournamentId = randomStringGenerator.getRandomString();
+      const pda = findTournamentPda(umi, { tournamentId });
+      umi.use(keypairIdentity(sponsor));
+      await sendConfirmBuilder(
+        umi,
+        sponsor,
+        createAssociatedToken(umi, { mint, owner: pda[0] }),
+        'griefer pre-creates escrow ATA',
+        COMMIT
+      );
+      await initTournament({ tournamentId });
+      assert.isNotNull(await pollT(pda));
+    });
+
+    // ---- creation fee: 0.1 SOL to the treasury for non-whitelisted mints ---
+
+    it('charges a non-whitelisted mint 0.1 SOL, paid to the treasury', async function () {
+      const otherMint = generateSigner(umi);
+      umi.use(keypairIdentity(driver));
+      await send(
+        createMintWithAssociatedToken(umi, {
+          mint: otherMint,
+          owner: creator.publicKey,
+          amount: 0,
+          decimals: 9,
+        }),
+        'non-whitelisted mint'
+      );
+      const tournamentId = randomStringGenerator.getRandomString();
+      const pda = findTournamentPda(umi, { tournamentId });
+      const before = await umi.rpc.getBalance(DEV_TREASURY, READ);
+      await send(
+        initialize(umi, {
+          treasury: DEV_TREASURY,
+          driver,
+          creator,
+          creatorInfo: creator.publicKey,
+          global,
+          mint: otherMint.publicKey,
+          ...initArgs({ tournamentId }),
+        }),
+        'initialize with non-whitelisted mint'
+      );
+      const after = await umi.rpc.getBalance(DEV_TREASURY, READ);
+      assert.equal(
+        Number(after.basisPoints - before.basisPoints),
+        100_000_000,
+        'treasury receives exactly 0.1 SOL'
+      );
+      // unpublished and unsponsored, so close cleans it up
+      await send(
+        closeTournament(umi, {
+          tournament: pda,
+          creatorTokenAccount: findAssociatedTokenPda(umi, {
+            mint: otherMint.publicKey,
+            owner: creator.publicKey,
+          }),
+          treasury: DEV_TREASURY,
+          driver,
+          mint: otherMint.publicKey,
+        }),
+        'close non-whitelisted tournament'
+      );
+    });
+
+    it('rejects a creation fee sent anywhere but the treasury', async function () {
+      umi.use(keypairIdentity(driver));
+      await expectTxError(
+        () =>
+          send(
+            initialize(umi, {
+              treasury: driver.publicKey,
+              driver,
+              creator,
+              creatorInfo: creator.publicKey,
+              global,
+              mint,
+              ...initArgs(),
+            }),
+            'initialize with wrong treasury'
+          ),
+        ['InvalidTreasury', 'does not match program treasury', '0x1795']
+      );
+    });
   });
 });

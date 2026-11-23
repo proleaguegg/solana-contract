@@ -27,8 +27,8 @@ class RandomStringGenerator {
   }
 
   public getRandomString(): string {
-    const randomIndex = Math.floor(Math.random() * this.totalPreGenerated);
-    return this.preGeneratedStrings[randomIndex];
+    // Fresh each call: picking from a fixed pool of 1000 collided within one run.
+    return this.generateString();
   }
 }
 

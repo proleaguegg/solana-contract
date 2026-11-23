@@ -44,6 +44,7 @@ export type InitializeInstructionAccounts = {
   tournament?: PublicKey | Pda;
   tournamentTokenAccount?: PublicKey | Pda;
   mint: PublicKey | Pda;
+  treasury: PublicKey | Pda;
   associatedTokenProgram?: PublicKey | Pda;
   tokenProgram?: PublicKey | Pda;
   systemProgram?: PublicKey | Pda;
@@ -125,18 +126,19 @@ export function initialize(
       value: input.tournamentTokenAccount ?? null,
     },
     mint: { index: 6, isWritable: false, value: input.mint ?? null },
+    treasury: { index: 7, isWritable: true, value: input.treasury ?? null },
     associatedTokenProgram: {
-      index: 7,
+      index: 8,
       isWritable: false,
       value: input.associatedTokenProgram ?? null,
     },
     tokenProgram: {
-      index: 8,
+      index: 9,
       isWritable: false,
       value: input.tokenProgram ?? null,
     },
     systemProgram: {
-      index: 9,
+      index: 10,
       isWritable: false,
       value: input.systemProgram ?? null,
     },

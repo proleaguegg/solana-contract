@@ -7,7 +7,7 @@ Bracket tournaments and time-boxed leaderboards both settle on-chain: entry fees
 Generated from the Anchor IDL with [Kinobi](https://github.com/metaplex-foundation/kinobi), built for [Umi](https://github.com/metaplex-foundation/umi).
 
 - **Program ID:** `matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR`
-- **Clusters:** devnet runs the current release (2.1.1). Mainnet runs an earlier 2024 build; its upgrade to this release is pending.
+- **Clusters:** 4.0.0 is not deployed yet; devnet runs the previous release until its upgrade. Mainnet runs an earlier 2024 build; its upgrade to this release is pending.
 
 ## Install
 
@@ -66,6 +66,7 @@ const tournament = findTournamentPda(umi, { tournamentId });
 
 await initialize(umi, {
   driver,
+  treasury,                      // the program's TREASURY constant (4.0.0)
   creator,                       // signs; pays the fee for a non-whitelisted mint
   creatorInfo: creator.publicKey,
   global: findGlobalPda(umi),
@@ -97,8 +98,11 @@ await publishTournament(umi, {
 ```ts
 import {
   joinTournament,
+  announceTournament,
   addWinner,
   markWinnerWonNextRound,
+  removeWinner,
+  unmarkWinnerWonNextRound,
   sendPrize,
   closeTournament,
 } from '@tanv33/pro-league';
@@ -117,6 +121,9 @@ await joinTournament(umi, {
   mint,
 }).sendAndConfirm(umi);
 
+// Lock the roster; winners can only be recorded after announce (4.0.0).
+await announceTournament(umi, { driver, tournament }).sendAndConfirm(umi);
+
 // Record a result, then flag anyone who advanced so they cannot claim that
 // round's prize — they get paid for the round they are eliminated in.
 await addWinner(umi, { tournament, driver, winner, roundIndex: 0 })
@@ -124,11 +131,19 @@ await addWinner(umi, { tournament, driver, winner, roundIndex: 0 })
 await markWinnerWonNextRound(umi, { tournament, driver, winner, roundIndex: 1 })
   .sendAndConfirm(umi);
 
+// Wrong result? Undo it from the top down, then record the right one:
+// removeWinner in the next round, then unmarkWinnerWonNextRound here.
+await removeWinner(umi, { tournament, driver, winner, roundIndex: 0 })
+  .sendAndConfirm(umi);
+await unmarkWinnerWonNextRound(umi, { tournament, driver, winner, roundIndex: 1 })
+  .sendAndConfirm(umi);
+
 await sendPrize(umi, { tournament, driver, winner, mint, roundIndex: 0 })
   .sendAndConfirm(umi);
 
 // Sweeps the platform fee to the treasury, the remainder to the creator, and
-// closes the escrow. Every recorded entry must be paid or advanced first.
+// closes the escrow. Every funded prize seat must be paid first: 1 for the
+// final and runner-up rounds, then 2, 4, 8, … (see Fees and refunds).
 await closeTournament(umi, {
   tournament,
   creatorTokenAccount: findAssociatedTokenPda(umi, {
@@ -177,6 +192,7 @@ const leaderboard = findLeaderboardPda(umi, { leaderboardId });
 
 await initializeLeaderboard(umi, {
   driver,
+  treasury,                      // the program's TREASURY constant (4.0.0)
   creator,                       // signs; required for a non-whitelisted mint
   creatorInfo: creator.publicKey,
   leaderboardId,                 // max 28 chars
@@ -255,12 +271,37 @@ Codes worth handling explicitly:
 | `InsufficientCreatorFunds` | creator cannot cover `pool + fee` at publish |
 | `PrizePoolRequired` | an entry fee with no prize pool |
 | `PrizeNotClaimed` | closing while a winner is still owed a prize |
+| `PrizeSeatsNotPaid` | closing before every funded prize seat is paid (retryable) |
+| `PrizeSeatsFull` | paying more winners in a round than publish funded |
+| `AdvanceLimitReached` | marking more than half of a round as advancing |
+| `TournamentNotAnnounced` | `addWinner` before `announceTournament` |
+| `WinnerInNextRound` | `unmarkWinnerWonNextRound` while the player is still recorded in the next round |
+| `WinnerAdvanced` | `removeWinner` on a winner still marked as advancing |
 | `InvalidTreasury` | treasury account does not match the program constant |
 | `WinnerAlreadyPaid` | leaderboard slot already paid |
 | `ParticipantAlreadyPaid` | leaderboard participant already received a slot |
 | `CleanupNotComplete` | `closeLeaderboard` before every participant/sponsor account was cleaned up |
 
 Duplicate refunds surface as Anchor's `AccountNotInitialized` (`3012`), because the participant/sponsor account is closed on a successful refund.
+
+## Changes in 4.0.0
+
+Fixes from the Adevar Labs pre-audit. New errors are appended (6045–6059), so every earlier code keeps its number.
+
+- **Breaking:** `initialize` and `initializeLeaderboard` take a **`treasury`** account (the program's `TREASURY` constant; anything else fails with `InvalidTreasury`). The non-whitelisted-mint creation fee rises from 0.001 SOL to the driver to **0.1 SOL to the treasury**. Whitelisted mints still pay nothing.
+- `sendPrize` pays at most the seats publish funded for a round (1 for the final, half the round otherwise); one more fails with `PrizeSeatsFull` (6045). An unknown winner fails with `PlayerNotFound`, an out-of-range round with `InvalidRound`, instead of panicking.
+- `markWinnerWonNextRound` rejects the final (`CannotAdvanceFromFinal`, 6048), an already-paid winner (`AlreadyClaimed`), and more than half the round advancing (`AdvanceLimitReached`, 6047). Re-marking an advanced winner is still a no-op.
+- `closeTournament` requires every funded seat in each priced round to be paid (`PrizeSeatsNotPaid`, 6046 — retryable, like `PrizeNotClaimed`) and fails with `EscrowShortOfFee` (6056) instead of silently shorting the treasury.
+- `publishTournament` on a sponsored tournament with no prize pool fails with `SponsoredPrizePoolRequired` (6050). `sponsorTournament` fails the same way on a published tournament without prizes, and with `InvalidSponsorAmount` (6054) for a zero amount.
+- **Breaking:** `addWinner` requires the tournament to be announced (`TournamentNotAnnounced`, 6057).
+- New `removeWinner` and `unmarkWinnerWonNextRound` (driver) correct a wrong result. `removeWinner` refuses a paid winner (`AlreadyClaimed`) or one still marked as advancing (`WinnerAdvanced`, 6059). `unmarkWinnerWonNextRound` refuses while the player is recorded in the next round (`WinnerInNextRound`, 6058), so a corrected player can never be paid twice. Both are no-ops when already undone.
+- `pauseTournament` fails with `PrizeAlreadyPaid` (6049) once any prize has been paid, and so does `sponsorTournament` (the sponsorship could no longer be refunded).
+- `leaveTournament` fails with `WinnersRecorded` (6051) once any winner is recorded.
+- `announceTournament` fails with `InsufficientPlayers` (6052) when there are fewer players than the deepest priced round seats.
+- `initialize` rejects a `tournamentId` over 28 bytes (`TournamentIdTooLong`, 6053). Both initialize instructions now succeed if the escrow token account was created beforehand.
+- `destroyTournament` with a non-empty escrow and no creator token account fails with `CreatorTokenAccountRequired` (6055) instead of closing with tokens inside.
+- `publishLeaderboard` after `startTimestamp` fails with `StartTimeInPast`. The driver alone can now `cancelLeaderboard` a Draft.
+- `refundCreatorAndCancelTournament` and `reallocateTournament` mark `driver` writable (it receives / pays rent).
 
 ## Changes in 3.1.0
 

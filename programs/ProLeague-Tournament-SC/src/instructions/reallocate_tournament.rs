@@ -5,7 +5,8 @@ use {
 
 #[derive(Accounts)]
 pub struct ReallocateTournament<'info> {
-    #[account(constraint = driver.key().eq(&DRIVER))]
+    // L-05: pays the realloc rent, so it must be writable.
+    #[account(mut, constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
     #[account(mut)]

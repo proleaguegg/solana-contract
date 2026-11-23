@@ -270,6 +270,7 @@ describe('Leaderboard — paid buy-ins', function () {
       umi,
       driver,
       initializeLeaderboard(umi, {
+        treasury: publicKey('9wep76Bp7V9heNCdtBkoWq5KzxskTnGiQj1niqwcxofj'), // dev TREASURY (creation fee)
         driver,
         creator,
         creatorInfo: creator.publicKey,

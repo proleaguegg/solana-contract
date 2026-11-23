@@ -4,12 +4,12 @@ On-chain tournament and leaderboard settlement for competitive gaming, built on 
 
 | | |
 |---|---|
-| **Release** | 3.1.0 |
+| **Release** | 4.0.0 |
 | **Program ID** | `matchNmUczmPKteQb9BJ8gRgafaQpDh2oDZJGuLsHfR` |
 | **Framework** | Anchor 0.29.0 (Rust), `solana-program` 1.17.4 |
-| **Size** | ~3,700 lines of Rust, 31 instructions |
-| **Audit** | Not independently audited |
-| **Devnet** | Runs this release; used by the live ProLeague app |
+| **Size** | ~4,100 lines of Rust, 34 instructions |
+| **Audit** | Adevar Labs pre-audit (AIP-20261110-PROLEAGUE) findings fixed in 4.0.0; re-review pending |
+| **Devnet** | Runs the previous release; used by the live ProLeague app. Upgrade to 4.0.0 pending |
 | **Mainnet** | Deployed; runs an earlier 2024 build. Upgrade to this release pending |
 
 ## Crypto World's Fair
@@ -48,6 +48,8 @@ Cancellation: `pause → refund_joining_fees + refund_sponsor → refund_creator
 
 - A prize is paid **at most once per round and winner**. `send_prize` sets the winner's `claimed` flag before the token transfer and returns `AlreadyClaimed` on a second attempt.
 - A winner who advanced cannot be paid an earlier round's prize (`WonNextRound`).
+- Each round pays at most the seats publish funded (1, 1, 2, 4, …) and can mark at most that many winners as advancing; the champion cannot advance out of the final, and `close_tournament` requires every funded seat to be paid (4.0.0).
+- Winners can only be recorded after `announce_tournament`, players cannot leave once a winner is recorded, and a tournament cannot be paused or sponsored once a prize is paid (4.0.0).
 - No prize can be paid while a tournament is paused, so escrow owed back to players cannot be drained mid-cancellation.
 - Players can only join between `publish_tournament` and `announce_tournament` (2.2.0), so a join can't block publish and nobody is locked into an announced bracket they can't leave.
 - A tournament takes one sponsorship, and `sponsor_tournament` requires the operator's co-signature (2.2.0), so the sponsor slot can't be squatted by a third party.
@@ -61,6 +63,7 @@ Cancellation: `pause → refund_joining_fees + refund_sponsor → refund_creator
 - A single **operator ("driver") key** reports winners and triggers payouts. It is a compile-time constant in `constant.rs`, selected by the `prod` Cargo feature. Rotating it requires a program upgrade.
 - The program does **not** verify match outcomes. Winners are reported by the operator, so result integrity depends on that key and on the off-chain system behind it.
 - `send_prize` only pays a wallet the operator recorded as a winner from the enrolled players.
+- The operator can correct a wrong result with `remove_winner` and `unmark_winner_won_next_round` (4.0.0). A paid winner can't be removed, and a promotion can't be undone while the player is recorded in the next round, so a correction can't pay one player twice.
 - Recovery instructions are held by the **program upgrade authority**, not the operator key (3.0.0): `transpose_tournament_player` / `transpose_tournament_creator` replace a player's or the creator's wallet, and `destroy_tournament` sweeps a tournament's whole escrow (including any booked fee) to the creator recorded on the tournament and closes it. A leaked operator key cannot call them.
 - `send_prize_leaderboard` pays slots in strict order, only to enrolled participants, and at most one slot per participant (3.0.0, `prize_paid` flag). Which participant gets which slot is still the operator's call. The operator co-signs joins, so it could enroll several wallets of its own; that is part of trusting the operator key.
 - The program upgrade authority can replace the program and holds the recovery instructions above. Mainnet is planned to put it behind a multisig.
@@ -78,6 +81,7 @@ fee  = floor(pool × platformFeeBps / 10,000)
 - Entry fees and sponsorships are **not** fee'd. Entry fees go to the creator at close. A sponsorship made before publish counts toward funding `pool + fee`; one made after publish goes to the creator at close. Both return whole on a refund.
 - `pending_fees` is paid to the treasury at `close_tournament`.
 - The fee math is checked arithmetic with unit tests in `src/utils/helper.rs`.
+- Creating a tournament or leaderboard with a mint not on the `Global` whitelist costs 0.1 SOL, paid to the treasury (4.0.0).
 
 **Leaderboards.** Each buy-in and sponsorship is split on arrival into prize pool and `pending_fees` at `platform_fee_bps`. Fees are swept to the treasury at `conclude_leaderboard`; a cancelled leaderboard refunds the full amount, fee included. Payout slots are paid in strict order, and rounding dust goes to the treasury at close. Before close, the operator closes every participant and sponsor account (refund on cancel, `cleanup_leaderboard` after payout), so a leaderboard leaves no rent behind.
 
@@ -87,14 +91,14 @@ Suggested reading order, by where value moves:
 
 | File | Lines | Why |
 |---|---|---|
-| `instructions/prize_instructions.rs` | 107 | `send_prize`: the payout path and its once-only guard |
-| `instructions/tournament_instructions.rs` | 541 | `publish` (pool, fee, funding) and `close` (fee sweep, remainder) |
+| `instructions/prize_instructions.rs` | 115 | `send_prize`: the payout path and its once-only guard |
+| `instructions/tournament_instructions.rs` | 602 | `publish` (pool, fee, funding) and `close` (fee sweep, remainder) |
 | `utils/helper.rs` | 227 | Weighted pool and fee math, with unit tests |
-| `instructions/join_tournament.rs` | 193 | Entry, leave, and fee unwinding |
-| `instructions/cancel_tournament.rs`, `destroy_tournament.rs` | 288, 156 | Refund and cancellation paths; authority-only recovery |
-| `instructions/winner_instructions.rs`, `transpose_tournament.rs` | 112, 113 | Winner reporting, `won_next_round`, authority-only wallet recovery |
+| `instructions/join_tournament.rs` | 203 | Entry, leave, and fee unwinding |
+| `instructions/cancel_tournament.rs`, `destroy_tournament.rs` | 301, 161 | Refund and cancellation paths; authority-only recovery |
+| `instructions/winner_instructions.rs`, `transpose_tournament.rs` | 185, 113 | Winner reporting and corrections, `won_next_round`, authority-only wallet recovery |
 | `instructions/leaderboard_*.rs` | ~1,200 | Leaderboard lifecycle, sponsorship, conclude, payout slots, cleanup |
-| `constant.rs`, `errors.rs`, `state/` | 88, 179, ~290 | Caps, keys, error codes, account layouts |
+| `constant.rs`, `errors.rs`, `state/` | 88, 206, ~310 | Caps, keys, error codes, account layouts |
 
 All paths are under `programs/ProLeague-Tournament-SC/src/`.
 
@@ -114,7 +118,7 @@ Integration suites live in `tests/` and run against devnet. They read wallets an
 
 ## Known limitations
 
-- **Not audited.** This is the version we are submitting for review.
+- **Not fully audited.** 4.0.0 fixes the Adevar Labs pre-audit findings; the fixes have not been re-reviewed yet.
 - **Single operator key**, compile-time and rotatable only by upgrade. It reports winners and triggers payouts, so a leaked key can misdirect prizes, but it has no recovery powers (see [Trust model](#trust-model)).
 - **The upgrade authority is the last line of recovery.** It can replace the program and holds `destroy_tournament` / `transpose_*`. Until it moves behind a multisig, it is a single key.
 - **Winner reporting is trusted input**; the program does not verify match results.

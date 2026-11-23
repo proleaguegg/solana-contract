@@ -27,6 +27,15 @@ pub fn pause_tournament(ctx: Context<PauseTournament>) -> Result<()> {
         return Err(TournamentError::OnlyCreatorCanPause.into());
     }
 
+    // M-05: once a prize is out the escrow can no longer refund everyone.
+    require!(
+        !tournament
+            .rounds
+            .iter()
+            .any(|r| r.winning_price > 0 && r.claimed_count() > 0),
+        TournamentError::PrizeAlreadyPaid
+    );
+
     tournament.is_paused = true;
 
     Ok(())
@@ -53,7 +62,8 @@ pub struct RefundJoiningFees<'info> {
     pub tournament: Account<'info, Tournament>,
 
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
+        associated_token::mint = mint,
+        associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
     #[account(address = tournament.mint @ TournamentError::InvalidMint)]
@@ -141,7 +151,8 @@ pub struct RefundSponsor<'info> {
     pub tournament: Account<'info, Tournament>,
 
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
+        associated_token::mint = mint,
+        associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
     #[account(address = tournament.mint @ TournamentError::InvalidMint)]
@@ -209,7 +220,8 @@ pub struct RefundCreatorAndCancelTournament<'info> {
     pub tournament: Account<'info, Tournament>,
 
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
+        associated_token::mint = mint,
+        associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
 
@@ -218,7 +230,8 @@ pub struct RefundCreatorAndCancelTournament<'info> {
      )]
     pub creator_token_account: Account<'info, TokenAccount>,
 
-    #[account(constraint = driver.key().eq(&DRIVER))]
+    // L-05: receives the closed tournament's rent, so it must be writable.
+    #[account(mut, constraint = driver.key().eq(&DRIVER))]
     pub driver: Signer<'info>,
 
     #[account(address = tournament.mint @ TournamentError::InvalidMint)]

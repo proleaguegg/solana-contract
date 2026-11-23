@@ -39,7 +39,9 @@ pub struct Initialize<'info> {
     )]
     pub tournament: Account<'info, Tournament>,
 
-    #[account(init,
+    // init_if_needed: anyone can pre-create this ATA (it is derivable from the
+    // id), and a plain init would then refuse to create the tournament (L-06).
+    #[account(init_if_needed,
         payer = driver,
         associated_token::mint = mint,
         associated_token::authority = tournament,
@@ -47,6 +49,9 @@ pub struct Initialize<'info> {
     pub tournament_token_account: Account<'info, TokenAccount>,
     #[account()]
     pub mint: Account<'info, Mint>,
+    /// CHECK: must equal TREASURY; receives the non-whitelisted creation fee
+    #[account(mut, address = TREASURY @ TournamentError::InvalidTreasury)]
+    pub treasury: AccountInfo<'info>,
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
     pub system_program: Program<'info, System>,
@@ -65,13 +70,19 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     let tournament = &mut ctx.accounts.tournament;
     let global = &mut ctx.accounts.global;
     let creator = &ctx.accounts.creator_info;
-    let driver = &ctx.accounts.driver;
     let mint = &ctx.accounts.mint;
     tournament.set_defaults();
 
     require!(
         data.platform_fee_bps <= PLATFORM_FEE_BPS_MAX,
         TournamentError::InvalidFee
+    );
+
+    // Tournament::LEN reserves 28 id bytes; a longer id leaves too little room
+    // to record winners on the smallest bracket (L-02).
+    require!(
+        data.tournament_id.len() <= 28,
+        TournamentError::TournamentIdTooLong
     );
 
     // The bracket only works on a power of two: the account is sized with
@@ -86,12 +97,17 @@ pub fn initialize(ctx: Context<Initialize>, data: ArgumentInitialize) -> Result<
     if !global.whitelist_mint.contains(&mint.key()) {
         require!(creator.is_signer, TournamentError::CreatorMustBeSigner);
         // Instruction handler to perform the SOL transfer
-        let ix = transfer(&creator.key(), &driver.key(), NON_WHITELISTED_CREATION_FEE);
+        let treasury = &ctx.accounts.treasury;
+        let ix = transfer(
+            &creator.key(),
+            &treasury.key(),
+            NON_WHITELISTED_CREATION_FEE,
+        );
         invoke(
             &ix,
             &[
                 creator.to_account_info(),
-                driver.to_account_info(),
+                treasury.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
             ],
         )?;
@@ -127,7 +143,8 @@ pub struct PublishTournament<'info> {
     pub tournament: Account<'info, Tournament>,
 
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
+        associated_token::mint = mint,
+        associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
 
@@ -224,6 +241,11 @@ pub fn publish_tournament(
         total_prize_sum > 0 || tournament.joining_fees == 0,
         TournamentError::PrizePoolRequired
     );
+    // M-06: sponsor money must fund prizes, not fall through to the creator.
+    require!(
+        total_prize_sum > 0 || tournament.sponsor_amount == 0,
+        TournamentError::SponsoredPrizePoolRequired
+    );
 
     // Initialize rounds based on total players
     tournament.rounds = Vec::with_capacity(num_rounds as usize);
@@ -297,7 +319,8 @@ pub struct SponsorTournament<'info> {
     pub tournament: Account<'info, Tournament>,
 
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
+        associated_token::mint = mint,
+        associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
 
@@ -342,6 +365,26 @@ pub fn sponsor_tournament(
         return Err(TournamentError::TournamentAlreadySponsored.into());
     }
 
+    // A zero sponsorship would mark nothing and let a second one in later.
+    require!(sponsor_amount > 0, TournamentError::InvalidSponsorAmount);
+
+    // M-06: once published the prize ladder is fixed; sponsoring a ladder with
+    // no prizes would only ever pay the creator.
+    require!(
+        !tournament.is_published || tournament.rounds.iter().any(|r| r.winning_price > 0),
+        TournamentError::SponsoredPrizePoolRequired
+    );
+
+    // M-05: once a prize is paid, pause is blocked, so this money could never be
+    // refunded and would sweep to the creator at close.
+    require!(
+        !tournament
+            .rounds
+            .iter()
+            .any(|r| r.winning_price > 0 && r.claimed_count() > 0),
+        TournamentError::PrizeAlreadyPaid
+    );
+
     // Transfer the escrow balance from the sponsor to the new account (vault)
     let cpi_ctx = CpiContext::new(
         ctx.accounts.token_program.to_account_info().clone(),
@@ -371,7 +414,8 @@ pub struct CloseTournament<'info> {
     pub tournament: Account<'info, Tournament>,
 
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
+        associated_token::mint = mint,
+        associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
 
@@ -451,6 +495,11 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
                     return Err(TournamentError::PrizeNotClaimed.into());
                 }
             }
+            // M-01/M-02: exactly the funded seats were paid — the rest advanced.
+            require!(
+                round.claimed_count() == round.funded_seats(),
+                TournamentError::PrizeSeatsNotPaid
+            );
         }
     }
 
@@ -458,10 +507,13 @@ pub fn close_tournament(ctx: Context<CloseTournament>) -> Result<()> {
     let total_balance = tournament_token_account.amount;
 
     // Sweep the platform's cut first, then whatever's left goes to the creator.
-    // Clamp to total_balance as a belt-and-braces guard — bookkeeping should
-    // always keep pending_fees <= total_balance, this just stops an underflow
-    // panic if it ever drifted.
-    let fee_amount = tournament.pending_fees.min(total_balance);
+    // An escrow short of the fee means prizes overpaid; fail rather than
+    // silently short the treasury.
+    require!(
+        total_balance >= tournament.pending_fees,
+        TournamentError::EscrowShortOfFee
+    );
+    let fee_amount = tournament.pending_fees;
     let remaining_balance = total_balance - fee_amount;
     tournament.pending_fees = 0;
 
@@ -534,6 +586,15 @@ pub fn announce_tournament(ctx: Context<AnnounceTournament>) -> Result<()> {
         tournament.is_published,
         TournamentError::TournamentNotPublished
     );
+
+    // L-03: round i seats 2^i players, so every priced round needs that many
+    // players or its prizes can never all be paid and close would be blocked.
+    if let Some(deepest) = tournament.rounds.iter().rposition(|r| r.winning_price > 0) {
+        require!(
+            tournament.players.len() >= 1usize << deepest,
+            TournamentError::InsufficientPlayers
+        );
+    }
 
     tournament.is_announced = true;
     msg!("Tournament has been announced");

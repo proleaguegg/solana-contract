@@ -57,8 +57,10 @@ pub struct InitializeLeaderboard<'info> {
     )]
     pub leaderboard: Account<'info, Leaderboard>,
 
+    // L-06: anyone can pre-create this ATA (its address is public), which
+    // with plain `init` would block the leaderboard from ever being created.
     #[account(
-        init,
+        init_if_needed,
         payer = driver,
         associated_token::mint = mint,
         associated_token::authority = leaderboard,
@@ -66,6 +68,10 @@ pub struct InitializeLeaderboard<'info> {
     pub leaderboard_token_account: Account<'info, TokenAccount>,
 
     pub mint: Account<'info, Mint>,
+
+    /// CHECK: must equal TREASURY; receives the non-whitelisted creation fee
+    #[account(mut, address = TREASURY @ LeaderboardError::InvalidTreasury)]
+    pub treasury: AccountInfo<'info>,
 
     pub associated_token_program: Program<'info, AssociatedToken>,
     pub token_program: Program<'info, Token>,
@@ -135,14 +141,14 @@ pub fn initialize_leaderboard(
 
         let ix = transfer(
             &creator.key(),
-            &ctx.accounts.driver.key(),
+            &ctx.accounts.treasury.key(),
             NON_WHITELISTED_CREATION_FEE,
         );
         invoke(
             &ix,
             &[
                 creator.to_account_info(),
-                ctx.accounts.driver.to_account_info(),
+                ctx.accounts.treasury.to_account_info(),
                 ctx.accounts.system_program.to_account_info(),
             ],
         )?;
@@ -195,6 +201,11 @@ pub fn publish_leaderboard(ctx: Context<PublishLeaderboard>) -> Result<()> {
     let lb = &mut ctx.accounts.leaderboard;
     match lb.state {
         LeaderboardState::Draft => {
+            // Publishing after start would open registration mid-window.
+            require!(
+                Clock::get()?.unix_timestamp < lb.start_timestamp,
+                LeaderboardError::StartTimeInPast
+            );
             lb.state = LeaderboardState::Open;
             Ok(())
         }
@@ -230,7 +241,11 @@ pub fn cancel_leaderboard(ctx: Context<CancelLeaderboard>) -> Result<()> {
         LeaderboardState::Concluded => {
             return Err(LeaderboardError::LeaderboardAlreadyConcluded.into())
         }
-        LeaderboardState::Draft => return Err(LeaderboardError::LeaderboardNotOpen.into()),
+        // L-04: a Draft holds no funds, so the driver alone may retire it.
+        LeaderboardState::Draft => {
+            lb.state = LeaderboardState::Cancelled;
+            return Ok(());
+        }
     }
 
     let now = Clock::get()?.unix_timestamp;

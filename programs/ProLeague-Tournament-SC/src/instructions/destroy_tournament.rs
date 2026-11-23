@@ -21,7 +21,8 @@ pub struct DestroyTournament<'info> {
     pub tournament: AccountInfo<'info>,
 
     #[account(mut,
-        constraint = tournament_token_account.mint == mint.key() && tournament_token_account.owner == tournament.key(),
+        associated_token::mint = mint,
+        associated_token::authority = tournament,
     )]
     pub tournament_token_account: Account<'info, TokenAccount>,
 
@@ -106,19 +107,23 @@ pub fn destroy_tournament(
     let cpi_signer = &[&tournament_seed[..]];
 
     if remaining_balance > 0 {
-        if let Some(creator_account) = creator_token_account {
-            // Transfer the escrow balance from the tournament to the creator (vault)
-            let cpi_ctx = CpiContext::new_with_signer(
-                ctx.accounts.token_program.to_account_info().clone(),
-                Transfer {
-                    from: tournament_token_account.to_account_info(),
-                    to: creator_account.to_account_info(),
-                    authority: tournament_acc_info.to_account_info(),
-                },
-                cpi_signer,
-            );
-            anchor_spl::token::transfer(cpi_ctx, remaining_balance)?;
-        }
+        // Without this, an omitted creator account skipped the transfer and the
+        // close below handed a native-mint (wrapped SOL) balance to the
+        // authority instead of the creator (L-01).
+        let creator_account = creator_token_account
+            .as_ref()
+            .ok_or(TournamentError::CreatorTokenAccountRequired)?;
+        // Transfer the escrow balance from the tournament to the creator (vault)
+        let cpi_ctx = CpiContext::new_with_signer(
+            ctx.accounts.token_program.to_account_info().clone(),
+            Transfer {
+                from: tournament_token_account.to_account_info(),
+                to: creator_account.to_account_info(),
+                authority: tournament_acc_info.to_account_info(),
+            },
+            cpi_signer,
+        );
+        anchor_spl::token::transfer(cpi_ctx, remaining_balance)?;
     }
 
     // Close Tournament Token Account
